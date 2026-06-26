@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Users, CalendarDays, Box, PlayCircle, ArrowRight } from "lucide-react";
 
@@ -16,7 +17,7 @@ export default function HeroSection() {
             <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/50 to-slate-900/10 z-10 pointer-events-none"></div>
             <iframe
               className="absolute top-1/2 left-1/2 w-[150vw] h-[150vh] -translate-x-1/2 -translate-y-1/2 opacity-60 pointer-events-none"
-              src="https://www.youtube.com/embed/aze3mZUis6M?autoplay=1&mute=1&controls=0&disablekb=1&loop=1&playlist=aze3mZUis6M&playsinline=1"
+              src="https://www.youtube.com/embed/aze3mZUis6M?autoplay=1&mute=1&controls=0&disablekb=1&loop=1&playlist=aze3mZUis6M&playsinline=1&start=36"
               allow="autoplay; encrypted-media"
               allowFullScreen
             ></iframe>
@@ -83,7 +84,7 @@ export default function HeroSection() {
             >
               <div className="relative rounded-[2.5rem] overflow-hidden aspect-[4/5] shadow-2xl">
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent z-10"></div>
-                <div className="w-full h-full bg-slate-200"></div>
+                <Image src="/assets/hero img 1.jpg" fill alt="Corporate Event" className="object-cover" priority />
                 <div className="absolute bottom-8 left-8 right-8 z-20">
                   <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6">
                     <h3 className="text-xl font-bold text-white mb-2 drop-shadow-md">Corporate Event</h3>

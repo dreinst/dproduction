@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Eye, EyeOff, Lock, User, ArrowRight } from "lucide-react";
 
 const USERS = [
@@ -64,9 +65,13 @@ export default function AdminLoginPage() {
       <div className="relative z-10 w-full max-w-md px-6">
         {/* Logo / Brand */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl shadow-lg shadow-blue-500/25 mb-5">
-            <span className="text-white text-2xl font-extrabold">D&apos;</span>
-          </div>
+          <Image
+            src="/logo-dpro.png"
+            alt="D'Production Logo"
+            width={72}
+            height={72}
+            className="mx-auto rounded-2xl mb-5 object-contain"
+          />
           <h1 className="text-white text-3xl font-extrabold tracking-tight">
             Management Page
           </h1>

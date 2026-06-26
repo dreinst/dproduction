@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import NextImage from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -102,9 +103,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Logo area */}
       <div className="p-5 flex items-center justify-between border-b border-slate-100">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl flex items-center justify-center shadow-md shadow-blue-600/20">
-            <span className="text-white text-sm font-extrabold">D&apos;</span>
-          </div>
+          <NextImage
+            src="/logo-dpro.png"
+            alt="D'Production Logo"
+            width={44}
+            height={44}
+            className="rounded-xl object-contain"
+          />
           <div>
             <div className="text-slate-800 font-bold text-sm tracking-tight">
               D&apos;Production
