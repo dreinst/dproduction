@@ -96,14 +96,14 @@ export default function HeroSection() {
               <motion.div 
                 animate={{ y: [-10, 10, -10] }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-6 -right-6 lg:-right-12 bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl flex items-center gap-4 z-30 shadow-xl"
+                className="absolute -top-6 -right-6 lg:-right-12 gradient-bg p-4 rounded-2xl flex items-center gap-4 z-30 shadow-lg shadow-blue-500/30"
               >
-                <div className="w-12 h-12 gradient-bg rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-white shadow-inner">
                   <CalendarDays className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-xs text-slate-300 font-medium">Pengalaman</p>
-                  <p className="text-lg font-bold text-white drop-shadow-sm">10+ Tahun</p>
+                  <p className="text-xs text-white/80 font-medium">Pengalaman</p>
+                  <p className="text-lg font-bold text-white">10+ Tahun</p>
                 </div>
               </motion.div>
             </motion.div>
@@ -116,34 +116,34 @@ export default function HeroSection() {
       <div className="py-12 bg-white border-y border-slate-100">
         <div className="container mx-auto px-4 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto bg-blue-50 rounded-2xl flex items-center justify-center mb-4 text-blue-600">
+            <Link href="/klien" className="group block text-center p-6 -m-6 rounded-3xl hover:bg-slate-50 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 border border-transparent hover:border-slate-100">
+              <div className="w-16 h-16 mx-auto bg-blue-50 group-hover:bg-blue-600 rounded-2xl flex items-center justify-center mb-4 text-blue-600 group-hover:text-white transition-colors duration-300 shadow-sm">
                 <Users className="w-8 h-8" />
               </div>
-              <h4 className="text-4xl font-extrabold text-slate-900 mb-2">17+</h4>
-              <p className="text-slate-500 font-medium">Klien Perusahaan</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto bg-green-50 rounded-2xl flex items-center justify-center mb-4 text-green-600">
+              <h4 className="text-4xl font-extrabold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">17+</h4>
+              <p className="text-slate-500 font-medium">Klien</p>
+            </Link>
+            <Link href="/detail-event" className="group block text-center p-6 -m-6 rounded-3xl hover:bg-slate-50 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 border border-transparent hover:border-slate-100">
+              <div className="w-16 h-16 mx-auto bg-green-50 group-hover:bg-green-600 rounded-2xl flex items-center justify-center mb-4 text-green-600 group-hover:text-white transition-colors duration-300 shadow-sm">
                 <CalendarDays className="w-8 h-8" />
               </div>
-              <h4 className="text-4xl font-extrabold text-slate-900 mb-2">47+</h4>
-              <p className="text-slate-500 font-medium">Masterpiece Event</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto bg-purple-50 rounded-2xl flex items-center justify-center mb-4 text-purple-600">
+              <h4 className="text-4xl font-extrabold text-slate-900 mb-2 group-hover:text-green-600 transition-colors">47+</h4>
+              <p className="text-slate-500 font-medium">Event</p>
+            </Link>
+            <Link href="/katalog" className="group block text-center p-6 -m-6 rounded-3xl hover:bg-slate-50 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 border border-transparent hover:border-slate-100">
+              <div className="w-16 h-16 mx-auto bg-purple-50 group-hover:bg-purple-600 rounded-2xl flex items-center justify-center mb-4 text-purple-600 group-hover:text-white transition-colors duration-300 shadow-sm">
                 <Box className="w-8 h-8" />
               </div>
-              <h4 className="text-4xl font-extrabold text-slate-900 mb-2">2+</h4>
-              <p className="text-slate-500 font-medium">Layanan & Rental</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto bg-orange-50 rounded-2xl flex items-center justify-center mb-4 text-orange-600">
+              <h4 className="text-4xl font-extrabold text-slate-900 mb-2 group-hover:text-purple-600 transition-colors">5+</h4>
+              <p className="text-slate-500 font-medium">Kategori Rental</p>
+            </Link>
+            <Link href="/team" className="group block text-center p-6 -m-6 rounded-3xl hover:bg-slate-50 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 border border-transparent hover:border-slate-100">
+              <div className="w-16 h-16 mx-auto bg-orange-50 group-hover:bg-orange-600 rounded-2xl flex items-center justify-center mb-4 text-orange-600 group-hover:text-white transition-colors duration-300 shadow-sm">
                 <Users className="w-8 h-8" />
               </div>
-              <h4 className="text-4xl font-extrabold text-slate-900 mb-2">179+</h4>
-              <p className="text-slate-500 font-medium">Tim Profesional</p>
-            </div>
+              <h4 className="text-4xl font-extrabold text-slate-900 mb-2 group-hover:text-orange-600 transition-colors">179+</h4>
+              <p className="text-slate-500 font-medium">Member</p>
+            </Link>
           </div>
         </div>
       </div>
