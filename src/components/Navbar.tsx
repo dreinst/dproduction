@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
@@ -66,19 +67,23 @@ export default function Navbar() {
 
   return (
     <header 
-      className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-        scrolled ? "py-3 bg-white/90 backdrop-blur-lg shadow-sm border-b border-gray-100" : "py-5 bg-transparent"
+      className={`fixed top-0 w-full z-50 transition-all duration-300 bg-white shadow-sm border-b border-gray-100 ${
+        scrolled ? "py-3" : "py-5"
       }`}
     >
       <div className="container mx-auto px-4 lg:px-8">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <a href="#beranda" onClick={(e) => handleLinkClick(e, "beranda")} className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:shadow-blue-500/30 group-hover:scale-105 transition-all duration-300">
-              D
-            </div>
+            <Image
+              src="/logo-dpro.png"
+              alt="D'Production Logo"
+              width={72}
+              height={72}
+              className="rounded-xl group-hover:scale-105 transition-all duration-300 object-contain"
+            />
             <span className="font-extrabold text-2xl tracking-tight text-slate-800">
-              D'Production
+              D&apos;Production
             </span>
           </a>
 

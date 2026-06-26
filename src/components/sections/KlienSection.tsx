@@ -1,6 +1,46 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { Star, Quote } from "lucide-react";
+
+const testimonials = [
+  {
+    name: "Bank Indonesia",
+    role: "Corporate Event",
+    review: "Tim D'Production sangat profesional dan cekatan. Acara gathering tahunan kami berjalan luar biasa sukses dan meriah.",
+    rating: 5
+  },
+  {
+    name: "Telkomsel",
+    role: "Product Launching",
+    review: "Kreativitas tim tidak diragukan lagi. Konsep acara sangat fresh dan eksekusinya sangat rapi di lapangan.",
+    rating: 5
+  },
+  {
+    name: "Pertamina",
+    role: "Gala Dinner",
+    review: "Detail-oriented dan sangat komunikatif. Seluruh rangkaian acara terkonsep dengan matang dan elegan.",
+    rating: 5
+  },
+  {
+    name: "Astra Group",
+    role: "Family Gathering",
+    review: "Pilihan vendor yang tepat untuk acara berskala besar. Sangat memudahkan kami sebagai panitia internal.",
+    rating: 5
+  },
+  {
+    name: "Gojek",
+    role: "Awarding Night",
+    review: "Tata panggung dan lighting sangat memukau. D'Production benar-benar tahu cara menghidupkan suasana.",
+    rating: 4
+  },
+  {
+    name: "Bank Mandiri",
+    role: "Seminar Nasional",
+    review: "Peralatan rental berkualitas dan tim teknis yang sangat responsif. Acara berjalan mulus tanpa kendala teknis.",
+    rating: 5
+  }
+];
 
 const clients = [
   "Bank Indonesia", "BCA", "Pertamina", "Telkom", 
@@ -76,16 +116,35 @@ export default function KlienSection() {
         </div>
 
         {/* Grid Section */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {clients.map((client, i) => (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {testimonials.map((testimonial, i) => (
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: (i % 8) * 0.1 }}
               key={i} 
-              className="glass-card aspect-[4/3] flex items-center justify-center p-6 group"
+              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+              className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-lg shadow-slate-200/40 relative group hover:-translate-y-2 transition-transform duration-300 flex flex-col"
             >
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto bg-slate-100 group-hover:bg-blue-50 rounded-full mb-4 transition-colors"></div>
-                <p className="font-bold text-slate-600 group-hover:text-blue-600 transition-colors">{client}</p>
+              <div className="absolute top-8 right-8 text-blue-50 group-hover:text-blue-100 transition-colors duration-300">
+                <Quote className="w-12 h-12 rotate-180" />
+              </div>
+              
+              <div className="flex gap-1 mb-6">
+                {[...Array(5)].map((_, index) => (
+                  <Star key={index} className={`w-5 h-5 ${index < testimonial.rating ? "fill-amber-400 text-amber-400" : "fill-slate-200 text-slate-200"}`} />
+                ))}
+              </div>
+              
+              <p className="text-slate-600 leading-relaxed mb-8 relative z-10 italic flex-grow">
+                "{testimonial.review}"
+              </p>
+              
+              <div className="flex items-center gap-4 mt-auto relative z-10">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-xl shadow-md shrink-0">
+                  {testimonial.name.charAt(0)}
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-900">{testimonial.name}</h4>
+                  <p className="text-sm text-blue-600 font-medium">{testimonial.role}</p>
+                </div>
               </div>
             </motion.div>
           ))}

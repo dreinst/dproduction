@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { CheckCircle2, Target, Eye, Trophy } from "lucide-react";
 
 export default function TentangKamiSection() {
@@ -16,15 +17,19 @@ export default function TentangKamiSection() {
           >
             <div className="grid grid-cols-2 gap-6 relative z-10">
               <div className="space-y-6 pt-12">
-                <div className="rounded-3xl overflow-hidden aspect-[4/5] shadow-xl bg-slate-200">
+                <div className="rounded-3xl overflow-hidden aspect-[4/5] shadow-xl bg-slate-200 relative">
+                  <Image src="/assets/about us img 1.jpg" fill alt="About Us" className="object-cover" />
                 </div>
-                <div className="rounded-3xl overflow-hidden aspect-square shadow-xl bg-slate-200">
+                <div className="rounded-3xl overflow-hidden aspect-square shadow-xl bg-slate-200 relative">
+                  <Image src="/assets/hero img 3.jpg" fill alt="About Us" className="object-cover" />
                 </div>
               </div>
               <div className="space-y-6">
-                <div className="rounded-3xl overflow-hidden aspect-square shadow-xl bg-slate-200">
+                <div className="rounded-3xl overflow-hidden aspect-square shadow-xl bg-slate-200 relative">
+                  <Image src="/assets/hero img 4.jpg" fill alt="About Us" className="object-cover" />
                 </div>
-                <div className="rounded-3xl overflow-hidden aspect-[4/5] shadow-xl bg-slate-200">
+                <div className="rounded-3xl overflow-hidden aspect-[4/5] shadow-xl bg-slate-200 relative">
+                  <Image src="/assets/hero img 5.jpg" fill alt="About Us" className="object-cover" />
                 </div>
               </div>
             </div>

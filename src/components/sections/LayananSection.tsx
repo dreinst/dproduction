@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { CalendarDays, Heart, Speaker, Box, CheckCircle2, ArrowRight } from "lucide-react";
 
@@ -97,6 +98,7 @@ export default function LayananSection() {
                   className={`relative ${isEven ? 'lg:ltr' : ''}`}
                 >
                   <div className="relative rounded-3xl overflow-hidden aspect-[4/3] shadow-2xl bg-slate-200">
+                    <Image src={index === 0 ? "/assets/layanan img 1.jpg" : "/assets/hero img 6.jpg"} fill alt={service.title} className="object-cover" />
                     <div className="absolute inset-0 bg-slate-900/10"></div>
                   </div>
                   {/* Decoration block */}
