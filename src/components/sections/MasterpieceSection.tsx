@@ -83,14 +83,23 @@ export default function MasterpieceSection() {
                   <p className="text-lg text-slate-600 leading-relaxed mb-8">
                     {item.description}
                   </p>
-                  <Link href="/studi-kasus" className="px-8 py-4 bg-slate-900 text-white rounded-full font-bold hover:bg-blue-600 transition-colors inline-flex items-center gap-2 group w-max">
-                    Lihat Studi Kasus <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <Link href="/detail-event" className="px-8 py-4 bg-slate-900 text-white rounded-full font-bold hover:bg-blue-600 transition-colors inline-flex items-center gap-2 group w-max">
+                    Lihat Detail Event <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </motion.div>
               </div>
             );
           })}
         </div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          className="mt-20 text-center"
+        >
+          <Link href="/detail-event" className="inline-flex items-center gap-2 px-10 py-5 bg-blue-600 text-white rounded-full font-bold hover:bg-blue-700 hover:scale-105 hover:shadow-xl hover:shadow-blue-600/30 transition-all duration-300">
+            Lihat Semua 47+ Event <ArrowRight className="w-5 h-5" />
+          </Link>
+        </motion.div>
 
       </div>
     </section>
