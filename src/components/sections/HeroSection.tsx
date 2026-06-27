@@ -10,17 +10,10 @@ export default function HeroSection() {
     <section id="beranda" className="overflow-hidden">
       {/* Hero Section */}
       <div className="relative pt-20 pb-24 lg:pt-32 lg:pb-32">
-        {/* Background Decorative Elements */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
           <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
           <div className="absolute inset-0 bg-slate-900 overflow-hidden -z-20">
             <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/50 to-slate-900/10 z-10 pointer-events-none"></div>
-            <iframe
-              className="absolute top-1/2 left-1/2 w-[150vw] h-[150vh] -translate-x-1/2 -translate-y-1/2 opacity-60 pointer-events-none"
-              src="https://www.youtube.com/embed/aze3mZUis6M?autoplay=1&mute=1&controls=0&disablekb=1&loop=1&playlist=aze3mZUis6M&playsinline=1&start=36"
-              allow="autoplay; encrypted-media"
-              allowFullScreen
-            ></iframe>
           </div>
         </div>
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
-import { ArrowLeft, ShoppingCart, Plus, Minus } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Plus, Minus, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSearchParams } from "next/navigation";
 
 const categories = ["Semua", "Tenda", "Sound System", "Lighting", "Stage & Rigging", "Kursi & Meja"];
 
@@ -19,8 +20,12 @@ const items = [
   { id: 9, name: "Meja Bulat VIP", category: "Kursi & Meja", price: 75000, desc: "Meja bulat diameter 120cm + cover", img: "bg-green-200" },
 ];
 
-export default function KatalogPage() {
-  const [activeCategory, setActiveCategory] = useState("Semua");
+function KatalogContent() {
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get("category");
+  const initialCategory = categories.includes(categoryParam as string) ? (categoryParam as string) : "Semua";
+
+  const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [cart, setCart] = useState<Record<number, number>>({});
 
   const filteredItems = activeCategory === "Semua" ? items : items.filter(i => i.category === activeCategory);
@@ -54,7 +59,7 @@ export default function KatalogPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 pt-24 pb-32">
+    <>
       {/* Header */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm pt-4 pb-4 px-4 lg:px-8">
         <div className="container mx-auto flex items-center gap-4">
@@ -158,6 +163,20 @@ export default function KatalogPage() {
           </motion.div>
         )}
       </AnimatePresence>
+    </>
+  );
+}
+
+export default function KatalogPage() {
+  return (
+    <main className="min-h-screen bg-slate-50 pt-24 pb-32">
+      <Suspense fallback={
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
+      }>
+        <KatalogContent />
+      </Suspense>
     </main>
   );
 }

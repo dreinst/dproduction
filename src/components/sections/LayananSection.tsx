@@ -25,10 +25,10 @@ const services = [
 ];
 
 const rentals = [
-  { name: "Tenda Premium", price: "Mulai Rp 200.000/hari", icon: Box },
-  { name: "Sound System Pro", price: "Mulai Rp 1.000.000/hari", icon: Speaker },
-  { name: "Lighting Stage", price: "Mulai Rp 500.000/hari", icon: Box },
-  { name: "Kursi & Meja", price: "Hubungi Kami", icon: Box },
+  { name: "Tenda Premium", price: "Mulai Rp 200.000/hari", icon: Box, category: "Tenda" },
+  { name: "Sound System Pro", price: "Mulai Rp 1.000.000/hari", icon: Speaker, category: "Sound System" },
+  { name: "Lighting Stage", price: "Mulai Rp 500.000/hari", icon: Box, category: "Lighting" },
+  { name: "Kursi & Meja", price: "Hubungi Kami", icon: Box, category: "Kursi & Meja" },
 ];
 
 export default function LayananSection() {
@@ -129,13 +129,13 @@ export default function LayananSection() {
               {rentals.map((item, index) => {
                 const Icon = item.icon;
                 return (
-                  <div key={index} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:bg-slate-800 transition-colors rounded-2xl p-6 group cursor-pointer">
+                  <Link href={`/katalog?category=${encodeURIComponent(item.category)}`} key={index} className="block bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:bg-slate-800 transition-colors rounded-2xl p-6 group cursor-pointer">
                     <div className="w-12 h-12 bg-slate-700 group-hover:bg-blue-600 transition-colors rounded-xl flex items-center justify-center mb-6">
                       <Icon className="w-6 h-6 text-white" />
                     </div>
                     <h4 className="font-bold text-lg mb-2">{item.name}</h4>
                     <p className="text-sm text-slate-400 font-medium">{item.price}</p>
-                  </div>
+                  </Link>
                 );
               })}
             </div>

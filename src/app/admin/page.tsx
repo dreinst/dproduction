@@ -11,8 +11,22 @@ import {
   Award,
 } from "lucide-react";
 
+interface TeamMember {
+  name: string;
+  phone: string;
+  completed: number;
+  running: number;
+  hasPhoto: boolean;
+}
+
+interface MonthlyData {
+  month: string;
+  selesai: number;
+  berjalan: number;
+}
+
 // Team/Crew data from the reference screenshots
-const teamData = [
+const teamData: TeamMember[] = [
   { name: "Donny", phone: "081938938800", completed: 18, running: 0, hasPhoto: true },
   { name: "Daus", phone: "6281917779222", completed: 17, running: 0, hasPhoto: true },
   { name: "Nadia", phone: "6282132370811", completed: 16, running: 0, hasPhoto: true },
@@ -52,7 +66,7 @@ const teamData = [
 ];
 
 // Monthly event data for chart
-const monthlyData = [
+const monthlyData: MonthlyData[] = [
   { month: "JAN", selesai: 0, berjalan: 0 },
   { month: "FEB", selesai: 0, berjalan: 0 },
   { month: "MAR", selesai: 2, berjalan: 0 },
@@ -68,6 +82,11 @@ const monthlyData = [
 ];
 
 const ITEMS_PER_PAGE = 10;
+
+const maskPhone = (phone: string): string => {
+  if (phone.length <= 8) return phone;
+  return phone.slice(0, 4) + "****" + phone.slice(-5);
+};
 
 export default function AdminDashboard() {
   const [year, setYear] = useState("2025");
@@ -95,7 +114,10 @@ export default function AdminDashboard() {
             onChange={(e) => setYear(e.target.value)}
             className="w-20 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
           />
-          <button className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+          <button 
+            onClick={() => alert(`Menampilkan data tahun ${year}`)}
+            className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+          >
             <Search className="w-4 h-4 text-slate-600" />
           </button>
         </div>
@@ -214,7 +236,7 @@ export default function AdminDashboard() {
                   </p>
                   <div className="flex items-center gap-1.5 text-xs text-green-600 mt-0.5">
                     <Phone className="w-3 h-3" />
-                    {member.phone}
+                    {maskPhone(member.phone)}
                   </div>
                 </div>
               </div>

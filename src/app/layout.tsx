@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import ConditionalLayout from "@/components/ConditionalLayout";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-heading" });
 
 export const metadata: Metadata = {
   title: "D'Production - Event Organizer Profesional",
@@ -16,11 +17,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="id" className="scroll-smooth">
       <head>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
       </head>
-      <body className={`${inter.variable} font-sans min-h-screen flex flex-col bg-slate-50`}>
+      <body className={`${inter.variable} ${plusJakartaSans.variable} font-sans min-h-screen flex flex-col bg-slate-50`}>
         <ConditionalLayout>
           {children}
         </ConditionalLayout>
