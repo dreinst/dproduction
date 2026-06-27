@@ -5,17 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "@/components/admin/Sidebar";
 import AdminHeader from "@/components/admin/Header";
 
-function getAuthCookie(): { username: string; alias: string; level: string } | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(/dpro_auth=([^;]+)/);
-  if (!match) return null;
-  try {
-    return JSON.parse(decodeURIComponent(match[1]));
-  } catch {
-    return null;
-  }
-}
-
 export default function AdminLayout({
   children,
 }: {
@@ -23,20 +12,35 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<{ username: string; alias: string; level: string } | null>(null);
+  const [user, setUser] = useState<{ username: string; alias?: string; role: string } | null>(null);
   const [checking, setChecking] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isLoginPage = pathname === "/admin/login";
 
   useEffect(() => {
-    const authUser = getAuthCookie();
-    if (!isLoginPage && !authUser) {
-      router.replace("/admin/login");
-    } else {
-      setUser(authUser);
+    if (isLoginPage) {
+      setChecking(false);
+      return;
     }
-    setChecking(false);
+
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          setUser({ ...data.user, alias: data.user.username });
+        } else {
+          router.replace("/admin/login");
+        }
+      } catch (err) {
+        router.replace("/admin/login");
+      } finally {
+        setChecking(false);
+      }
+    };
+
+    checkAuth();
   }, [isLoginPage, router]);
 
   // Login page renders without sidebar/header
@@ -73,7 +77,7 @@ export default function AdminLayout({
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <Sidebar onClose={() => setSidebarOpen(false)} />
+        <Sidebar onClose={() => setSidebarOpen(false)} role={user.role} />
       </div>
 
       {/* Main content area */}

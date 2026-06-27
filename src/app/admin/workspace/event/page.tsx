@@ -1,31 +1,129 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Users, Calendar, ArrowRight, ArrowLeft, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Calendar, ArrowRight, Search, X } from "lucide-react";
+import { useCrud } from "@/hooks/useCrud";
 
-// Event data from the reference screenshots
-const eventsRunning = [
-  { id: 1, jobDesc: "QrisMa #Level B", date: "Sabtu, 25 Apr 2026 15:00", client: "Bank Indonesia", status: "running" },
-  { id: 2, jobDesc: "Ms. Glow Run #Level A", date: "Minggu, 26 Apr 2026 04:00", client: "MS GLOW", status: "running" },
-];
-
-const eventsCompleted = [
-  { id: 1, no: 1, waktu: "30 Agt 2025 17:00", klien: "Universitas Ma Chung", event: "Loading Jalan Sehat Machung", deskripsi: "Loading Sound Jalan Sehat di Machung" },
-  { id: 2, no: 2, waktu: "5 Agt 2025 07:00", klien: "UNAIR", event: "Loading UNAIR", deskripsi: "Loading UNAIR" },
-  { id: 3, no: 3, waktu: "28 Mar 2026 09:00", klien: "Smara WO", event: "Wedding Devrian dan Silvia #Level C", deskripsi: "Wedding di Ijen Suites" },
-  { id: 4, no: 4, waktu: "30 Nov 2025 09:00", klien: "Smara WO", event: "Loading Dwita #Level C", deskripsi: "Done" },
-  { id: 5, no: 5, waktu: "28 Jul 2025 22:00", klien: "Salsa Nadhif", event: "Launching Album Salsa - The Grove", deskripsi: "Loading Sound Launching Album Salsa" },
-  { id: 6, no: 6, waktu: "27 Jul 2025 08:00", klien: "Renta", event: "Loading Sound Ngajum Sae", deskripsi: "Loading Sound Ngajum Sae" },
-  { id: 7, no: 7, waktu: "24 Agt 2025 08:00", klien: "Pasbata Prabowo", event: "Pasbata Prabowo", deskripsi: "Cancel" },
-  { id: 8, no: 8, waktu: "1 Okt 2025 07:00", klien: "Kemenpolhukam", event: "Polhukam #Level B", deskripsi: "Forum Koordinasi Polhukam" },
-  { id: 9, no: 9, waktu: "26 Jun 2025 17:00", klien: "Kemendagri", event: "Loading Sound Savana", deskripsi: "Orderan Mas Supret" },
-  { id: 10, no: 10, waktu: "20 Sep 2025 18:30", klien: "Gereja Katolik Paroki Maria Ratu Damai, Banyuwangi", event: "HUT Paroki BWI", deskripsi: "-" },
-];
+interface WorkspaceEvent {
+  id: number;
+  jobDesc: string;
+  date: string; 
+  client: string;
+  status: string;
+  waktu?: string | null;
+  event?: string | null;
+  deskripsi?: string | null;
+  linkFoto?: string | null;
+  linkVideo?: string | null;
+  active?: boolean;
+}
 
 export default function WorkspaceEventPage() {
+  const { data, loading, error, createItem, updateItem, deleteItem } = useCrud<WorkspaceEvent>({ endpoint: '/api/workspace-events' });
   const [activeTab, setActiveTab] = useState<"berjalan" | "selesai">("berjalan");
   const [showEntries, setShowEntries] = useState(50);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [currentEditing, setCurrentEditing] = useState<WorkspaceEvent | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+  
+  const [formData, setFormData] = useState<Partial<WorkspaceEvent>>({
+    jobDesc: "", date: "", client: "", status: "running", waktu: "", event: "", deskripsi: "", linkFoto: "", linkVideo: "", active: true
+  });
+
+  const handleOpenModal = (item?: WorkspaceEvent) => {
+    if (item) {
+      setCurrentEditing(item);
+      setFormData({
+        jobDesc: item.jobDesc || "",
+        date: item.date ? new Date(item.date).toISOString().slice(0,16) : "", // format for datetime-local
+        client: item.client || "",
+        status: item.status || (activeTab === "berjalan" ? "running" : "selesai"),
+        waktu: item.waktu || "",
+        event: item.event || "",
+        deskripsi: item.deskripsi || "",
+        linkFoto: item.linkFoto || "",
+        linkVideo: item.linkVideo || "",
+        active: item.active ?? true
+      });
+    } else {
+      setCurrentEditing(null);
+      setFormData({ jobDesc: "", date: "", client: "", status: activeTab === "berjalan" ? "running" : "selesai", waktu: "", event: "", deskripsi: "", linkFoto: "", linkVideo: "", active: true });
+    }
+    setFormError("");
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async () => {
+    setIsSubmitting(true);
+    setFormError("");
+    
+    // Convert local datetime string to ISO 8601 for Prisma
+    const isoDate = formData.date ? new Date(formData.date).toISOString() : new Date().toISOString();
+    
+    const payload = {
+      ...formData,
+      date: isoDate
+    };
+
+    let success = false;
+    if (currentEditing) {
+      success = await updateItem(currentEditing.id, payload);
+    } else {
+      success = await createItem(payload);
+    }
+    
+    setIsSubmitting(false);
+
+    if (success) {
+      setIsModalOpen(false);
+    } else {
+      setFormError("Gagal menyimpan data.");
+    }
+  };
+
+  const handleMarkAsDone = async (item: WorkspaceEvent) => {
+    setIsSubmitting(true);
+    const success = await updateItem(item.id, { status: "selesai" });
+    setIsSubmitting(false);
+    if(success) {
+       // Optional notification
+    }
+  };
+
+  const handleDelete = async () => {
+    if (currentEditing) {
+      setIsSubmitting(true);
+      const success = await deleteItem(currentEditing.id);
+      setIsSubmitting(false);
+      
+      if (success) {
+        setIsDeleteModalOpen(false);
+        setCurrentEditing(null);
+      }
+    }
+  };
+
+  const safeData = data || [];
+  
+  const eventsRunning = safeData.filter(d => d.status === "running").filter(e => {
+    if(searchQuery) {
+      return (e.jobDesc || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
+             (e.client || "").toLowerCase().includes(searchQuery.toLowerCase());
+    }
+    return true;
+  }).slice(0, showEntries);
+  
+  const eventsCompleted = safeData.filter(d => d.status === "selesai").filter(e => {
+    if(searchQuery) {
+      return (e.event || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
+             (e.client || "").toLowerCase().includes(searchQuery.toLowerCase());
+    }
+    return true;
+  }).slice(0, showEntries);
 
   return (
     <div className="space-y-6">
@@ -55,7 +153,7 @@ export default function WorkspaceEventPage() {
 
       {activeTab === "berjalan" && (
         <>
-          <button className="w-10 h-10 bg-teal-500 hover:bg-teal-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors">
+          <button onClick={() => handleOpenModal()} className="w-10 h-10 bg-teal-500 hover:bg-teal-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors">
             <Plus className="w-5 h-5" />
           </button>
 
@@ -72,13 +170,18 @@ export default function WorkspaceEventPage() {
           </div>
 
           <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
+            {loading ? (
+              <div className="p-8 text-center text-slate-500">Loading events...</div>
+            ) : error ? (
+              <div className="p-8 text-center text-red-500">Error: {error}</div>
+            ) : (
             <table className="w-full min-w-[700px]">
               <thead>
                 <tr className="bg-slate-800 text-white text-sm">
                   <th className="px-4 py-3 text-left font-semibold">Job Description</th>
                   <th className="px-4 py-3 text-center font-semibold" colSpan={2}>Jadwal</th>
                   <th className="px-4 py-3 text-left font-semibold">Team Event</th>
-                  <th className="px-4 py-3 text-center font-semibold w-28"></th>
+                  <th className="px-4 py-3 text-center font-semibold w-32">Actions</th>
                 </tr>
                 <tr className="bg-slate-700 text-white text-xs">
                   <th className="px-4 py-2"></th>
@@ -95,54 +198,53 @@ export default function WorkspaceEventPage() {
                       <span className="text-slate-800 font-medium">{event.jobDesc}</span>
                       <span className="ml-2 text-xs text-slate-500">
                         <Calendar className="w-3 h-3 inline mr-1" />
-                        {event.date}
+                        {new Date(event.date).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
                       </span>
                       <span className="ml-2 text-xs text-slate-500">
                         <Users className="w-3 h-3 inline mr-1" />
                         {event.client}
                       </span>
-                      <span className="ml-2 inline-flex items-center px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full">
+                      <button onClick={() => handleMarkAsDone(event)} className="ml-2 inline-flex items-center px-2 py-0.5 bg-red-100 text-red-600 hover:bg-red-200 text-xs rounded-full cursor-pointer" title="Mark as Selesai">
                         <ArrowRight className="w-3 h-3" />
-                      </span>
+                      </button>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600 text-center">-</td>
                     <td className="px-4 py-3 text-sm text-slate-600 text-center">-</td>
                     <td className="px-4 py-3 text-sm text-slate-600">-</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-1.5">
-                        <button className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors">
-                          <Users className="w-4 h-4" />
-                        </button>
-                        <button className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded transition-colors">
+                        <button onClick={() => handleOpenModal(event)} className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded transition-colors">
                           <Pencil className="w-4 h-4" />
                         </button>
-                        <button className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors">
+                        <button onClick={() => { setCurrentEditing(event); setIsDeleteModalOpen(true); }} className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
                   </tr>
                 ))}
+                {eventsRunning.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-slate-500">Tidak ada event berjalan</td>
+                  </tr>
+                )}
               </tbody>
             </table>
+            )}
           </div>
 
           <p className="text-sm text-blue-600">
-            Showing 1 to {eventsRunning.length} of 82 entries
+            Showing 1 to {eventsRunning.length} of {safeData.filter(d => d.status === "running").length} entries
           </p>
         </>
       )}
 
       {activeTab === "selesai" && (
         <>
-          <div>
-            <label className="block text-sm text-slate-500 mb-1">Status Aktif</label>
-            <select className="px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white min-w-[180px]">
-              <option>Aktif</option>
-              <option>Semua</option>
-            </select>
-          </div>
-
+          <button onClick={() => handleOpenModal()} className="w-10 h-10 bg-teal-500 hover:bg-teal-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors">
+            <Plus className="w-5 h-5" />
+          </button>
+          
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-sm text-slate-500">
               <span>Show</span>
@@ -156,6 +258,11 @@ export default function WorkspaceEventPage() {
           </div>
 
           <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
+            {loading ? (
+              <div className="p-8 text-center text-slate-500">Loading events...</div>
+            ) : error ? (
+              <div className="p-8 text-center text-red-500">Error: {error}</div>
+            ) : (
             <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="bg-slate-800 text-white text-sm">
@@ -168,44 +275,147 @@ export default function WorkspaceEventPage() {
                   <th className="px-3 py-3 text-left font-semibold">Link Video</th>
                   <th className="px-3 py-3 text-center font-semibold">Foto</th>
                   <th className="px-3 py-3 text-center font-semibold">Aktif</th>
-                  <th className="px-3 py-3 text-center font-semibold w-16"></th>
+                  <th className="px-3 py-3 text-center font-semibold w-24">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {eventsCompleted.map((event) => (
+                {eventsCompleted.map((event, idx) => (
                   <tr key={event.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors text-xs">
-                    <td className="px-3 py-2 text-slate-600">{event.no}.</td>
+                    <td className="px-3 py-2 text-slate-600">{idx + 1}.</td>
                     <td className="px-3 py-2 text-slate-600 whitespace-nowrap">{event.waktu}</td>
-                    <td className="px-3 py-2 text-slate-800 font-medium">{event.klien}</td>
+                    <td className="px-3 py-2 text-slate-800 font-medium">{event.client}</td>
                     <td className="px-3 py-2 text-slate-600">{event.event}</td>
                     <td className="px-3 py-2 text-slate-600">{event.deskripsi}</td>
-                    <td className="px-3 py-2 text-blue-500">-</td>
-                    <td className="px-3 py-2 text-blue-500">-</td>
+                    <td className="px-3 py-2 text-blue-500">{event.linkFoto ? <a href={event.linkFoto} target="_blank" rel="noreferrer">Link</a> : '-'}</td>
+                    <td className="px-3 py-2 text-blue-500">{event.linkVideo ? <a href={event.linkVideo} target="_blank" rel="noreferrer">Link</a> : '-'}</td>
                     <td className="px-3 py-2 text-center">-</td>
-                    <td className="px-3 py-2 text-center">-</td>
+                    <td className="px-3 py-2 text-center">{event.active ? 'Ya' : 'Tidak'}</td>
                     <td className="px-3 py-2">
-                      <button className="p-1 text-yellow-600 hover:bg-yellow-50 rounded transition-colors">
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex justify-center gap-1">
+                        <button onClick={() => handleOpenModal(event)} className="p-1 text-yellow-600 hover:bg-yellow-50 rounded transition-colors">
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => { setCurrentEditing(event); setIsDeleteModalOpen(true); }} className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
+                {eventsCompleted.length === 0 && (
+                  <tr>
+                    <td colSpan={10} className="px-4 py-8 text-center text-slate-500">Tidak ada event selesai</td>
+                  </tr>
+                )}
               </tbody>
             </table>
+            )}
           </div>
 
           <p className="text-sm text-blue-600">
-            Showing 1 to {eventsCompleted.length} of 45 entries
+            Showing 1 to {eventsCompleted.length} of {safeData.filter(d => d.status === "selesai").length} entries
           </p>
         </>
       )}
 
-      <div className="flex items-center justify-end gap-1">
-        <button className="px-3 py-1 text-sm text-slate-400">Previous</button>
-        <button className="w-8 h-8 bg-blue-600 text-white rounded text-sm font-medium">1</button>
-        <button className="w-8 h-8 text-slate-500 hover:bg-slate-100 rounded text-sm font-medium">2</button>
-        <button className="px-3 py-1 text-sm text-slate-400">Next</button>
-      </div>
+      {/* Add/Edit Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 sticky top-0 z-10">
+              <h2 className="text-lg font-bold text-slate-800">{currentEditing ? "Edit Event" : "Tambah Event"}</h2>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors" disabled={isSubmitting}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {formError && <div className="p-3 bg-red-100 text-red-600 rounded-lg text-sm">{formError}</div>}
+              
+              {/* Event Berjalan Fields */}
+              {activeTab === "berjalan" && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Job Description</label>
+                    <input type="text" value={formData.jobDesc} onChange={e => setFormData({...formData, jobDesc: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="e.g. QrisMa #Level B" disabled={isSubmitting} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                    <input type="datetime-local" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Client</label>
+                    <input type="text" value={formData.client} onChange={e => setFormData({...formData, client: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="e.g. Bank Indonesia" disabled={isSubmitting} />
+                  </div>
+                </>
+              )}
+
+              {/* Event Selesai Fields */}
+              {activeTab === "selesai" && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Client / Klien</label>
+                    <input type="text" value={formData.client} onChange={e => setFormData({...formData, client: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="Nama Klien" disabled={isSubmitting} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Event</label>
+                    <input type="text" value={formData.event} onChange={e => setFormData({...formData, event: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="Nama Event" disabled={isSubmitting} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Waktu</label>
+                    <input type="text" value={formData.waktu} onChange={e => setFormData({...formData, waktu: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="e.g. 30 Agt 2025 17:00" disabled={isSubmitting} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Deskripsi</label>
+                    <input type="text" value={formData.deskripsi} onChange={e => setFormData({...formData, deskripsi: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="Deskripsi Event" disabled={isSubmitting} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Link Foto</label>
+                    <input type="text" value={formData.linkFoto} onChange={e => setFormData({...formData, linkFoto: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="URL Foto" disabled={isSubmitting} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Link Video</label>
+                    <input type="text" value={formData.linkVideo} onChange={e => setFormData({...formData, linkVideo: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="URL Video" disabled={isSubmitting} />
+                  </div>
+                  {/* JobDesc parameter required for workspace-events API, default if not filled */}
+                  <div className="hidden">
+                     <input type="text" value={formData.jobDesc = formData.jobDesc || "-"} readOnly />
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 sticky bottom-0 z-10">
+              <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors" disabled={isSubmitting}>Batal</button>
+              <button onClick={handleSave} disabled={isSubmitting} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm shadow-blue-600/20 transition-colors">
+                {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-800 mb-2">Hapus Data?</h2>
+              <p className="text-sm text-slate-600 mb-6">
+                Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setIsDeleteModalOpen(false)} disabled={isSubmitting} className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">Batal</button>
+                <button onClick={handleDelete} disabled={isSubmitting} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm shadow-red-600/20 transition-colors">
+                  {isSubmitting ? 'Menghapus...' : 'Hapus'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

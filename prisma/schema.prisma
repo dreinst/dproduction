@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  alias        String?
+  role         String   @default("admin")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Client {
+  id        Int      @id @default(autoincrement())
+  name      String
+  whatsapp  String
+  eventType String
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  photo       String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Wedding {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  photo       String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Rental {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  price       String?
+  unit        String?
+  waCart      String?
+  photo       String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GradeEvent {
+  id        Int      @id @default(autoincrement())
+  grade     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model JobDesc {
+  id        Int      @id @default(autoincrement())
+  name      String
+  icon      String?
+  levelA    String?
+  levelB    String?
+  levelC    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GaleriFoto {
+  id        Int      @id @default(autoincrement())
+  image     String
+  link      String?
+  createdAt DateTime @default(now())
+}
+
+model GaleriVideo {
+  id        Int      @id @default(autoincrement())
+  url       String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model KantorSetting {
+  id              Int      @id @default(autoincrement())
+  companyName     String   @default("DPro")
+  status          String?
+  motto1          String?
+  motto2          String?
+  description     String?
+  foundedDate     String?
+  address         String?
+  phone           String?
+  email           String?
+  website         String?
+  googleMapsUrl   String?
+  facebookUrl     String?
+  instagramUrl    String?
+  youtubeUrl      String?
+  tiktokUrl       String?
+  aboutUs         String?
+  updatedAt       DateTime @updatedAt
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  user      String
+  details   String?
+  timestamp DateTime @default(now())
+}
+
+model WorkspaceSalary {
+  id        Int      @id @default(autoincrement())
+  waktu     String
+  klien     String
+  event     String
+  deskripsi String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model HeadHome {
+  id        Int      @id @default(autoincrement())
+  image     String
+  active    Boolean  @default(true)
+  sortIndex Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WorkspaceEvent {
+  id        Int      @id @default(autoincrement())
+  jobDesc   String
+  date      DateTime
+  client    String
+  status    String   @default("running")
+  waktu     String?
+  event     String?
+  deskripsi String?
+  linkFoto  String?
+  linkVideo String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WorkspaceReport {
+  id        Int      @id @default(autoincrement())
+  title     String
+  date      Int
+  month     String
+  time      String
+  client    String
+  status    String   @default("admin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GaleriFotoAlbum {
+  id         Int      @id @default(autoincrement())
+  album      String
+  keterangan String?
+  tanggal    String?
+  image      String?
+  active     Boolean  @default(true)
+  sortIndex  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}

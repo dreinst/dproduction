@@ -2,23 +2,18 @@
 
 import { useState } from "react";
 import { Plus, Pencil, Trash2, CheckSquare, Search, Square, X } from "lucide-react";
+import { useCrud } from "@/hooks/useCrud";
 
 interface User {
   id: number;
   username: string;
   alias: string;
-  level: string;
+  role: string;
   active: boolean;
 }
 
-const initialUsers: User[] = [
-  { id: 1, username: "admin", alias: "Administrator", level: "Superuser", active: true },
-  { id: 2, username: "owner", alias: "Owner", level: "Superuser", active: true },
-  { id: 3, username: "tester", alias: "tester", level: "Superuser", active: true },
-];
-
 export default function SettingLoginPage() {
-  const [usersData, setUsersData] = useState<User[]>(initialUsers);
+  const { data: usersData, loading, error, createItem, updateItem, deleteItem } = useCrud<User>({ endpoint: '/api/users' });
   const [statusFilter, setStatusFilter] = useState("Aktif");
   const [showEntries, setShowEntries] = useState(50);
   const [searchQuery, setSearchQuery] = useState("");
@@ -28,20 +23,25 @@ export default function SettingLoginPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [currentEditing, setCurrentEditing] = useState<User | null>(null);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
   const [formData, setFormData] = useState({
     username: "",
+    password: "", // Handled separately as it's only required on create/change
     alias: "",
-    level: "Superuser",
+    role: "Superuser",
     active: true,
   });
 
-  const filteredUsers = usersData.filter((u) => {
+  const safeData = usersData || [];
+
+  const filteredUsers = safeData.filter((u) => {
     if (statusFilter === "Aktif" && !u.active) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return (
-        u.username.toLowerCase().includes(q) ||
-        u.alias.toLowerCase().includes(q)
+        (u.username || "").toLowerCase().includes(q) ||
+        (u.alias || "").toLowerCase().includes(q)
       );
     }
     return true;
@@ -51,30 +51,54 @@ export default function SettingLoginPage() {
   const paginatedUsers = filteredUsers.slice((page - 1) * showEntries, page * showEntries);
 
   const handleOpenModal = (user?: User) => {
+    setFormError("");
     if (user) {
       setCurrentEditing(user);
       setFormData({
         username: user.username,
-        alias: user.alias,
-        level: user.level,
-        active: user.active,
+        password: "", // clear password field
+        alias: user.alias || "",
+        role: user.role,
+        active: user.active ?? true,
       });
     } else {
       setCurrentEditing(null);
-      setFormData({ username: "", alias: "", level: "Superuser", active: true });
+      setFormData({ username: "", password: "", alias: "", role: "admin", active: true });
     }
     setIsModalOpen(true);
   };
 
-  const handleSave = () => {
-    if (currentEditing) {
-      setUsersData((prev) =>
-        prev.map((u) => (u.id === currentEditing.id ? { ...u, ...formData } : u))
-      );
-    } else {
-      setUsersData((prev) => [...prev, { id: Date.now(), ...formData }]);
+  const handleSave = async () => {
+    if (!formData.username) {
+       setFormError("Username wajib diisi");
+       return;
     }
-    setIsModalOpen(false);
+    if (!currentEditing && (!formData.password || formData.password.length < 6)) {
+       setFormError("Password wajib diisi saat membuat user baru (min 6 karakter)");
+       return;
+    }
+
+    setIsSubmitting(true);
+    setFormError("");
+
+    let success = false;
+    if (currentEditing) {
+      const payload: any = { ...formData };
+      if (!payload.password) {
+        delete payload.password;
+      }
+      success = await updateItem(currentEditing.id, payload);
+    } else {
+      success = await createItem(formData);
+    }
+
+    setIsSubmitting(false);
+
+    if (success) {
+      setIsModalOpen(false);
+    } else {
+      setFormError("Gagal menyimpan data (mungkin username sudah terpakai).");
+    }
   };
 
   const handleDeleteClick = (user: User) => {
@@ -82,11 +106,17 @@ export default function SettingLoginPage() {
     setIsDeleteModalOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (currentEditing) {
-      setUsersData((prev) => prev.filter((u) => u.id !== currentEditing.id));
+      setIsSubmitting(true);
+      const success = await deleteItem(currentEditing.id);
+      setIsSubmitting(false);
+      
+      if (success) {
+        setIsDeleteModalOpen(false);
+        setCurrentEditing(null);
+      }
     }
-    setIsDeleteModalOpen(false);
   };
 
   return (
@@ -99,100 +129,90 @@ export default function SettingLoginPage() {
           <label className="block text-sm text-slate-500 mb-1">Status Aktif</label>
           <select
             value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            className="px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white min-w-[180px]"
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white min-w-[200px]"
           >
-            <option value="Aktif">Aktif</option>
-            <option value="Semua">Semua</option>
+            <option>Aktif</option>
+            <option>Semua</option>
           </select>
         </div>
       </div>
 
-      {/* Add Button */}
-      <button 
-        onClick={() => handleOpenModal()}
-        className="w-10 h-10 bg-teal-500 hover:bg-teal-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors"
-      >
-        <Plus className="w-5 h-5" />
+      <button onClick={() => handleOpenModal()} className="w-10 h-10 bg-teal-500 hover:bg-teal-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors mt-6">
+         <Plus className="w-5 h-5" />
       </button>
 
-      {/* Entries & Search */}
+      {/* Controls */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2 text-sm text-slate-500">
           <span>Show</span>
           <input
             type="number"
             value={showEntries}
-            onChange={(e) => {
-              setShowEntries(Number(e.target.value) || 1);
-              setPage(1);
-            }}
+            onChange={(e) => setShowEntries(Number(e.target.value))}
             className="w-16 px-2 py-1.5 border border-slate-200 rounded text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
           />
           <span>entries</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-slate-500">Search:</span>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setPage(1);
-            }}
-            className="px-3 py-1.5 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 pr-3 py-1.5 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            />
+            <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          </div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-        <table className="w-full">
+      <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
+        {loading ? (
+           <div className="p-8 text-center text-slate-500">Loading users...</div>
+        ) : error ? (
+           <div className="p-8 text-center text-red-500">Error: {error}</div>
+        ) : (
+        <table className="w-full min-w-[600px]">
           <thead>
             <tr className="bg-slate-800 text-white text-sm">
-              <th className="px-4 py-3 text-left font-semibold w-12">No</th>
-              <th className="px-4 py-3 text-left font-semibold">Username</th>
-              <th className="px-4 py-3 text-left font-semibold">Alias</th>
-              <th className="px-4 py-3 text-left font-semibold">Level</th>
-              <th className="px-4 py-3 text-left font-semibold">Aktif</th>
-              <th className="px-4 py-3 text-center font-semibold w-24"></th>
+              <th className="px-4 py-3 text-left font-semibold w-16">No.</th>
+              <th className="px-4 py-3 text-left font-semibold">User Name</th>
+              <th className="px-4 py-3 text-left font-semibold">Alias User</th>
+              <th className="px-4 py-3 text-left font-semibold w-32">Level</th>
+              <th className="px-4 py-3 text-center font-semibold w-24">Aktif</th>
+              <th className="px-4 py-3 text-center font-semibold w-28">Actions</th>
             </tr>
           </thead>
           <tbody>
             {paginatedUsers.map((user, idx) => (
-              <tr
-                key={user.id}
-                className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
-              >
-                <td className="px-4 py-3 text-sm text-slate-600">
-                  {(page - 1) * showEntries + idx + 1}.
-                </td>
-                <td className="px-4 py-3 text-sm text-slate-800 font-medium">
-                  {user.username}
-                </td>
+              <tr key={user.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                <td className="px-4 py-3 text-sm text-slate-600">{(page - 1) * showEntries + idx + 1}.</td>
+                <td className="px-4 py-3 text-sm text-slate-800 font-medium">{user.username}</td>
                 <td className="px-4 py-3 text-sm text-slate-600">{user.alias}</td>
-                <td className="px-4 py-3 text-sm text-slate-600">{user.level}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 text-sm text-slate-600">{user.role}</td>
+                <td className="px-4 py-3 text-center">
                   {user.active ? (
-                    <CheckSquare className="w-5 h-5 text-green-500" />
+                    <CheckSquare className="w-5 h-5 text-green-500 mx-auto" />
                   ) : (
-                    <Square className="w-5 h-5 text-slate-300" />
+                    <Square className="w-5 h-5 text-slate-300 mx-auto" />
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center justify-center gap-2">
-                    <button 
+                  <div className="flex items-center justify-center gap-1.5">
+                    <button
                       onClick={() => handleOpenModal(user)}
                       className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded transition-colors"
+                      title="Edit"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDeleteClick(user)}
                       className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
+                      title="Hapus"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -203,109 +223,145 @@ export default function SettingLoginPage() {
             {paginatedUsers.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-slate-500 text-sm">
-                  Tidak ada data yang ditemukan.
+                  Tidak ada data
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+        )}
       </div>
 
-      {/* Pagination info */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-blue-600">
-          Showing {paginatedUsers.length > 0 ? (page - 1) * showEntries + 1 : 0} to{" "}
+          Showing {filteredUsers.length > 0 ? (page - 1) * showEntries + 1 : 0} to{" "}
           {Math.min(page * showEntries, filteredUsers.length)} of {filteredUsers.length} entries
         </p>
         <div className="flex items-center gap-1">
-          <button 
-            onClick={() => setPage(Math.max(1, page - 1))}
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-3 py-1 text-sm text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:hover:text-slate-500 transition-colors"
+            className="px-3 py-1 text-sm text-slate-500 hover:text-slate-700 disabled:opacity-50 transition-colors"
           >
             Previous
           </button>
-          <button className="w-8 h-8 bg-blue-600 text-white rounded text-sm font-medium">
-            {page}
-          </button>
-          <button 
-            onClick={() => setPage(Math.min(totalPages, page + 1))}
-            disabled={page === totalPages || totalPages === 0}
-            className="px-3 py-1 text-sm text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:hover:text-slate-500 transition-colors"
+          {[...Array(totalPages)].map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setPage(i + 1)}
+              className={`w-8 h-8 rounded text-sm font-medium transition-colors ${
+                page === i + 1 ? "bg-blue-600 text-white" : "text-slate-500 hover:bg-slate-100"
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="px-3 py-1 text-sm text-slate-500 hover:text-slate-700 disabled:opacity-50 transition-colors"
           >
             Next
           </button>
         </div>
       </div>
 
-      {/* Form Modal */}
+      {/* Add/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-xl">
-            <div className="flex items-center justify-between p-4 border-b border-slate-100">
-              <h3 className="font-bold text-slate-800">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h2 className="text-lg font-bold text-slate-800">
                 {currentEditing ? "Edit User" : "Tambah User"}
-              </h3>
+              </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                disabled={isSubmitting}
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-4 space-y-4">
+
+            <div className="p-6 space-y-4">
+              {formError && <div className="p-3 bg-red-100 text-red-600 rounded-lg text-sm">{formError}</div>}
               <div>
-                <label className="block text-sm text-slate-600 mb-1">Username</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">User Name</label>
                 <input
                   type="text"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  disabled={isSubmitting}
                 />
               </div>
+
               <div>
-                <label className="block text-sm text-slate-600 mb-1">Alias</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Password {currentEditing && "(Kosongkan jika tidak ingin mengubah)"}</label>
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  placeholder="******"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Alias User</label>
                 <input
                   type="text"
                   value={formData.alias}
                   onChange={(e) => setFormData({ ...formData, alias: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                  disabled={isSubmitting}
                 />
               </div>
+
               <div>
-                <label className="block text-sm text-slate-600 mb-1">Level</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Level</label>
                 <select
-                  value={formData.level}
-                  onChange={(e) => setFormData({ ...formData, level: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                  disabled={isSubmitting}
                 >
+                  <option value="owner">Owner</option>
+                  <option value="admin">Admin</option>
                   <option value="Superuser">Superuser</option>
-                  <option value="Admin">Admin</option>
-                  <option value="Staff">Staff</option>
                 </select>
               </div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.active}
-                  onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
-                />
-                <span className="text-sm text-slate-600">Aktif</span>
-              </label>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Status Aktif</label>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={formData.active}
+                    onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
+                    disabled={isSubmitting}
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
             </div>
-            <div className="p-4 border-t border-slate-100 flex justify-end gap-2 bg-slate-50">
+
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 rounded-b-2xl">
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors"
+                disabled={isSubmitting}
               >
                 Batal
               </button>
               <button
                 onClick={handleSave}
-                className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={isSubmitting}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm shadow-blue-600/20 transition-colors"
               >
-                Simpan
+                {isSubmitting ? 'Menyimpan...' : 'Simpan'}
               </button>
             </div>
           </div>
@@ -315,27 +371,31 @@ export default function SettingLoginPage() {
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-xl p-6 text-center">
-            <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Trash2 className="w-8 h-8" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-800 mb-2">Hapus User?</h3>
-            <p className="text-slate-500 text-sm mb-6">
-              Apakah Anda yakin ingin menghapus user <strong>{currentEditing?.username}</strong>?
-            </p>
-            <div className="flex justify-center gap-3">
-              <button
-                onClick={() => setIsDeleteModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-              >
-                Ya, Hapus
-              </button>
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-800 mb-2">Hapus User?</h2>
+              <p className="text-sm text-slate-600 mb-6">
+                Apakah Anda yakin ingin menghapus user <span className="font-semibold text-slate-800">{currentEditing?.username}</span>? Tindakan ini tidak dapat dibatalkan.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  disabled={isSubmitting}
+                  className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  disabled={isSubmitting}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm shadow-red-600/20 transition-colors"
+                >
+                  {isSubmitting ? 'Menghapus...' : 'Hapus'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

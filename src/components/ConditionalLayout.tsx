@@ -13,12 +13,6 @@ export default function ConditionalLayout({
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
 
-  useEffect(() => {
-    // Jika user mengakses halaman public (selain admin), hapus sesi login (harus login ulang)
-    if (!isAdmin) {
-      document.cookie = "dpro_auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    }
-  }, [isAdmin]);
 
   if (isAdmin) {
     return <>{children}</>;
