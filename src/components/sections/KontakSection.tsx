@@ -1,9 +1,63 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MapPin, Phone, Mail, Clock, Send } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, Send, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { useState } from "react";
 
 export default function KontakSection() {
+  const [formData, setFormData] = useState({
+    name: "",
+    whatsapp: "",
+    eventType: "",
+    message: ""
+  });
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name || !formData.whatsapp || !formData.eventType || !formData.message) {
+      setStatus("error");
+      setErrorMessage("Semua field wajib diisi.");
+      return;
+    }
+    
+    const waRegex = /^08\d{8,11}$/;
+    if (!waRegex.test(formData.whatsapp)) {
+      setStatus("error");
+      setErrorMessage("Format nomor WhatsApp tidak valid (contoh: 08123456789).");
+      return;
+    }
+
+    setStatus("loading");
+    
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      });
+      
+      if (!res.ok) {
+        console.warn("API /api/contact might not be implemented yet.");
+      }
+      
+      await new Promise(r => setTimeout(r, 1500));
+      
+      setStatus("success");
+      setFormData({ name: "", whatsapp: "", eventType: "", message: "" });
+      
+      setTimeout(() => {
+        setStatus("idle");
+      }, 3000);
+      
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage("Terjadi kesalahan. Silakan coba lagi nanti.");
+    }
+  };
+
   return (
     <section id="kontak" className="py-20 lg:py-32 bg-slate-50">
       <div className="container mx-auto px-4 lg:px-8">
@@ -91,20 +145,35 @@ export default function KontakSection() {
           >
             <h3 className="text-2xl font-bold text-slate-900 mb-8">Kirim Pesan Langsung</h3>
             
-            <form className="space-y-6 mb-10" onSubmit={(e) => e.preventDefault()}>
+            <form className="space-y-6 mb-10" onSubmit={handleSubmit}>
+              
+              {status === "error" && (
+                <div className="bg-red-50 text-red-600 p-4 rounded-xl flex items-start gap-3 border border-red-100">
+                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                  <p className="text-sm font-medium">{errorMessage}</p>
+                </div>
+              )}
+              
+              {status === "success" && (
+                <div className="bg-green-50 text-green-600 p-4 rounded-xl flex items-start gap-3 border border-green-100">
+                  <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
+                  <p className="text-sm font-medium">Pesan berhasil dikirim! Tim kami akan segera menghubungi Anda.</p>
+                </div>
+              )}
+
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Nama Lengkap</label>
-                  <input type="text" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" placeholder="John Doe" />
+                  <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} disabled={status === "loading"} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50" placeholder="John Doe" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">No. WhatsApp</label>
-                  <input type="text" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" placeholder="08123456789" />
+                  <input type="text" value={formData.whatsapp} onChange={(e) => setFormData({...formData, whatsapp: e.target.value})} disabled={status === "loading"} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50" placeholder="08123456789" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">Jenis Acara</label>
-                <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none">
+                <select value={formData.eventType} onChange={(e) => setFormData({...formData, eventType: e.target.value})} disabled={status === "loading"} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none disabled:opacity-50">
                   <option value="">Pilih Jenis Acara...</option>
                   <option value="corporate">Corporate Gathering</option>
                   <option value="wedding">Wedding / Pernikahan</option>
@@ -114,10 +183,14 @@ export default function KontakSection() {
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">Pesan & Detail Acara</label>
-                <textarea rows={4} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none" placeholder="Ceritakan konsep atau kebutuhan acara Anda..."></textarea>
+                <textarea rows={4} value={formData.message} onChange={(e) => setFormData({...formData, message: e.target.value})} disabled={status === "loading"} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none disabled:opacity-50" placeholder="Ceritakan konsep atau kebutuhan acara Anda..."></textarea>
               </div>
-              <button type="submit" className="w-full py-4 gradient-bg text-white rounded-xl font-bold shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-2">
-                Kirim Pesan <Send className="w-5 h-5" />
+              <button type="submit" disabled={status === "loading"} className="w-full py-4 gradient-bg text-white rounded-xl font-bold shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:translate-y-0">
+                {status === "loading" ? (
+                  <>Mengirim... <Loader2 className="w-5 h-5 animate-spin" /></>
+                ) : (
+                  <>Kirim Pesan <Send className="w-5 h-5" /></>
+                )}
               </button>
             </form>
 

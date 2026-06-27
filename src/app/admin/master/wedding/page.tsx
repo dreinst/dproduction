@@ -1,16 +1,25 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { Plus, Pencil, Trash2, CheckSquare, Search, Image as ImageIcon, X, ChevronDown } from "lucide-react";
 
+interface WeddingItem {
+  id: number;
+  name: string;
+  description: string;
+  photo: string;
+  active: boolean;
+}
+
 // Initial mock data based on live site format
-const initialData = [
+const initialData: WeddingItem[] = [
   { id: 1, name: "Intimate Wedding", description: "Pernikahan intim dan elegan dengan orang-orang terdekat.", photo: "/gbr/dpro-logo-no-text.png", active: true },
   { id: 2, name: "Grand Wedding", description: "Resepsi pernikahan berskala besar dan mewah.", photo: "/gbr/dpro-logo-no-text.png", active: true },
 ];
 
 export default function MasterWeddingPage() {
-  const [data, setData] = useState(initialData);
+  const [data, setData] = useState<WeddingItem[]>(initialData);
   const [statusFilter, setStatusFilter] = useState("Aktif");
   const [showEntries, setShowEntries] = useState(50);
   const [searchQuery, setSearchQuery] = useState("");
@@ -19,12 +28,14 @@ export default function MasterWeddingPage() {
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [currentEditing, setCurrentEditing] = useState<any>(null);
+  const [currentEditing, setCurrentEditing] = useState<WeddingItem | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({ name: "", description: "", photo: "", active: true });
+  const [formError, setFormError] = useState("");
 
-  const handleOpenModal = (item?: any) => {
+  const handleOpenModal = (item?: WeddingItem) => {
+    setFormError("");
     if (item) {
       setCurrentEditing(item);
       setFormData({ name: item.name, description: item.description, photo: item.photo, active: item.active });
@@ -36,6 +47,12 @@ export default function MasterWeddingPage() {
   };
 
   const handleSave = () => {
+    if (!formData.name.trim()) {
+      setFormError("Nama wedding wajib diisi");
+      return;
+    }
+    setFormError("");
+
     if (currentEditing) {
       setData(data.map(item => item.id === currentEditing.id ? { ...item, ...formData } : item));
     } else {
@@ -52,10 +69,12 @@ export default function MasterWeddingPage() {
     }
   };
 
-  const filteredData = data.filter(item => 
+  const filteredDataRaw = data.filter(item => 
     (statusFilter === "Semua" || (statusFilter === "Aktif" && item.active)) && 
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  ).slice(0, showEntries);
+  );
+  
+  const filteredData = filteredDataRaw.slice(0, showEntries);
 
   return (
     <div className="space-y-6">
@@ -115,7 +134,7 @@ export default function MasterWeddingPage() {
                         <div className="flex gap-4">
                           <div className="w-24 h-24 shrink-0 rounded-lg bg-white border border-slate-200 p-1 flex items-center justify-center overflow-hidden">
                              {item.photo ? (
-                               <img src={item.photo} alt={item.name} className="w-full h-full object-cover rounded" />
+                               <Image src={item.photo} alt={item.name} width={96} height={96} className="w-full h-full object-cover rounded" />
                              ) : (
                                <ImageIcon className="w-6 h-6 text-slate-300" />
                              )}
@@ -154,7 +173,7 @@ export default function MasterWeddingPage() {
         </table>
       </div>
 
-      <p className="text-sm text-blue-600">Showing 1 to {Math.min(filteredData.length, showEntries)} of {filteredData.length} entries</p>
+      <p className="text-sm text-blue-600">Showing {filteredData.length > 0 ? 1 : 0} to {filteredData.length} of {filteredDataRaw.length} entries</p>
 
       {/* Add/Edit Modal */}
       {isModalOpen && (
@@ -170,6 +189,7 @@ export default function MasterWeddingPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Nama Wedding</label>
                 <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="Masukkan nama" />
+                {formError && <p className="text-red-500 text-xs mt-1">{formError}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Deskripsi</label>

@@ -1,15 +1,24 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { Plus, Pencil, Trash2, CheckSquare, Search, Image as ImageIcon, X } from "lucide-react";
 
+interface EventItem {
+  id: number;
+  name: string;
+  description: string;
+  photo: string;
+  active: boolean;
+}
+
 // Initial mock data based on live site format
-const initialData = [
+const initialData: EventItem[] = [
   { id: 1, name: "Event Organizer", description: "D'Production hadir untuk membantu Anda merancang, mengelola, dan menyukseskan acara dengan konsep kreatif dan layanan profesional.", photo: "/gbr/dpro-logo-no-text.png", active: true },
 ];
 
 export default function MasterEventPage() {
-  const [data, setData] = useState(initialData);
+  const [data, setData] = useState<EventItem[]>(initialData);
   const [statusFilter, setStatusFilter] = useState("Aktif");
   const [showEntries, setShowEntries] = useState(50);
   const [searchQuery, setSearchQuery] = useState("");
@@ -17,13 +26,15 @@ export default function MasterEventPage() {
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [currentEditing, setCurrentEditing] = useState<any>(null);
+  const [currentEditing, setCurrentEditing] = useState<EventItem | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({ name: "", description: "", photo: "", active: true });
+  const [formError, setFormError] = useState("");
 
   // Add/Edit handler
-  const handleOpenModal = (item?: any) => {
+  const handleOpenModal = (item?: EventItem) => {
+    setFormError("");
     if (item) {
       setCurrentEditing(item);
       setFormData({ name: item.name, description: item.description, photo: item.photo, active: item.active });
@@ -35,6 +46,12 @@ export default function MasterEventPage() {
   };
 
   const handleSave = () => {
+    if (!formData.name.trim()) {
+      setFormError("Nama event wajib diisi");
+      return;
+    }
+    setFormError("");
+
     if (currentEditing) {
       setData(data.map(item => item.id === currentEditing.id ? { ...item, ...formData } : item));
     } else {
@@ -51,10 +68,12 @@ export default function MasterEventPage() {
     }
   };
 
-  const filteredData = data.filter(item => 
+  const filteredDataRaw = data.filter(item => 
     (statusFilter === "Semua" || (statusFilter === "Aktif" && item.active)) && 
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  ).slice(0, showEntries);
+  );
+  
+  const filteredData = filteredDataRaw.slice(0, showEntries);
 
   return (
     <div className="space-y-6">
@@ -110,7 +129,7 @@ export default function MasterEventPage() {
                 <td className="px-4 py-3 text-sm text-center">
                    {item.photo ? (
                       <div className="w-12 h-12 rounded bg-slate-200 mx-auto overflow-hidden flex items-center justify-center">
-                         <img src={item.photo} alt={item.name} className="w-full h-full object-cover" />
+                         <Image src={item.photo} alt={item.name} width={48} height={48} className="w-full h-full object-cover" />
                       </div>
                    ) : (
                       <div className="w-12 h-12 rounded bg-slate-100 mx-auto flex items-center justify-center text-slate-400">
@@ -146,7 +165,7 @@ export default function MasterEventPage() {
         </table>
       </div>
 
-      <p className="text-sm text-blue-600">Showing 1 to {Math.min(filteredData.length, showEntries)} of {filteredData.length} entries</p>
+      <p className="text-sm text-blue-600">Showing {filteredData.length > 0 ? 1 : 0} to {filteredData.length} of {filteredDataRaw.length} entries</p>
 
       {/* Add/Edit Modal */}
       {isModalOpen && (
@@ -162,6 +181,7 @@ export default function MasterEventPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Nama Event</label>
                 <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="Masukkan nama event" />
+                {formError && <p className="text-red-500 text-xs mt-1">{formError}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Deskripsi</label>

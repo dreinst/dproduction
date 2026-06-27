@@ -1,7 +1,6 @@
 "use client";
 
-import { Menu, Search, Bell, Calendar, User } from "lucide-react";
-import { useState } from "react";
+import { Menu, Calendar, User } from "lucide-react";
 
 interface AdminHeaderProps {
   user: { username: string; alias: string; level: string };
@@ -9,8 +8,6 @@ interface AdminHeaderProps {
 }
 
 export default function AdminHeader({ user, onMenuToggle }: AdminHeaderProps) {
-  const [searchOpen, setSearchOpen] = useState(false);
-
   const today = new Date();
   const formattedDate = today.toLocaleDateString("id-ID", {
     weekday: "long",
@@ -36,14 +33,6 @@ export default function AdminHeader({ user, onMenuToggle }: AdminHeaderProps) {
 
       {/* Right side */}
       <div className="flex items-center gap-3">
-        {/* Search toggle */}
-        <button
-          onClick={() => setSearchOpen(!searchOpen)}
-          className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-        >
-          <Search className="w-5 h-5" />
-        </button>
-
         {/* Date */}
         <div className="hidden md:flex items-center gap-2 text-slate-500 text-sm">
           <Calendar className="w-4 h-4" />
@@ -55,23 +44,16 @@ export default function AdminHeader({ user, onMenuToggle }: AdminHeaderProps) {
           <div className="w-6 h-6 bg-green-500 rounded-md flex items-center justify-center">
             <User className="w-3.5 h-3.5 text-white" />
           </div>
-          <span className="text-green-700 text-sm font-medium">
-            {user.username}
-          </span>
+          <div className="flex flex-col">
+             <span className="text-green-700 text-sm font-medium leading-none">
+               {user.username}
+             </span>
+             <span className="text-green-600/80 text-[10px] font-bold uppercase tracking-wider mt-0.5">
+               {user.level}
+             </span>
+          </div>
         </div>
       </div>
-
-      {/* Search overlay */}
-      {searchOpen && (
-        <div className="absolute top-full left-0 right-0 bg-white border-b border-slate-200 p-4 shadow-lg">
-          <input
-            type="text"
-            placeholder="Cari di Management Page..."
-            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all text-sm"
-            autoFocus
-          />
-        </div>
-      )}
     </header>
   );
 }

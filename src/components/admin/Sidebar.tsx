@@ -18,7 +18,7 @@ import {
   DollarSign,
   ChevronDown,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface SidebarProps {
   onClose?: () => void;
@@ -31,10 +31,64 @@ interface NavItem {
   children?: { name: string; href: string }[];
 }
 
+const navItems: NavItem[] = [
+  { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+  { name: "Database", href: "/admin/database", icon: FileText },
+  {
+    name: "Galeri",
+    icon: Image,
+    children: [
+      { name: "Foto", href: "/admin/galeri/foto" },
+      { name: "Video", href: "/admin/galeri/video" },
+    ],
+  },
+  {
+    name: "Master",
+    icon: Package,
+    children: [
+      { name: "Master Foto", href: "/admin/master/foto" },
+      { name: "Master Event", href: "/admin/master/event" },
+      { name: "Master Wedding", href: "/admin/master/wedding" },
+      { name: "Master Rental", href: "/admin/master/rental" },
+      { name: "Master Grade Event", href: "/admin/master/grade-event" },
+      { name: "Master JobDesc", href: "/admin/master/jobdesc" },
+    ],
+  },
+  {
+    name: "Setting",
+    icon: Settings,
+    children: [
+      { name: "Kantor", href: "/admin/setting/kantor" },
+      { name: "Login", href: "/admin/setting/login" },
+      { name: "Head Home", href: "/admin/setting/head-home" },
+    ],
+  },
+  {
+    name: "Workspace",
+    icon: Building2,
+    children: [
+      { name: "Event", href: "/admin/workspace/event" },
+      { name: "Report", href: "/admin/workspace/report" },
+      { name: "Salary", href: "/admin/workspace/salary" },
+    ],
+  },
+];
+
 export default function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(["Galeri", "Master", "Setting", "Workspace"]);
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+
+  useEffect(() => {
+    const activeGroup = navItems.find(
+      (item) => item.children?.some((child) => pathname === child.href)
+    );
+    if (activeGroup) {
+      setExpandedMenus([activeGroup.name]);
+    } else {
+      setExpandedMenus([]);
+    }
+  }, [pathname]);
 
   const handleLogout = () => {
     document.cookie = "dpro_auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
@@ -48,49 +102,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
         : [...prev, name]
     );
   };
-
-  const navItems: NavItem[] = [
-    { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-    { name: "Database", href: "/admin/database", icon: FileText },
-    {
-      name: "Galeri",
-      icon: Image,
-      children: [
-        { name: "Foto", href: "/admin/galeri/foto" },
-        { name: "Video", href: "/admin/galeri/video" },
-      ],
-    },
-    {
-      name: "Master",
-      icon: Package,
-      children: [
-        { name: "Master Foto", href: "/admin/master/foto" },
-        { name: "Master Event", href: "/admin/master/event" },
-        { name: "Master Wedding", href: "/admin/master/wedding" },
-        { name: "Master Rental", href: "/admin/master/rental" },
-        { name: "Master Grade Event", href: "/admin/master/grade-event" },
-        { name: "Master JobDesc", href: "/admin/master/jobdesc" },
-      ],
-    },
-    {
-      name: "Setting",
-      icon: Settings,
-      children: [
-        { name: "Kantor", href: "/admin/setting/kantor" },
-        { name: "Login", href: "/admin/setting/login" },
-        { name: "Head Home", href: "/admin/setting/head-home" },
-      ],
-    },
-    {
-      name: "Workspace",
-      icon: Building2,
-      children: [
-        { name: "Event", href: "/admin/workspace/event" },
-        { name: "Report", href: "/admin/workspace/report" },
-        { name: "Salary", href: "/admin/workspace/salary" },
-      ],
-    },
-  ];
 
   const isActive = (href: string) => pathname === href;
   const isGroupActive = (item: NavItem) => {
