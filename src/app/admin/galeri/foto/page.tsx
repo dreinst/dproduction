@@ -2,22 +2,20 @@
 
 import React, { useState } from "react";
 import { Plus, Search, Pencil, Trash2, CheckSquare, ArrowUp, ArrowDown, Image as ImageIcon, X } from "lucide-react";
+import { useCrud } from "@/hooks/useCrud";
 
-// Initial mock data
-const initialData = [
-  { id: 1, album: "Event Organizer", keterangan: "Flag Off Malang Half Marathon 2026", tanggal: "27 Apr 2026", active: true, sortIndex: 0, image: "" },
-  { id: 2, album: "Event Organizer", keterangan: "Emba Run Malang 10K", tanggal: "27 Apr 2026", active: true, sortIndex: 0, image: "" },
-  { id: 3, album: "Event Organizer", keterangan: "Qris Fun Run", tanggal: "27 Apr 2026", active: true, sortIndex: 0, image: "" },
-  { id: 4, album: "Event Organizer", keterangan: "Qris Jelajah Indonesia", tanggal: "27 Apr 2026", active: true, sortIndex: 0, image: "" },
-  { id: 5, album: "Event Organizer", keterangan: "Kemenkeu Goes To Bromo", tanggal: "27 Apr 2026", active: true, sortIndex: 0, image: "" },
-  { id: 6, album: "Event Organizer", keterangan: "Sekartaji Bank Indonesia", tanggal: "27 Apr 2026", active: true, sortIndex: 0, image: "" },
-  { id: 7, album: "Event Organizer", keterangan: "DIGIFES BI NGALAM", tanggal: "27 Apr 2026", active: true, sortIndex: 0, image: "" },
-  { id: 8, album: "Event Organizer", keterangan: "Cuddle me", tanggal: "27 Apr 2026", active: true, sortIndex: 0, image: "" },
-  { id: 9, album: "Event Organizer", keterangan: "Rupiah Championship", tanggal: "27 Apr 2026", active: true, sortIndex: 0, image: "" },
-];
+interface GaleriFotoAlbumItem {
+  id: number;
+  album: string;
+  keterangan: string;
+  tanggal: string;
+  image: string;
+  active: boolean;
+  sortIndex: number;
+}
 
 export default function GaleriFotoPage() {
-  const [data, setData] = useState(initialData);
+  const { data, loading, error, createItem, updateItem, deleteItem } = useCrud<GaleriFotoAlbumItem>({ endpoint: '/api/galeri-foto-albums' });
   const [albumFilter, setAlbumFilter] = useState("--- semua ---");
   const [statusFilter, setStatusFilter] = useState("Aktif");
   const [showEntries, setShowEntries] = useState(50);
@@ -27,40 +25,73 @@ export default function GaleriFotoPage() {
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [currentEditing, setCurrentEditing] = useState<any>(null);
+  const [currentEditing, setCurrentEditing] = useState<GaleriFotoAlbumItem | null>(null);
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
 
   // Form state
-  const [formData, setFormData] = useState({ album: "Event Organizer", keterangan: "", tanggal: "", image: "", active: true });
+  const [formData, setFormData] = useState({ album: "Event Organizer", keterangan: "", tanggal: "", image: "", active: true, sortIndex: 0 });
 
-  const handleOpenModal = (item?: any) => {
+  const handleOpenModal = (item?: GaleriFotoAlbumItem) => {
     if (item) {
       setCurrentEditing(item);
-      setFormData({ album: item.album, keterangan: item.keterangan, tanggal: item.tanggal, image: item.image, active: item.active });
+      setFormData({ 
+        album: item.album || "Event Organizer", 
+        keterangan: item.keterangan || "", 
+        tanggal: item.tanggal ? new Date(item.tanggal).toISOString().split('T')[0] : "", 
+        image: item.image || "", 
+        active: item.active,
+        sortIndex: item.sortIndex || 0
+      });
     } else {
       setCurrentEditing(null);
-      setFormData({ album: "Event Organizer", keterangan: "", tanggal: "", image: "", active: true });
+      setFormData({ album: "Event Organizer", keterangan: "", tanggal: "", image: "", active: true, sortIndex: 0 });
     }
+    setFormError("");
     setIsModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setIsSubmitting(true);
+    setFormError("");
+    
+    let success = false;
+    const payload = {
+      ...formData,
+      sortIndex: Number(formData.sortIndex)
+    };
+
     if (currentEditing) {
-      setData(data.map(item => item.id === currentEditing.id ? { ...item, ...formData } : item));
+      success = await updateItem(currentEditing.id, payload);
     } else {
-      setData([{ id: Date.now(), sortIndex: 0, ...formData }, ...data]);
+      success = await createItem(payload);
     }
-    setIsModalOpen(false);
+    
+    setIsSubmitting(false);
+
+    if (success) {
+      setIsModalOpen(false);
+    } else {
+      setFormError("Gagal menyimpan data.");
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (currentEditing) {
-      setData(data.filter(item => item.id !== currentEditing.id));
-      setIsDeleteModalOpen(false);
-      setCurrentEditing(null);
+      setIsSubmitting(true);
+      const success = await deleteItem(currentEditing.id);
+      setIsSubmitting(false);
+      
+      if (success) {
+        setIsDeleteModalOpen(false);
+        setCurrentEditing(null);
+      }
     }
   };
 
-  const filtered = data.filter((item) => {
+  const safeData = data || [];
+  const filtered = safeData.filter((item) => {
     if (albumFilter !== "--- semua ---" && item.album !== albumFilter) return false;
     if (statusFilter === "Aktif" && !item.active) return false;
     
@@ -146,7 +177,12 @@ export default function GaleriFotoPage() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
-        <table className="w-full min-w-[900px]">
+        {loading ? (
+          <div className="p-8 text-center text-slate-500">Loading galeri foto...</div>
+        ) : error ? (
+          <div className="p-8 text-center text-red-500">Error: {error}</div>
+        ) : (
+          <table className="w-full min-w-[900px]">
           <thead>
             <tr className="bg-slate-800 text-white text-sm">
               <th className="px-4 py-3 text-left font-semibold w-12">No</th>
@@ -209,6 +245,7 @@ export default function GaleriFotoPage() {
             )}
           </tbody>
         </table>
+        )}
       </div>
 
       <p className="text-sm text-blue-600">Showing 1 to {Math.min(filtered.length, showEntries)} of {filtered.length} entries</p>
@@ -224,33 +261,38 @@ export default function GaleriFotoPage() {
               </button>
             </div>
             <div className="p-6 space-y-4">
+              {formError && <div className="p-3 bg-red-100 text-red-600 rounded-lg text-sm">{formError}</div>}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Album</label>
-                <select value={formData.album} onChange={e => setFormData({...formData, album: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30">
+                <select value={formData.album} onChange={e => setFormData({...formData, album: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting}>
                   <option>Event Organizer</option>
                   <option>Wedding</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Keterangan</label>
-                <input type="text" value={formData.keterangan} onChange={e => setFormData({...formData, keterangan: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="Masukkan keterangan" />
+                <input type="text" value={formData.keterangan} onChange={e => setFormData({...formData, keterangan: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="Masukkan keterangan" disabled={isSubmitting} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal</label>
-                <input type="text" value={formData.tanggal} onChange={e => setFormData({...formData, tanggal: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="e.g. 27 Apr 2026" />
+                <input type="date" value={formData.tanggal} onChange={e => setFormData({...formData, tanggal: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">URL Foto (Opsional)</label>
-                <input type="text" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="Masukkan URL foto" />
+                <input type="text" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="Masukkan URL foto" disabled={isSubmitting} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Sort Index</label>
+                <input type="number" value={formData.sortIndex} onChange={e => setFormData({...formData, sortIndex: Number(e.target.value)})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
               </div>
               <div className="flex items-center gap-2 pt-2">
-                <input type="checkbox" id="active-check-gf" checked={formData.active} onChange={e => setFormData({...formData, active: e.target.checked})} className="w-4 h-4 text-blue-600 rounded border-slate-300" />
+                <input type="checkbox" id="active-check-gf" checked={formData.active} onChange={e => setFormData({...formData, active: e.target.checked})} className="w-4 h-4 text-blue-600 rounded border-slate-300" disabled={isSubmitting} />
                 <label htmlFor="active-check-gf" className="text-sm font-medium text-slate-700">Aktif</label>
               </div>
             </div>
             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 sticky bottom-0">
-              <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors">Batal</button>
-              <button onClick={handleSave} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm shadow-blue-600/20 transition-colors">Simpan</button>
+              <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors" disabled={isSubmitting}>Batal</button>
+              <button onClick={handleSave} disabled={isSubmitting} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 text-sm font-medium rounded-lg shadow-sm shadow-blue-600/20 transition-colors">{isSubmitting ? 'Menyimpan...' : 'Simpan'}</button>
             </div>
           </div>
         </div>
@@ -268,8 +310,8 @@ export default function GaleriFotoPage() {
               <p className="text-slate-500 text-sm">Apakah Anda yakin ingin menghapus foto "{currentEditing?.keterangan}"?</p>
             </div>
             <div className="px-6 py-4 bg-slate-50 flex justify-center gap-3">
-              <button onClick={() => setIsDeleteModalOpen(false)} className="px-6 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>
-              <button onClick={handleDelete} className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">Ya, Hapus</button>
+              <button onClick={() => setIsDeleteModalOpen(false)} disabled={isSubmitting} className="px-6 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>
+              <button onClick={handleDelete} disabled={isSubmitting} className="px-6 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">{isSubmitting ? 'Menghapus...' : 'Ya, Hapus'}</button>
             </div>
           </div>
         </div>

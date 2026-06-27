@@ -3,23 +3,18 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { Plus, Pencil, Trash2, CheckSquare, Search, Image as ImageIcon, X, ChevronDown } from "lucide-react";
+import { useCrud } from "@/hooks/useCrud";
 
 interface WeddingItem {
   id: number;
   name: string;
-  description: string;
-  photo: string;
+  description: string | null;
+  photo: string | null;
   active: boolean;
 }
 
-// Initial mock data based on live site format
-const initialData: WeddingItem[] = [
-  { id: 1, name: "Intimate Wedding", description: "Pernikahan intim dan elegan dengan orang-orang terdekat.", photo: "/gbr/dpro-logo-no-text.png", active: true },
-  { id: 2, name: "Grand Wedding", description: "Resepsi pernikahan berskala besar dan mewah.", photo: "/gbr/dpro-logo-no-text.png", active: true },
-];
-
 export default function MasterWeddingPage() {
-  const [data, setData] = useState<WeddingItem[]>(initialData);
+  const { data, loading, error, createItem, updateItem, deleteItem } = useCrud<WeddingItem>({ endpoint: '/api/weddings' });
   const [statusFilter, setStatusFilter] = useState("Aktif");
   const [showEntries, setShowEntries] = useState(50);
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,12 +28,13 @@ export default function MasterWeddingPage() {
   // Form state
   const [formData, setFormData] = useState({ name: "", description: "", photo: "", active: true });
   const [formError, setFormError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleOpenModal = (item?: WeddingItem) => {
     setFormError("");
     if (item) {
       setCurrentEditing(item);
-      setFormData({ name: item.name, description: item.description, photo: item.photo, active: item.active });
+      setFormData({ name: item.name, description: item.description || "", photo: item.photo || "", active: item.active });
     } else {
       setCurrentEditing(null);
       setFormData({ name: "", description: "", photo: "", active: true });
@@ -46,26 +42,47 @@ export default function MasterWeddingPage() {
     setIsModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name.trim()) {
       setFormError("Nama wedding wajib diisi");
       return;
     }
     setFormError("");
+    setIsSubmitting(true);
 
+    const payload = {
+      name: formData.name,
+      description: formData.description || null,
+      photo: formData.photo || null,
+      active: formData.active,
+    };
+
+    let success = false;
     if (currentEditing) {
-      setData(data.map(item => item.id === currentEditing.id ? { ...item, ...formData } : item));
+      success = await updateItem(currentEditing.id, payload);
     } else {
-      setData([...data, { id: Date.now(), ...formData }]);
+      success = await createItem(payload);
     }
-    setIsModalOpen(false);
+    
+    setIsSubmitting(false);
+    
+    if (success) {
+      setIsModalOpen(false);
+    } else {
+      setFormError("Gagal menyimpan data");
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (currentEditing) {
-      setData(data.filter(item => item.id !== currentEditing.id));
-      setIsDeleteModalOpen(false);
-      setCurrentEditing(null);
+      setIsSubmitting(true);
+      const success = await deleteItem(currentEditing.id);
+      setIsSubmitting(false);
+      
+      if (success) {
+        setIsDeleteModalOpen(false);
+        setCurrentEditing(null);
+      }
     }
   };
 
@@ -79,6 +96,10 @@ export default function MasterWeddingPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-slate-800 uppercase">Master Wedding</h1>
+
+      {error && (
+        <div className="p-4 bg-red-100 text-red-600 rounded-lg text-sm">{error}</div>
+      )}
 
       {/* Filters and Add Button */}
       <div>
@@ -118,7 +139,16 @@ export default function MasterWeddingPage() {
             </tr>
           </thead>
           <tbody>
-            {filteredData.map((item, idx) => (
+            {loading ? (
+              <tr>
+                <td colSpan={2} className="px-4 py-8 text-center text-slate-500 text-sm">Loading...</td>
+              </tr>
+            ) : filteredData.length === 0 ? (
+              <tr>
+                 <td colSpan={2} className="px-4 py-8 text-center text-slate-500 text-sm">Tidak ada data</td>
+              </tr>
+            ) : (
+              filteredData.map((item, idx) => (
               <React.Fragment key={item.id}>
                 <tr className="border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setExpanded(expanded === item.id ? null : item.id)}>
                   <td className="px-4 py-3 text-sm text-slate-600 flex items-center gap-2">
@@ -163,12 +193,7 @@ export default function MasterWeddingPage() {
                   </tr>
                 )}
               </React.Fragment>
-            ))}
-            {filteredData.length === 0 && (
-              <tr>
-                 <td colSpan={2} className="px-4 py-8 text-center text-slate-500 text-sm">Tidak ada data</td>
-              </tr>
-            )}
+            )))}
           </tbody>
         </table>
       </div>
@@ -181,32 +206,34 @@ export default function MasterWeddingPage() {
           <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h2 className="text-lg font-bold text-slate-800">{currentEditing ? "Edit Master Wedding" : "Tambah Master Wedding"}</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
+              <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors" disabled={isSubmitting}>
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Nama Wedding</label>
-                <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="Masukkan nama" />
+                <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="Masukkan nama" disabled={isSubmitting} />
                 {formError && <p className="text-red-500 text-xs mt-1">{formError}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Deskripsi</label>
-                <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-h-[100px]" placeholder="Masukkan deskripsi" />
+                <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-h-[100px]" placeholder="Masukkan deskripsi" disabled={isSubmitting} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">URL Foto (Opsional)</label>
-                <input type="text" value={formData.photo} onChange={e => setFormData({...formData, photo: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="/gbr/dpro-logo.png" />
+                <input type="text" value={formData.photo} onChange={e => setFormData({...formData, photo: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="/gbr/dpro-logo.png" disabled={isSubmitting} />
               </div>
               <div className="flex items-center gap-2 pt-2">
-                <input type="checkbox" id="active-check-wd" checked={formData.active} onChange={e => setFormData({...formData, active: e.target.checked})} className="w-4 h-4 text-blue-600 rounded border-slate-300" />
+                <input type="checkbox" id="active-check-wd" checked={formData.active} onChange={e => setFormData({...formData, active: e.target.checked})} className="w-4 h-4 text-blue-600 rounded border-slate-300" disabled={isSubmitting} />
                 <label htmlFor="active-check-wd" className="text-sm font-medium text-slate-700">Aktif</label>
               </div>
             </div>
             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-              <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors">Batal</button>
-              <button onClick={handleSave} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm shadow-blue-600/20 transition-colors">Simpan</button>
+              <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors" disabled={isSubmitting}>Batal</button>
+              <button onClick={handleSave} disabled={isSubmitting} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm shadow-blue-600/20 transition-colors">
+                {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+              </button>
             </div>
           </div>
         </div>
@@ -224,8 +251,10 @@ export default function MasterWeddingPage() {
               <p className="text-slate-500 text-sm">Apakah Anda yakin ingin menghapus "{currentEditing?.name}"?</p>
             </div>
             <div className="px-6 py-4 bg-slate-50 flex justify-center gap-3">
-              <button onClick={() => setIsDeleteModalOpen(false)} className="px-6 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>
-              <button onClick={handleDelete} className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">Ya, Hapus</button>
+              <button onClick={() => setIsDeleteModalOpen(false)} disabled={isSubmitting} className="px-6 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>
+              <button onClick={handleDelete} disabled={isSubmitting} className="px-6 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+                {isSubmitting ? 'Menghapus...' : 'Ya, Hapus'}
+              </button>
             </div>
           </div>
         </div>

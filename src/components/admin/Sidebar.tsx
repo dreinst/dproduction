@@ -18,10 +18,11 @@ import {
   DollarSign,
   ChevronDown,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 interface SidebarProps {
   onClose?: () => void;
+  role?: string;
 }
 
 interface NavItem {
@@ -31,7 +32,7 @@ interface NavItem {
   children?: { name: string; href: string }[];
 }
 
-const navItems: NavItem[] = [
+const allNavItems: NavItem[] = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { name: "Database", href: "/admin/database", icon: FileText },
   {
@@ -74,25 +75,78 @@ const navItems: NavItem[] = [
   },
 ];
 
-export default function Sidebar({ onClose }: SidebarProps) {
+export default function Sidebar({ onClose, role }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+  
+  // Filter nav items based on role
+  const navItems = useMemo(() => {
+    if (!role) return []; // hide all if no role
+    
+    // Shallow copy array and objects to avoid mutating global but preserve component references
+    const clonedItems = allNavItems.map(item => ({
+      ...item,
+      children: item.children ? [...item.children] : undefined
+    }));
+    
+    return clonedItems.filter((item) => {
+      if (role === "owner") return true;
+      
+      if (role === "superadmin") {
+        // Superadmin can see everything except Setting Login
+        if (item.name === "Setting") {
+          item.children = item.children?.filter(child => child.name !== "Login");
+        }
+        return true;
+      }
+      
+      if (role === "admin") {
+        // Admin: Master + Galeri + Workspace Event/Report
+        if (["Database", "Setting"].includes(item.name)) return false;
+        if (item.name === "Workspace") {
+          item.children = item.children?.filter(child => child.name !== "Salary");
+        }
+        return true;
+      }
+      
+      if (role === "staff" || role === "tester") {
+        // Hanya Workspace Event
+        if (item.name === "Dashboard") return true;
+        if (item.name === "Workspace") {
+          item.children = item.children?.filter(child => child.name === "Event");
+          return true;
+        }
+        return false;
+      }
+      
+      return false;
+    });
+  }, [role]);
 
   useEffect(() => {
+    // Only re-run when pathname changes to expand the active group
     const activeGroup = navItems.find(
       (item) => item.children?.some((child) => pathname === child.href)
     );
     if (activeGroup) {
-      setExpandedMenus([activeGroup.name]);
-    } else {
-      setExpandedMenus([]);
+      setExpandedMenus(prev => {
+        if (!prev.includes(activeGroup.name)) {
+          return [...prev, activeGroup.name];
+        }
+        return prev;
+      });
     }
   }, [pathname]);
 
-  const handleLogout = () => {
-    document.cookie = "dpro_auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (e) {
+      console.error(e);
+    }
     router.push("/admin/login");
+    router.refresh();
   };
 
   const toggleMenu = (name: string) => {

@@ -5,12 +5,6 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Eye, EyeOff, Lock, User, ArrowRight } from "lucide-react";
 
-const USERS = [
-  { username: "owner", password: "***DIHAPUS***", alias: "Owner", level: "Superuser" },
-  { username: "admin", password: "***DIHAPUS***", alias: "Administrator", level: "Superuser" },
-  { username: "tester", password: "***DIHAPUS***", alias: "Tester", level: "Superuser" },
-];
-
 export default function AdminLoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -24,25 +18,28 @@ export default function AdminLoginPage() {
     setError("");
     setLoading(true);
 
-    // Simulate brief delay for UX
-    await new Promise((res) => setTimeout(res, 600));
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username: username.toLowerCase(), password }),
+      });
 
-    const user = USERS.find(
-      (u) => u.username === username.toLowerCase() && u.password === password
-    );
-
-    if (user) {
-      // Set auth session cookie (will be deleted when browser closes, or when leaving admin page)
-      document.cookie = `dpro_auth=${JSON.stringify({
-        username: user.username,
-        alias: user.alias,
-        level: user.level,
-      })}; path=/`;
-      router.push("/admin");
-    } else {
-      setError("Username atau password salah. Silakan coba lagi.");
+      if (res.ok) {
+        // Successful login, middleware handles the rest, we just redirect
+        router.push("/admin");
+        router.refresh();
+      } else {
+        const data = await res.json();
+        setError(data.message || "Username atau password salah. Silakan coba lagi.");
+      }
+    } catch (err) {
+      setError("Terjadi kesalahan. Silakan coba lagi.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
