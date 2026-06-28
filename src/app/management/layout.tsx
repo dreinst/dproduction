@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import Sidebar from "@/components/admin/Sidebar";
-import AdminHeader from "@/components/admin/Header";
+import Sidebar from "@/components/management/Sidebar";
+import AdminHeader from "@/components/management/Header";
 
 export default function AdminLayout({
   children,
@@ -16,7 +16,7 @@ export default function AdminLayout({
   const [checking, setChecking] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const isLoginPage = pathname === "/admin/login";
+  const isLoginPage = pathname === "/management/login";
 
   useEffect(() => {
     if (isLoginPage) {
@@ -31,10 +31,10 @@ export default function AdminLayout({
           const data = await res.json();
           setUser({ ...data.user, alias: data.user.username });
         } else {
-          router.replace("/admin/login");
+          router.replace("/management/login");
         }
       } catch (err) {
-        router.replace("/admin/login");
+        router.replace("/management/login");
       } finally {
         setChecking(false);
       }

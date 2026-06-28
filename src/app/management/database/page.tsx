@@ -10,20 +10,29 @@ interface DatabaseItem {
   lastUpdated: string;
 }
 
-// Sample database entries
-const initialData: DatabaseItem[] = [
-  { id: 1, name: "Tabel Klien", records: 17, lastUpdated: "26 Jun 2026" },
-  { id: 2, name: "Tabel Event", records: 49, lastUpdated: "26 Jun 2026" },
-  { id: 3, name: "Tabel Team", records: 36, lastUpdated: "26 Jun 2026" },
-  { id: 4, name: "Tabel Rental", records: 12, lastUpdated: "25 Jun 2026" },
-  { id: 5, name: "Tabel Galeri Foto", records: 9, lastUpdated: "27 Apr 2026" },
-  { id: 6, name: "Tabel Galeri Video", records: 2, lastUpdated: "27 Apr 2026" },
-];
-
+// Fetch data dynamically
 export default function DatabasePage() {
-  const [data, setData] = useState<DatabaseItem[]>(initialData);
+  const [data, setData] = useState<DatabaseItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showEntries, setShowEntries] = useState(50);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    async function fetchData() {
+      try {
+        const res = await fetch('/api/database');
+        if (res.ok) {
+          const json = await res.json();
+          setData(json);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
 
   const filteredRaw = data.filter((e) =>
     searchQuery

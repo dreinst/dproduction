@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   CheckCircle,
   Clock,
@@ -25,62 +25,6 @@ interface MonthlyData {
   berjalan: number;
 }
 
-// Team/Crew data from the reference screenshots
-const teamData: TeamMember[] = [
-  { name: "Donny", phone: "081938938800", completed: 18, running: 0, hasPhoto: true },
-  { name: "Daus", phone: "6281917779222", completed: 17, running: 0, hasPhoto: true },
-  { name: "Nadia", phone: "6282132370811", completed: 16, running: 0, hasPhoto: true },
-  { name: "Rama", phone: "6281249867900", completed: 12, running: 0, hasPhoto: true },
-  { name: "Elly", phone: "6282330459849", completed: 12, running: 0, hasPhoto: true },
-  { name: "Maria", phone: "6287701769670", completed: 12, running: 0, hasPhoto: true },
-  { name: "Aldiano", phone: "6282123337000", completed: 12, running: 0, hasPhoto: true },
-  { name: "Fajar", phone: "6282142553700", completed: 11, running: 0, hasPhoto: false },
-  { name: "Dimas", phone: "6283170560764", completed: 10, running: 0, hasPhoto: true },
-  { name: "Awan", phone: "6281259807412", completed: 9, running: 0, hasPhoto: false },
-  { name: "Vano", phone: "6285934488440", completed: 8, running: 0, hasPhoto: true },
-  { name: "Rura", phone: "6281252545296", completed: 7, running: 0, hasPhoto: true },
-  { name: "Amel", phone: "6281196988808", completed: 6, running: 0, hasPhoto: true },
-  { name: "Patty", phone: "6281357912234", completed: 5, running: 0, hasPhoto: true },
-  { name: "Tanti", phone: "6281259757479", completed: 4, running: 0, hasPhoto: true },
-  { name: "Vanes", phone: "6281336667686", completed: 4, running: 0, hasPhoto: true },
-  { name: "Nesa", phone: "6281216681226", completed: 3, running: 0, hasPhoto: false },
-  { name: "Aneng", phone: "6282293253361", completed: 3, running: 0, hasPhoto: true },
-  { name: "Joel", phone: "6281278997409", completed: 3, running: 0, hasPhoto: false },
-  { name: "Ivana", phone: "6282244066011", completed: 2, running: 0, hasPhoto: true },
-  { name: "Icha", phone: "6281392795160", completed: 2, running: 0, hasPhoto: true },
-  { name: "Semmy", phone: "6282232882936", completed: 2, running: 0, hasPhoto: false },
-  { name: "Jeffry", phone: "62818380630", completed: 1, running: 0, hasPhoto: false },
-  { name: "Andrew", phone: "6282228555254", completed: 1, running: 0, hasPhoto: false },
-  { name: "Richie", phone: "6282336661980", completed: 1, running: 0, hasPhoto: false },
-  { name: "Eartha", phone: "6287739626013", completed: 1, running: 0, hasPhoto: false },
-  { name: "Marcel", phone: "6289516094160", completed: 1, running: 0, hasPhoto: false },
-  { name: "Hendra", phone: "6285785113322", completed: 1, running: 0, hasPhoto: true },
-  { name: "Cathrine", phone: "6285736464911", completed: 1, running: 0, hasPhoto: true },
-  { name: "Cosmas", phone: "6281249582001", completed: 1, running: 0, hasPhoto: false },
-  { name: "Rehu", phone: "6289693809538", completed: 1, running: 0, hasPhoto: true },
-  { name: "Hesty", phone: "628970317902", completed: 1, running: 0, hasPhoto: true },
-  { name: "Laura", phone: "6285230415500", completed: 0, running: 2, hasPhoto: false },
-  { name: "Ravy", phone: "6282132245979", completed: 0, running: 2, hasPhoto: false },
-  { name: "Rambo", phone: "6283850560177", completed: 0, running: 1, hasPhoto: false },
-  { name: "Adam (alazhar)", phone: "628155133924", completed: 0, running: 1, hasPhoto: false },
-];
-
-// Monthly event data for chart
-const monthlyData: MonthlyData[] = [
-  { month: "JAN", selesai: 0, berjalan: 0 },
-  { month: "FEB", selesai: 0, berjalan: 0 },
-  { month: "MAR", selesai: 2, berjalan: 0 },
-  { month: "APR", selesai: 4, berjalan: 2 },
-  { month: "MAY", selesai: 3, berjalan: 0 },
-  { month: "JUN", selesai: 45, berjalan: 0 },
-  { month: "JUL", selesai: 3, berjalan: 0 },
-  { month: "AUG", selesai: 2, berjalan: 0 },
-  { month: "SEP", selesai: 4, berjalan: 0 },
-  { month: "OCT", selesai: 3, berjalan: 0 },
-  { month: "NOV", selesai: 5, berjalan: 0 },
-  { month: "DEC", selesai: 3, berjalan: 0 },
-];
-
 const ITEMS_PER_PAGE = 10;
 
 const maskPhone = (phone: string): string => {
@@ -89,16 +33,43 @@ const maskPhone = (phone: string): string => {
 };
 
 export default function AdminDashboard() {
-  const [year, setYear] = useState("2025");
+  const [year, setYear] = useState("2026");
   const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState<{
+    totalSelesai: number;
+    totalBerjalan: number;
+    monthlyData: MonthlyData[];
+    teamData: TeamMember[];
+  }>({
+    totalSelesai: 0,
+    totalBerjalan: 0,
+    monthlyData: [],
+    teamData: []
+  });
+
+  useEffect(() => {
+    fetch('/api/dashboard')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.monthlyData) {
+          setDashboardData(data);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
+  const { teamData, monthlyData, totalSelesai, totalBerjalan } = dashboardData;
   const totalPages = Math.ceil(teamData.length / ITEMS_PER_PAGE);
   const paginatedTeam = teamData.slice(
     (page - 1) * ITEMS_PER_PAGE,
     page * ITEMS_PER_PAGE
   );
 
-  const totalSelesai = 47;
-  const totalBerjalan = 2;
   const maxChartValue = Math.max(...monthlyData.map((d) => Math.max(d.selesai, d.berjalan)), 1);
 
   return (

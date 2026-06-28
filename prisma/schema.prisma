@@ -18,32 +18,35 @@ model User {
 }
 
 model Client {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   name      String
   whatsapp  String
   eventType String
   message   String
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
 }
 
 model Event {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   name        String
   description String?
   photo       String?
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+  updatedAt   DateTime  @updatedAt
 }
 
 model Wedding {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   name        String
   description String?
   photo       String?
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+  updatedAt   DateTime  @updatedAt
 }
 
 model Rental {
@@ -92,24 +95,24 @@ model GaleriVideo {
 }
 
 model KantorSetting {
-  id              Int      @id @default(autoincrement())
-  companyName     String   @default("DPro")
-  status          String?
-  motto1          String?
-  motto2          String?
-  description     String?
-  foundedDate     String?
-  address         String?
-  phone           String?
-  email           String?
-  website         String?
-  googleMapsUrl   String?
-  facebookUrl     String?
-  instagramUrl    String?
-  youtubeUrl      String?
-  tiktokUrl       String?
-  aboutUs         String?
-  updatedAt       DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  companyName   String   @default("DPro")
+  status        String?
+  motto1        String?
+  motto2        String?
+  description   String?
+  foundedDate   String?
+  address       String?
+  phone         String?
+  email         String?
+  website       String?
+  googleMapsUrl String?
+  facebookUrl   String?
+  instagramUrl  String?
+  youtubeUrl    String?
+  tiktokUrl     String?
+  aboutUs       String?
+  updatedAt     DateTime @updatedAt
 }
 
 model AuditLog {
@@ -121,14 +124,15 @@ model AuditLog {
 }
 
 model WorkspaceSalary {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   waktu     String
   klien     String
   event     String
   deskripsi String?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+  updatedAt DateTime  @updatedAt
 }
 
 model HeadHome {
@@ -141,19 +145,20 @@ model HeadHome {
 }
 
 model WorkspaceEvent {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   jobDesc   String
   date      DateTime
   client    String
-  status    String   @default("running")
+  status    String    @default("running")
   waktu     String?
   event     String?
   deskripsi String?
   linkFoto  String?
   linkVideo String?
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+  updatedAt DateTime  @updatedAt
 }
 
 model WorkspaceReport {

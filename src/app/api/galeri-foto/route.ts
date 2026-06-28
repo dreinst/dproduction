@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
-import { getUserFromToken, unauthorizedResponse } from '@/lib/auth';
+import { requireRole } from '@/lib/auth';
 
 const schema = z.object({
   image: z.string().min(1),
@@ -9,8 +9,8 @@ const schema = z.object({
 });
 
 export async function GET() {
-  const user = await getUserFromToken();
-  if (!user) return unauthorizedResponse();
+  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
+  if (!authorized) return response;
 
   try {
     const items = await prisma.galeriFoto.findMany({
@@ -23,8 +23,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await getUserFromToken();
-  if (!user) return unauthorizedResponse();
+  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
+  if (!authorized) return response;
 
   try {
     const body = await request.json();

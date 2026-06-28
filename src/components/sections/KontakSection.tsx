@@ -40,10 +40,10 @@ export default function KontakSection() {
       });
       
       if (!res.ok) {
-        console.warn("API /api/contact might not be implemented yet.");
+        setStatus("error");
+        setErrorMessage("Terjadi kesalahan. Silakan coba lagi nanti.");
+        return;
       }
-      
-      await new Promise(r => setTimeout(r, 1500));
       
       setStatus("success");
       setFormData({ name: "", whatsapp: "", eventType: "", message: "" });

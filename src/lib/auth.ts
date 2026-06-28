@@ -2,7 +2,10 @@ import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
 import { NextResponse } from 'next/server';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-dev-only';
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET is not defined in environment variables');
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export async function getUserFromToken() {
   const cookieStore = await cookies();
@@ -20,4 +23,21 @@ export async function getUserFromToken() {
 
 export function unauthorizedResponse() {
   return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+}
+
+export function forbiddenResponse() {
+  return NextResponse.json({ message: 'Forbidden: Insufficient privileges' }, { status: 403 });
+}
+
+export async function requireRole(allowedRoles: string[]) {
+  const user = await getUserFromToken();
+  if (!user) {
+    return { authorized: false, response: unauthorizedResponse(), user: null };
+  }
+  
+  if (!allowedRoles.includes(user.role)) {
+    return { authorized: false, response: forbiddenResponse(), user };
+  }
+  
+  return { authorized: true, response: null, user };
 }

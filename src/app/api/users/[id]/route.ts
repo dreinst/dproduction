@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
-import { getUserFromToken, unauthorizedResponse } from '@/lib/auth';
+import { requireRole } from '@/lib/auth';
 import bcrypt from 'bcrypt';
 
 const updateSchema = z.object({
@@ -13,8 +13,8 @@ const updateSchema = z.object({
 });
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
-  const user = await getUserFromToken();
-  if (!user) return unauthorizedResponse();
+  const { authorized, response } = await requireRole(['owner']);
+  if (!authorized) return response;
 
   try {
     const json = await req.json();
@@ -55,8 +55,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 }
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
-  const user = await getUserFromToken();
-  if (!user) return unauthorizedResponse();
+  const { authorized, response } = await requireRole(['owner']);
+  if (!authorized) return response;
 
   try {
     await prisma.user.delete({
