@@ -1,10 +1,5 @@
 # 🚀 D'Production Web System & Management Dashboard
 
-Halo Tim **D'Production**! 👋
-Saya telah menyelesaikan pengembangan ekosistem digital untuk D'Production. Dokumen ini saya susun sebagai panduan sekaligus laporan dari sisi (*Full-Stack Developer*) agar Anda dan tim IT di masa depan dapat memahami bagaimana sistem ini dirancang, dibangun, dan diamankan.
-
----
-
 ## 🏗️ Arsitektur Sistem
 
 Sistem yang saya bangun terbagi menjadi dua bagian utama yang berjalan dalam satu kesatuan (*monolith*):
