@@ -1,33 +1,37 @@
 "use client";
 
+import Image from "next/image";
 import React, { useState } from "react";
-import { Plus, Search, Trash2, Image as ImageIcon, X } from "lucide-react";
+import { Plus, Search, Trash2, CheckSquare, ArrowUp, ArrowDown, Image as ImageIcon, X } from "lucide-react";
 import { useCrud } from "@/hooks/useCrud";
 
-interface FotoItem {
+interface HeadHomeItem {
   id: number;
   image: string;
-  link: string | null;
+  active: boolean;
+  sortIndex: number;
 }
 
-export default function MasterFotoPage() {
-  const { data, loading, error, createItem, deleteItem } = useCrud<FotoItem>({ endpoint: '/api/galeri-foto' });
+export default function HeadHomePage() {
+  const { data, loading, error, createItem, updateItem, deleteItem } = useCrud<HeadHomeItem>({ endpoint: '/api/head-home' });
+  const [statusFilter, setStatusFilter] = useState("Aktif");
   const [showEntries, setShowEntries] = useState(50);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [currentEditing, setCurrentEditing] = useState<FotoItem | null>(null);
+  const [currentEditing, setCurrentEditing] = useState<HeadHomeItem | null>(null);
 
   // Form state
-  const [formData, setFormData] = useState({ image: "", link: "" });
+  const [formData, setFormData] = useState({ image: "", active: true });
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleOpenModal = () => {
+    setFormError("");
     setCurrentEditing(null);
-    setFormData({ image: "", link: "" });
+    setFormData({ image: "", active: true });
     setIsModalOpen(true);
   };
 
@@ -41,10 +45,15 @@ export default function MasterFotoPage() {
 
     const payload = {
       image: formData.image,
-      link: formData.link || null,
+      active: formData.active,
     };
 
-    const success = await createItem(payload);
+    let success = false;
+    if (currentEditing) {
+      success = await updateItem(currentEditing.id, payload);
+    } else {
+      success = await createItem(payload);
+    }
     
     setIsSubmitting(false);
 
@@ -69,20 +78,33 @@ export default function MasterFotoPage() {
   };
 
   const filtered = data.filter((item) => {
+    if (statusFilter === "Aktif" && !item.active) return false;
     if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      return (item.link?.toLowerCase().includes(q) || false) || item.image.toLowerCase().includes(q);
+      return item.image.toLowerCase().includes(searchQuery.toLowerCase());
     }
     return true;
   }).slice(0, showEntries);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-800">Master Foto</h1>
+      <h1 className="text-2xl font-bold text-slate-800 uppercase">Head Image</h1>
 
       {error && (
         <div className="p-4 bg-red-100 text-red-600 rounded-lg text-sm">{error}</div>
       )}
+
+      {/* Filters */}
+      <div>
+        <label className="block text-sm text-slate-500 mb-1">Status Aktif</label>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white min-w-[180px]"
+        >
+          <option>Aktif</option>
+          <option>Semua</option>
+        </select>
+      </div>
 
       <button onClick={handleOpenModal} className="w-10 h-10 bg-teal-500 hover:bg-teal-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors" title="Upload Image">
         <Plus className="w-5 h-5" />
@@ -108,19 +130,20 @@ export default function MasterFotoPage() {
           <thead>
             <tr className="bg-slate-800 text-white text-sm">
               <th className="px-4 py-3 text-left font-semibold w-12">No</th>
-              <th className="px-4 py-3 text-center font-semibold w-24">Image</th>
-              <th className="px-4 py-3 text-left font-semibold">Link</th>
+              <th className="px-4 py-3 text-center font-semibold w-40">Image</th>
+              <th className="px-4 py-3 text-center font-semibold w-32">Sort</th>
+              <th className="px-4 py-3 text-center font-semibold w-24">Aktif</th>
               <th className="px-4 py-3 text-center font-semibold w-20">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-slate-500 text-sm">Loading...</td>
+                <td colSpan={5} className="px-4 py-8 text-center text-slate-500 text-sm">Loading...</td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                 <td colSpan={4} className="px-4 py-8 text-center text-slate-500 text-sm">Tidak ada data</td>
+                 <td colSpan={5} className="px-4 py-8 text-center text-slate-500 text-sm">Tidak ada data</td>
               </tr>
             ) : (
               filtered.map((item, idx) => (
@@ -128,17 +151,27 @@ export default function MasterFotoPage() {
                 <td className="px-4 py-3 text-sm text-slate-600">{idx + 1}.</td>
                 <td className="px-4 py-3 text-center">
                    {item.image ? (
-                      <div className="w-12 h-12 rounded bg-slate-200 mx-auto overflow-hidden">
-                         <img src={item.image} alt="Preview" className="w-full h-full object-cover" />
+                      <div className="w-24 h-12 rounded bg-slate-200 mx-auto overflow-hidden">
+                         <Image width={500} height={500}  src={item.image} alt="Preview" className="w-full h-full object-cover" />
                       </div>
                    ) : (
-                      <div className="w-12 h-12 rounded bg-slate-100 mx-auto flex items-center justify-center text-slate-400">
+                      <div className="w-24 h-12 rounded bg-slate-100 mx-auto flex items-center justify-center text-slate-400">
                          <ImageIcon className="w-5 h-5" />
                       </div>
                    )}
                 </td>
-                <td className="px-4 py-3">
-                  <a href={item.link} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline truncate max-w-[300px] block">{item.link}</a>
+                <td className="px-4 py-3 text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <button className="w-7 h-7 bg-green-500 hover:bg-green-600 text-white rounded flex items-center justify-center transition-colors" title="Up">
+                      <ArrowUp className="w-4 h-4" />
+                    </button>
+                    <button className="w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded flex items-center justify-center transition-colors" title="Down">
+                      <ArrowDown className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  {item.active ? <CheckSquare className="w-5 h-5 text-green-500 mx-auto" /> : <span className="text-slate-400">-</span>}
                 </td>
                 <td className="px-4 py-3 text-center">
                   <button onClick={() => { setCurrentEditing(item); setIsDeleteModalOpen(true); }} className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors" title="Hapus">
@@ -158,7 +191,7 @@ export default function MasterFotoPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h2 className="text-lg font-bold text-slate-800">Upload Image</h2>
+              <h2 className="text-lg font-bold text-slate-800">Upload Head Image</h2>
               <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors" disabled={isSubmitting}>
                 <X className="w-5 h-5" />
               </button>
@@ -166,12 +199,12 @@ export default function MasterFotoPage() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Image URL (Preview)</label>
-                <input type="text" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="/images/foto.jpg" disabled={isSubmitting} />
+                <input type="text" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="/images/hero-1.jpg" disabled={isSubmitting} />
                 {formError && <p className="text-red-500 text-xs mt-1">{formError}</p>}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Link URL</label>
-                <input type="text" value={formData.link} onChange={e => setFormData({...formData, link: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="https://dpro.events/images/foto/..." disabled={isSubmitting} />
+              <div className="flex items-center gap-2 pt-2">
+                <input type="checkbox" id="active-check-hi" checked={formData.active} onChange={e => setFormData({...formData, active: e.target.checked})} className="w-4 h-4 text-blue-600 rounded border-slate-300" disabled={isSubmitting} />
+                <label htmlFor="active-check-hi" className="text-sm font-medium text-slate-700">Aktif</label>
               </div>
             </div>
             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
@@ -192,8 +225,8 @@ export default function MasterFotoPage() {
               <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Trash2 className="w-8 h-8" />
               </div>
-              <h3 className="text-lg font-bold text-slate-800 mb-2">Hapus Foto?</h3>
-              <p className="text-slate-500 text-sm">Apakah Anda yakin ingin menghapus foto ini secara permanen?</p>
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Hapus Data?</h3>
+              <p className="text-slate-500 text-sm">Apakah Anda yakin ingin menghapus gambar ini secara permanen?</p>
             </div>
             <div className="px-6 py-4 bg-slate-50 flex justify-center gap-3">
               <button onClick={() => setIsDeleteModalOpen(false)} disabled={isSubmitting} className="px-6 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>

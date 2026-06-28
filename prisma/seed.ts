@@ -2,11 +2,11 @@ import prisma from '../src/lib/prisma'
 import bcrypt from 'bcrypt'
 
 async function main() {
-  const passwordHash = await bcrypt.hash('password123', 10)
+  const passwordHash = await bcrypt.hash('***DIHAPUS***', 10)
   
   await prisma.user.upsert({
     where: { username: 'owner' },
-    update: {},
+    update: { passwordHash }, // Update password hash if already exists
     create: {
       username: 'owner',
       alias: 'Owner',
@@ -16,8 +16,19 @@ async function main() {
   })
 
   await prisma.user.upsert({
+    where: { username: 'superadmin' },
+    update: { passwordHash },
+    create: {
+      username: 'superadmin',
+      alias: 'Super Admin',
+      role: 'superadmin',
+      passwordHash,
+    },
+  })
+
+  await prisma.user.upsert({
     where: { username: 'admin' },
-    update: {},
+    update: { passwordHash },
     create: {
       username: 'admin',
       alias: 'Administrator',
@@ -27,12 +38,23 @@ async function main() {
   })
 
   await prisma.user.upsert({
+    where: { username: 'staff' },
+    update: { passwordHash },
+    create: {
+      username: 'staff',
+      alias: 'Staff',
+      role: 'staff',
+      passwordHash,
+    },
+  })
+
+  await prisma.user.upsert({
     where: { username: 'tester' },
-    update: {},
+    update: { role: 'tester', passwordHash }, // Update role if already exists as 'admin'
     create: {
       username: 'tester',
       alias: 'Tester',
-      role: 'admin',
+      role: 'tester',
       passwordHash,
     },
   })

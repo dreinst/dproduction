@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React, { useState } from "react";
 import { Plus, Search, Pencil, Trash2, CheckSquare, ArrowUp, ArrowDown, Image as ImageIcon, X } from "lucide-react";
 import { useCrud } from "@/hooks/useCrud";
@@ -203,7 +204,7 @@ export default function GaleriFotoPage() {
                 <td className="px-4 py-3 text-center">
                    {item.image ? (
                       <div className="w-12 h-12 rounded bg-slate-200 mx-auto overflow-hidden">
-                         <img src={item.image} alt="Preview" className="w-full h-full object-cover" />
+                         <Image width={500} height={500}  src={item.image} alt="Preview" className="w-full h-full object-cover" />
                       </div>
                    ) : (
                       <div className="w-12 h-12 rounded bg-slate-100 mx-auto flex items-center justify-center text-slate-400">

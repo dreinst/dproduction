@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
-import { getUserFromToken, unauthorizedResponse } from '@/lib/auth';
+import { requireRole } from '@/lib/auth';
 
 const eventSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -11,11 +11,12 @@ const eventSchema = z.object({
 });
 
 export async function GET() {
-  const user = await getUserFromToken();
-  if (!user) return unauthorizedResponse();
+  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
+  if (!authorized) return response;
 
   try {
     const events = await prisma.event.findMany({
+      where: { deletedAt: null },
       orderBy: { createdAt: 'desc' },
     });
     return NextResponse.json(events);
@@ -26,8 +27,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await getUserFromToken();
-  if (!user) return unauthorizedResponse();
+  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
+  if (!authorized) return response;
 
   try {
     const body = await request.json();

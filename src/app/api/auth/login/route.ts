@@ -36,7 +36,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const secret = process.env.JWT_SECRET || 'fallback-secret-for-dev-only';
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET is not defined in environment variables');
+    }
     
     // Create token payload
     const payload = {

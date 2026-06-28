@@ -29,7 +29,7 @@ export default function AdminLoginPage() {
 
       if (res.ok) {
         // Successful login, middleware handles the rest, we just redirect
-        router.push("/admin");
+        router.push("/management");
         router.refresh();
       } else {
         const data = await res.json();

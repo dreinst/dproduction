@@ -33,44 +33,44 @@ interface NavItem {
 }
 
 const allNavItems: NavItem[] = [
-  { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { name: "Database", href: "/admin/database", icon: FileText },
+  { name: "Dashboard", href: "/management", icon: LayoutDashboard },
+  { name: "Database", href: "/management/database", icon: FileText },
   {
     name: "Galeri",
     icon: Image,
     children: [
-      { name: "Foto", href: "/admin/galeri/foto" },
-      { name: "Video", href: "/admin/galeri/video" },
+      { name: "Foto", href: "/management/galeri/foto" },
+      { name: "Video", href: "/management/galeri/video" },
     ],
   },
   {
     name: "Master",
     icon: Package,
     children: [
-      { name: "Master Foto", href: "/admin/master/foto" },
-      { name: "Master Event", href: "/admin/master/event" },
-      { name: "Master Wedding", href: "/admin/master/wedding" },
-      { name: "Master Rental", href: "/admin/master/rental" },
-      { name: "Master Grade Event", href: "/admin/master/grade-event" },
-      { name: "Master JobDesc", href: "/admin/master/jobdesc" },
+      { name: "Master Foto", href: "/management/master/foto" },
+      { name: "Master Event", href: "/management/master/event" },
+      { name: "Master Wedding", href: "/management/master/wedding" },
+      { name: "Master Rental", href: "/management/master/rental" },
+      { name: "Master Grade Event", href: "/management/master/grade-event" },
+      { name: "Master JobDesc", href: "/management/master/jobdesc" },
     ],
   },
   {
     name: "Setting",
     icon: Settings,
     children: [
-      { name: "Kantor", href: "/admin/setting/kantor" },
-      { name: "Login", href: "/admin/setting/login" },
-      { name: "Head Home", href: "/admin/setting/head-home" },
+      { name: "Kantor", href: "/management/setting/kantor" },
+      { name: "Login", href: "/management/setting/login" },
+      { name: "Head Home", href: "/management/setting/head-home" },
     ],
   },
   {
     name: "Workspace",
     icon: Building2,
     children: [
-      { name: "Event", href: "/admin/workspace/event" },
-      { name: "Report", href: "/admin/workspace/report" },
-      { name: "Salary", href: "/admin/workspace/salary" },
+      { name: "Event", href: "/management/workspace/event" },
+      { name: "Report", href: "/management/workspace/report" },
+      { name: "Salary", href: "/management/workspace/salary" },
     ],
   },
 ];
@@ -145,7 +145,7 @@ export default function Sidebar({ onClose, role }: SidebarProps) {
     } catch (e) {
       console.error(e);
     }
-    router.push("/admin/login");
+    router.push("/management/login");
     router.refresh();
   };
 

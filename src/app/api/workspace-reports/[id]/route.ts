@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
-import { getUserFromToken, unauthorizedResponse } from '@/lib/auth';
+import { requireRole } from '@/lib/auth';
 
 const schema = z.object({
   title: z.string().min(1),
@@ -16,8 +16,8 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await getUserFromToken();
-  if (!user) return unauthorizedResponse();
+  const { authorized, response } = await requireRole(['owner','superadmin']);
+  if (!authorized) return response;
 
   const id = parseInt((await params).id);
   if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
@@ -38,8 +38,8 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await getUserFromToken();
-  if (!user) return unauthorizedResponse();
+  const { authorized, response } = await requireRole(['owner','superadmin']);
+  if (!authorized) return response;
 
   const id = parseInt((await params).id);
   if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
@@ -66,8 +66,8 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await getUserFromToken();
-  if (!user) return unauthorizedResponse();
+  const { authorized, response } = await requireRole(['owner','superadmin']);
+  if (!authorized) return response;
 
   const id = parseInt((await params).id);
   if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });

@@ -1,43 +1,45 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { jwtVerify } from 'jose';
 
-function decodeJwtPayload(token: string) {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    const payload = Buffer.from(parts[1], 'base64').toString('utf-8');
-    return JSON.parse(payload);
-  } catch (e) {
-    return null;
-  }
-}
-
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
   const path = request.nextUrl.pathname;
 
-  // Protect /admin routes (except /admin/login)
-  if (path.startsWith('/admin')) {
-    if (path === '/admin/login') {
+  // Protect /management routes (except /management/login)
+  if (path.startsWith('/management')) {
+    if (path === '/management/login') {
       // If already logged in, redirect away from login page
       if (token) {
-        return NextResponse.redirect(new URL('/admin', request.url));
+        return NextResponse.redirect(new URL('/management', request.url));
       }
       return NextResponse.next();
     }
 
     // Not logged in, trying to access protected route
     if (!token) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
+      return NextResponse.redirect(new URL('/management/login', request.url));
     }
 
-    const payload = decodeJwtPayload(token);
+    let payload;
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+      if (!process.env.JWT_SECRET) {
+        throw new Error('JWT_SECRET is not defined');
+      }
+      
+      const { payload: jwtPayload } = await jwtVerify(token, secret);
+      payload = jwtPayload;
+    } catch (e) {
+      // Invalid token or signature
+      return NextResponse.redirect(new URL('/management/login', request.url));
+    }
+
     if (!payload || !payload.role) {
-       // Invalid token format
-       return NextResponse.redirect(new URL('/admin/login', request.url));
+       return NextResponse.redirect(new URL('/management/login', request.url));
     }
 
-    const role = payload.role;
+    const role = payload.role as string;
 
     // RBAC logic
     // owner: Semua modul
@@ -50,26 +52,26 @@ export function middleware(request: NextRequest) {
     }
 
     if (role === 'superadmin') {
-       if (path.startsWith('/admin/setting/login')) {
-          return NextResponse.redirect(new URL('/admin', request.url));
+       if (path.startsWith('/management/setting/login')) {
+          return NextResponse.redirect(new URL('/management', request.url));
        }
        return NextResponse.next();
     }
 
     if (role === 'admin') {
        if (
-         path.startsWith('/admin/workspace/salary') || 
-         path.startsWith('/admin/database') || 
-         path.startsWith('/admin/setting')
+         path.startsWith('/management/workspace/salary') || 
+         path.startsWith('/management/database') || 
+         path.startsWith('/management/setting')
        ) {
-         return NextResponse.redirect(new URL('/admin', request.url));
+         return NextResponse.redirect(new URL('/management', request.url));
        }
        return NextResponse.next();
     }
 
     if (role === 'staff' || role === 'tester') {
-       if (!path.startsWith('/admin/workspace/event') && path !== '/admin') {
-         return NextResponse.redirect(new URL('/admin/workspace/event', request.url));
+       if (!path.startsWith('/management/workspace/event') && path !== '/management') {
+         return NextResponse.redirect(new URL('/management/workspace/event', request.url));
        }
        return NextResponse.next();
     }
@@ -79,5 +81,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/management/:path*'],
 };

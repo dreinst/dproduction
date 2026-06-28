@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
-import { getUserFromToken, unauthorizedResponse } from '@/lib/auth';
+import { requireRole } from '@/lib/auth';
 
 const schema = z.object({
   jobDesc: z.string().min(1),
@@ -20,15 +20,15 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await getUserFromToken();
-  if (!user) return unauthorizedResponse();
+  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
+  if (!authorized) return response;
 
   const id = parseInt((await params).id);
   if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
 
   try {
-    const item = await prisma.workspaceEvent.findUnique({
-      where: { id },
+    const item = await prisma.workspaceEvent.findFirst({
+      where: { id, deletedAt: null },
     });
     
     if (!item) return NextResponse.json({ message: 'Not found' }, { status: 404 });
@@ -42,8 +42,8 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await getUserFromToken();
-  if (!user) return unauthorizedResponse();
+  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
+  if (!authorized) return response;
 
   const id = parseInt((await params).id);
   if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
@@ -70,15 +70,16 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await getUserFromToken();
-  if (!user) return unauthorizedResponse();
+  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
+  if (!authorized) return response;
 
   const id = parseInt((await params).id);
   if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
 
   try {
-    await prisma.workspaceEvent.delete({
+    await prisma.workspaceEvent.update({
       where: { id },
+      data: { deletedAt: new Date() },
     });
     return NextResponse.json({ message: 'Deleted successfully' });
   } catch (error) {

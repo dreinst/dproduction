@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
-import { getUserFromToken, unauthorizedResponse } from '@/lib/auth';
+import { requireRole } from '@/lib/auth';
 import bcrypt from 'bcrypt';
 
 const schema = z.object({
@@ -13,8 +13,8 @@ const schema = z.object({
 });
 
 export async function GET() {
-  const user = await getUserFromToken();
-  if (!user) return unauthorizedResponse();
+  const { authorized, response } = await requireRole(['owner']);
+  if (!authorized) return response;
   // Only superusers or admin can view users? Let's just let authenticated users view for now.
   try {
     const data = await prisma.user.findMany({
@@ -36,8 +36,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const user = await getUserFromToken();
-  if (!user) return unauthorizedResponse();
+  const { authorized, response } = await requireRole(['owner']);
+  if (!authorized) return response;
 
   try {
     const json = await req.json();
