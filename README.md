@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🚀 D'Production Web System & Management Dashboard
 
-## Getting Started
+Halo Tim **D'Production**! 👋
+Saya telah menyelesaikan pengembangan ekosistem digital untuk D'Production. Dokumen ini saya susun sebagai panduan sekaligus laporan dari sisi (*Full-Stack Developer*) agar Anda dan tim IT di masa depan dapat memahami bagaimana sistem ini dirancang, dibangun, dan diamankan.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🏗️ Arsitektur Sistem
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Sistem yang saya bangun terbagi menjadi dua bagian utama yang berjalan dalam satu kesatuan (*monolith*):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Company Profile (Halaman Depan / Publik)**
+   Halaman yang dirancang interaktif untuk memamerkan portofolio, layanan (Wedding, Corporate, dll), galeri foto/video, dan form kontak yang langsung terhubung ke database.
+   
+2. **Management Dashboard (Halaman Admin `/management`)**
+   Sistem operasi dapur perusahaan yang tersembunyi. Di sinilah tim Anda mengelola jadwal kru (*Workspace Event*), menggaji (*Salary*), hingga mengubah isi halaman depan (*Master Data* & *Galeri*). URL dibuat khusus (`/management`) agar tidak mudah ditebak oleh peretas (menghindari tebakan standar `/admin`).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🛡️ Keamanan & Hierarki Akses (RBAC)
 
-To learn more about Next.js, take a look at the following resources:
+Keamanan adalah prioritas utama. Saya telah mengimplementasikan **Role-Based Access Control (RBAC)** menggunakan verifikasi **JWT Kriptografi Edge (Jose)**. Artinya, sistem akan secara cerdas memblokir akses jika ada kru yang mencoba masuk ke ranah yang bukan haknya.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Berikut adalah 5 tingkatan *Role* yang telah saya tanamkan beserta hak aksesnya:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- 👑 **Owner** : Akses mutlak. Dapat melihat seluruh modul termasuk Laporan Keuangan, Gaji, Database, dan manajemen Akun Admin lainnya.
+- ⚡ **Superadmin** : Akses operasional tak terbatas, dapat mengelola hampir seluruh sistem kecuali pengaturan akun login (Setting Login).
+- 💼 **Admin** : Staf manajerial yang hanya difokuskan untuk mengelola Master Data (Klien, Event, Jobdesc), Galeri, dan Workspace Event. Tidak bisa melihat Gaji atau Database.
+- 👁️ **Staff** : Memiliki batasan *View-Only*. Mereka hanya bisa masuk dan melihat jadwal acara (*Workspace Event*) tanpa memiliki wewenang untuk mengubah, menambah, atau menghapus data.
+- 🧪 **Tester** : Akun replika setara *Staff* (*View-Only*). Dibuat khusus jika ada pihak ketiga yang ingin menguji sistem tanpa risiko merusak data produksi.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 💾 Manajemen Database & "Soft Delete"
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Sistem ini didukung oleh **PostgreSQL** dan **Prisma ORM**.
+Untuk mencegah bencana kehilangan data secara tidak sengaja, saya menggunakan teknik **Soft Delete** pada data krusial:
+*(Event, Wedding, WorkspaceSalary, WorkspaceEvent, Client)*
+
+Jika admin menekan tombol "Hapus", sistem **tidak akan menghapus data tersebut secara permanen dari server**. Alih-alih, sistem hanya akan menyembunyikannya dari UI (memberi stempel `deletedAt`). Ini sangat berguna jika ke depan Anda membutuhkan audit data masa lalu.
+
+---
+
+## 💻 Tech Stack (Teknologi yang Digunakan)
+
+Untuk memastikan sistem Anda berjalan sangat cepat, modern, dan tidak cepat usang, saya meraciknya menggunakan:
+- **Framework Utama**: [Next.js 15 (App Router)](https://nextjs.org) - Standar industri saat ini.
+- **Bahasa**: TypeScript - Meminimalisir *bug* saat pengembangan.
+- **Styling**: Tailwind CSS & Framer Motion - Untuk antarmuka modern, *glassmorphism*, dan animasi halus.
+- **Database**: PostgreSQL diakses melalui Prisma ORM.
+- **Validasi Data**: Zod - Memastikan setiap input form (seperti kontak klien) sesuai kriteria sebelum masuk database.
+
+---
+
+## ⚙️ Panduan Menjalankan Sistem (Bagi Tim IT)
+
+Jika suatu saat tim IT internal Anda ingin menjalankan atau mengembangkan sistem ini secara lokal, ikuti langkah berikut:
+
+1. **Instalasi Dependensi**
+   ```bash
+   npm install
+   ```
+
+2. **Pengaturan Environment (.env.local)**
+   Pastikan Anda meminta *file* `.env.local` dari saya (karena file ini bersifat rahasia dan tidak ada di GitHub). File ini berisi `DATABASE_URL` dan `JWT_SECRET`.
+
+3. **Sinkronisasi Database & Akun Bawaan**
+   ```bash
+   npx prisma db push
+   npx tsx --env-file=.env.local prisma/seed.ts
+   ```
+
+4. **Jalankan Server Lokal**
+   ```bash
+   npm run dev
+   ```
+   Buka `http://localhost:3000` di *browser*.
+
+---
+Semoga karya digital ini dapat meroketkan skala bisnis **D'Production**. Jika ada kendala, penambahan fitur, atau butuh konsultasi teknis, *I'm just one message away!* 🚀
