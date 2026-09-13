@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { MapPin, Phone, Mail } from "lucide-react";
 
 const menu = [
@@ -21,8 +20,9 @@ export default function Footer() {
           {/* Brand & About */}
           <div className="space-y-6">
             <Link href="/" className="flex items-center gap-3">
-              <Image
-                src="/logo-dpro.png"
+              {/* eslint-disable-next-line @next/next/no-img-element -- vector logo, no raster optimization needed */}
+              <img
+                src="/logo-dpro.svg"
                 alt="D'Production Logo"
                 width={80}
                 height={80}
