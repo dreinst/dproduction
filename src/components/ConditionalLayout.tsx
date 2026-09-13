@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -12,7 +11,6 @@ export default function ConditionalLayout({
 }) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/management");
-
 
   if (isAdmin) {
     return <>{children}</>;

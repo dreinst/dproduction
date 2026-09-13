@@ -35,7 +35,7 @@ export async function GET() {
           status: 'Your event partner',
           motto1: 'Your Dream Event',
           motto2: 'Starts Here',
-          description: 'Partner with D\\'Production Event Planner and Make Every Moment Truly Remarkable',
+          description: 'Partner with D\'Production Event Planner and Make Every Moment Truly Remarkable',
           foundedDate: '2016-01-01',
           address: 'Jl. Raya Pandanlandung No. 16 Bandulan, Wagir, Kab. Malang, Jawa Timur',
           phone: '081938938800',
@@ -45,7 +45,7 @@ export async function GET() {
           instagramUrl: 'https://www.instagram.com/dpro.duction',
           youtubeUrl: 'https://youtube.com/@dproductionzone',
           tiktokUrl: '-',
-          aboutUs: 'Di D\\'Production, kami percaya setiap acara adalah cerita yang layak diceritakan dengan sempurna. Sebagai Event Organizer terpercaya, kami hadir bukan sekadar menyusun jadwal dan dekorasi, tetap merancang pengalaman yang membekas di hati setiap tamu undangan. Dengan tim profesional yang berdedikasi tinggi, konsep kreatif yang segar, dan eksekusi yang presisi di setiap detail, kami siap mewujudkan Corporate Gathering, Seminar, Product Launching, Gala Dinner, hingga acara skala besar lainnya menjadi momen-momen yang tak terlupakan.',
+          aboutUs: 'Di D\'Production, kami percaya setiap acara adalah cerita yang layak diceritakan dengan sempurna. Sebagai Event Organizer terpercaya, kami hadir bukan sekadar menyusun jadwal dan dekorasi, tetap merancang pengalaman yang membekas di hati setiap tamu undangan. Dengan tim profesional yang berdedikasi tinggi, konsep kreatif yang segar, dan eksekusi yang presisi di setiap detail, kami siap mewujudkan Corporate Gathering, Seminar, Product Launching, Gala Dinner, hingga acara skala besar lainnya menjadi momen-momen yang tak terlupakan.',
           googleMapsUrl: 'Google Maps Embed'
         }
       });

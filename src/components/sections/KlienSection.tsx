@@ -134,7 +134,7 @@ export default function KlienSection() {
               </div>
               
               <p className="text-slate-600 leading-relaxed mb-8 relative z-10 italic flex-grow">
-                "{testimonial.review}"
+                &ldquo;{testimonial.review}&rdquo;
               </p>
               
               <div className="flex items-center gap-4 mt-auto relative z-10">

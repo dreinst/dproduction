@@ -52,7 +52,7 @@ export default function KontakSection() {
         setStatus("idle");
       }, 3000);
       
-    } catch (error) {
+    } catch {
       setStatus("error");
       setErrorMessage("Terjadi kesalahan. Silakan coba lagi nanti.");
     }
