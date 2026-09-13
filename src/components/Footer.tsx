@@ -85,6 +85,9 @@ export default function Footer() {
           <p className="text-sm text-slate-500">
             © 2026 <span className="text-slate-300 font-semibold">D&apos;Production</span>. All Rights Reserved.
           </p>
+          <p className="text-xs text-slate-600 mt-2">
+            Made by dreinst, organized by D&apos;Production Event Organizer
+          </p>
         </div>
       </div>
     </footer>
