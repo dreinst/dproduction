@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
@@ -75,8 +74,9 @@ export default function Navbar() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <a href="#beranda" onClick={(e) => handleLinkClick(e, "beranda")} className="flex items-center gap-3 group">
-            <Image
-              src="/logo-dpro.png"
+            {/* eslint-disable-next-line @next/next/no-img-element -- vector logo, no raster optimization needed */}
+            <img
+              src="/logo-dpro.svg"
               alt="D'Production Logo"
               width={72}
               height={72}
