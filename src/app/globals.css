@@ -8,9 +8,19 @@
   --color-primary-700: #1d4ed8;
   --color-primary-800: #1e40af;
   --color-primary-900: #1e3a8a;
-  
+}
+
+/* Font variables are set by next/font on <body>, so they must be inlined
+   into the utilities instead of referenced from :root. */
+@theme inline {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-heading), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  h1, h2, h3, h4 {
+    @apply font-heading;
+  }
 }
 
 @layer utilities {

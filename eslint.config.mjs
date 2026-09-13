@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Route yang diparkir sementara (lihat src/app/_parked/README.md):
+    "src/app/_parked/**",
   ]),
 ]);
 

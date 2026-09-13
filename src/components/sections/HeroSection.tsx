@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Users, CalendarDays, Box, PlayCircle, ArrowRight } from "lucide-react";
+import { Users, CalendarDays, Box, ArrowRight } from "lucide-react";
 
 export default function HeroSection() {
   return (
@@ -37,7 +37,7 @@ export default function HeroSection() {
               </h1>
               
               <p className="text-lg text-slate-200 mb-8 leading-relaxed max-w-xl drop-shadow-md">
-                Dari konsep hingga eksekusi, D'Production siap merancang acara impian Anda menjadi kenyataan. Profesional, kreatif, dan tak terlupakan.
+                Dari konsep hingga eksekusi, D&apos;Production siap merancang acara impian Anda menjadi kenyataan. Profesional, kreatif, dan tak terlupakan.
               </p>
               
               <div className="flex flex-wrap items-center gap-4">
@@ -110,34 +110,34 @@ export default function HeroSection() {
       <div className="py-12 bg-white border-y border-slate-100">
         <div className="container mx-auto px-4 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <Link href="/klien" className="group block text-center p-6 -m-6 rounded-3xl hover:bg-slate-50 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 border border-transparent hover:border-slate-100">
+            <a href="#klien" className="group block text-center p-6 -m-6 rounded-3xl hover:bg-slate-50 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 border border-transparent hover:border-slate-100">
               <div className="w-16 h-16 mx-auto bg-blue-50 group-hover:bg-blue-600 rounded-2xl flex items-center justify-center mb-4 text-blue-600 group-hover:text-white transition-colors duration-300 shadow-sm">
                 <Users className="w-8 h-8" />
               </div>
               <h4 className="text-4xl font-extrabold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">17+</h4>
               <p className="text-slate-500 font-medium">Klien</p>
-            </Link>
-            <Link href="/detail-event" className="group block text-center p-6 -m-6 rounded-3xl hover:bg-slate-50 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 border border-transparent hover:border-slate-100">
+            </a>
+            <a href="#masterpiece" className="group block text-center p-6 -m-6 rounded-3xl hover:bg-slate-50 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 border border-transparent hover:border-slate-100">
               <div className="w-16 h-16 mx-auto bg-green-50 group-hover:bg-green-600 rounded-2xl flex items-center justify-center mb-4 text-green-600 group-hover:text-white transition-colors duration-300 shadow-sm">
                 <CalendarDays className="w-8 h-8" />
               </div>
               <h4 className="text-4xl font-extrabold text-slate-900 mb-2 group-hover:text-green-600 transition-colors">47+</h4>
               <p className="text-slate-500 font-medium">Event</p>
-            </Link>
-            <Link href="/katalog" className="group block text-center p-6 -m-6 rounded-3xl hover:bg-slate-50 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 border border-transparent hover:border-slate-100">
+            </a>
+            <a href="#layanan" className="group block text-center p-6 -m-6 rounded-3xl hover:bg-slate-50 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 border border-transparent hover:border-slate-100">
               <div className="w-16 h-16 mx-auto bg-purple-50 group-hover:bg-purple-600 rounded-2xl flex items-center justify-center mb-4 text-purple-600 group-hover:text-white transition-colors duration-300 shadow-sm">
                 <Box className="w-8 h-8" />
               </div>
               <h4 className="text-4xl font-extrabold text-slate-900 mb-2 group-hover:text-purple-600 transition-colors">5+</h4>
               <p className="text-slate-500 font-medium">Kategori Rental</p>
-            </Link>
-            <Link href="/team" className="group block text-center p-6 -m-6 rounded-3xl hover:bg-slate-50 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 border border-transparent hover:border-slate-100">
+            </a>
+            <a href="#tentang-kami" className="group block text-center p-6 -m-6 rounded-3xl hover:bg-slate-50 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 border border-transparent hover:border-slate-100">
               <div className="w-16 h-16 mx-auto bg-orange-50 group-hover:bg-orange-600 rounded-2xl flex items-center justify-center mb-4 text-orange-600 group-hover:text-white transition-colors duration-300 shadow-sm">
                 <Users className="w-8 h-8" />
               </div>
               <h4 className="text-4xl font-extrabold text-slate-900 mb-2 group-hover:text-orange-600 transition-colors">179+</h4>
               <p className="text-slate-500 font-medium">Member</p>
-            </Link>
+            </a>
           </div>
         </div>
       </div>

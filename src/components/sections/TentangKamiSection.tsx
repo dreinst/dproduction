@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { CheckCircle2, Target, Eye, Trophy } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
 export default function TentangKamiSection() {
   return (
@@ -49,10 +49,10 @@ export default function TentangKamiSection() {
             </h2>
             
             <p className="text-lg text-slate-600 mb-6 leading-relaxed">
-              D'Production adalah mitra terpercaya Anda di Malang. Kami percaya bahwa setiap acara memiliki cerita dan tujuannya masing-masing. Oleh karena itu, kami tidak hanya menyelenggarakan acara, tapi kami merancang pengalaman.
+              D&apos;Production adalah mitra terpercaya Anda di Malang. Kami percaya bahwa setiap acara memiliki cerita dan tujuannya masing-masing. Oleh karena itu, kami tidak hanya menyelenggarakan acara, tapi kami merancang pengalaman.
             </p>
             <p className="text-lg text-slate-600 mb-10 leading-relaxed">
-              Dengan tim yang berdedikasi tinggi, kreatif, dan berpengalaman, kami memastikan setiap detail—dari konsep hingga eksekusi—berjalan dengan sempurna.
+              Dengan tim yang berdedikasi tinggi, kreatif, dan berpengalaman, kami memastikan setiap detail, dari konsep hingga eksekusi, berjalan dengan sempurna.
             </p>
 
             <ul className="space-y-4 mb-10">
