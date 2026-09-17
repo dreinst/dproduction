@@ -22,7 +22,7 @@ export default function Footer() {
             <Link href="/" className="flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element -- vector logo, no raster optimization needed */}
               <img
-                src="/logo-dpro.svg"
+                src="/logo-dpro-putih.svg"
                 alt="D'Production Logo"
                 width={80}
                 height={80}
