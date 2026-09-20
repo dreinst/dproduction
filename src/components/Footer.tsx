@@ -26,7 +26,7 @@ export default function Footer() {
                 alt="D'Production Event Organizer"
                 width={521}
                 height={106}
-                className="h-9 w-auto invert"
+                className="h-9 w-auto"
               />
             </Link>
             <p className="text-slate-400 text-sm leading-relaxed pr-4">
