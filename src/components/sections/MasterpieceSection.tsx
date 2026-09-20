@@ -30,7 +30,7 @@ const masterpieces = [
 
 export default function MasterpieceSection() {
   return (
-    <section id="masterpiece" className="py-20 lg:py-32 bg-white">
+    <section id="masterpiece" className="py-20 lg:py-32 bg-white overflow-x-hidden">
       <div className="container mx-auto px-4 lg:px-8">
         
         <div className="text-center max-w-3xl mx-auto mb-20">
@@ -68,7 +68,7 @@ export default function MasterpieceSection() {
                     <Image src={item.image} alt={item.title} fill className="object-cover" />
                   </div>
                   
-                  <div className="absolute -bottom-6 -right-6 lg:-right-10 bg-white p-6 rounded-2xl shadow-xl flex items-center gap-4">
+                  <div className="absolute -bottom-6 right-2 sm:-right-6 lg:-right-10 bg-white p-6 rounded-2xl shadow-xl flex items-center gap-4">
                     <div className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center">
                       <Star className="w-6 h-6 fill-current" />
                     </div>

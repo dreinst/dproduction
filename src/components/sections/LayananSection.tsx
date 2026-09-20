@@ -97,7 +97,7 @@ export default function LayananSection() {
                   className={`relative ${isEven ? 'lg:ltr' : ''}`}
                 >
                   <div className="relative rounded-3xl overflow-hidden aspect-[4/3] shadow-2xl bg-slate-200">
-                    <Image src={index === 0 ? "/assets/layanan img 1.jpg" : "/assets/hero img 6.jpg"} fill alt={service.title} className="object-cover" />
+                    <Image src={index === 0 ? "/assets/portfolio/ustegra-peresmian-aerial.jpg" : "/assets/hero img 6.jpg"} fill alt={service.title} className="object-cover" />
                     <div className="absolute inset-0 bg-slate-900/10"></div>
                   </div>
                   {/* Decoration block */}

@@ -18,18 +18,18 @@ export default function TentangKamiSection() {
             <div className="grid grid-cols-2 gap-6 relative z-10">
               <div className="space-y-6 pt-12">
                 <div className="rounded-3xl overflow-hidden aspect-[4/5] shadow-xl bg-slate-200 relative">
-                  <Image src="/assets/about us img 1.jpg" fill alt="About Us" className="object-cover" />
+                  <Image src="/assets/portfolio/tentang-kami-tim-bandara.jpg" fill alt="Tim D'Production mendokumentasikan kedatangan peserta" className="object-cover" />
                 </div>
                 <div className="rounded-3xl overflow-hidden aspect-square shadow-xl bg-slate-200 relative">
-                  <Image src="/assets/hero img 3.jpg" fill alt="About Us" className="object-cover" />
+                  <Image src="/assets/portfolio/tentang-kami-dekorasi-ustegra.jpg" fill alt="Dekorasi acara peresmian PT. Ustegra" className="object-cover" />
                 </div>
               </div>
               <div className="space-y-6">
                 <div className="rounded-3xl overflow-hidden aspect-square shadow-xl bg-slate-200 relative">
-                  <Image src="/assets/hero img 4.jpg" fill alt="About Us" className="object-cover" />
+                  <Image src="/assets/portfolio/tentang-kami-santai-magelang.jpg" fill alt="Momen santai peserta Temu Responden BI Magelang" className="object-cover" />
                 </div>
                 <div className="rounded-3xl overflow-hidden aspect-[4/5] shadow-xl bg-slate-200 relative">
-                  <Image src="/assets/hero img 5.jpg" fill alt="About Us" className="object-cover" />
+                  <Image src="/assets/portfolio/tentang-kami-kunjungan-sekolah.jpg" fill alt="Kunjungan lapangan program Hebitren BI Bandung" className="object-cover" />
                 </div>
               </div>
             </div>
