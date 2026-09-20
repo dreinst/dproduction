@@ -32,6 +32,7 @@ model Event {
   name        String
   description String?
   photo       String?
+  year        Int?
   active      Boolean   @default(true)
   createdAt   DateTime  @default(now())
   deletedAt   DateTime?
