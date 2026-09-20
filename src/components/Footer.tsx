@@ -19,18 +19,15 @@ export default function Footer() {
 
           {/* Brand & About */}
           <div className="space-y-6">
-            <Link href="/" className="flex items-center gap-3">
+            <Link href="/" className="flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element -- vector logo, no raster optimization needed */}
               <img
-                src="/logo-dpro-putih.svg"
-                alt="D'Production Logo"
-                width={80}
-                height={80}
-                className="rounded-2xl object-contain"
+                src="/logo-dpro.svg"
+                alt="D'Production Event Organizer"
+                width={521}
+                height={106}
+                className="h-9 w-auto invert"
               />
-              <span className="font-extrabold text-2xl tracking-tight text-white">
-                D&apos;Production
-              </span>
             </Link>
             <p className="text-slate-400 text-sm leading-relaxed pr-4">
               Event organizer dan wedding planner di Malang sejak 2016. Kami merancang, mengelola, dan menyukseskan acara korporat maupun pernikahan Anda.

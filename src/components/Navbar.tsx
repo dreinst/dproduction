@@ -73,18 +73,15 @@ export default function Navbar() {
       <div className="container mx-auto px-4 lg:px-8">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <a href="#beranda" onClick={(e) => handleLinkClick(e, "beranda")} className="flex items-center gap-3 group">
+          <a href="#beranda" onClick={(e) => handleLinkClick(e, "beranda")} className="flex items-center group">
             {/* eslint-disable-next-line @next/next/no-img-element -- vector logo, no raster optimization needed */}
             <img
               src="/logo-dpro.svg"
-              alt="D'Production Logo"
-              width={72}
-              height={72}
-              className="rounded-xl group-hover:scale-105 transition-all duration-300 object-contain"
+              alt="D'Production Event Organizer"
+              width={521}
+              height={106}
+              className="h-9 w-auto group-hover:scale-105 transition-all duration-300"
             />
-            <span className="font-extrabold text-2xl tracking-tight text-slate-800">
-              D&apos;Production
-            </span>
           </a>
 
           {/* Desktop Nav */}
