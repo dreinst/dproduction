@@ -6,14 +6,15 @@ import { Maximize2, X } from "lucide-react";
 import Image from "next/image";
 
 const photos = [
-  "/assets/hero img 1.jpg",
-  "/assets/hero img 3.jpg",
-  "",
-  "/assets/hero img 4.jpg",
-  "/assets/hero img 5.jpg",
-  "",
-  "/assets/hero img 7.jpg",
-  "/assets/hero img 8.jpg"
+  { src: "/assets/portfolio/hebitren-bandung-aerial-desa.jpg", label: "Hebitren BI Bandung", caption: "Dokumentasi Udara" },
+  { src: "/assets/portfolio/ustegra-panggung.jpg", label: "Peresmian Ustegra", caption: "Panggung & Dekorasi" },
+  { src: "/assets/portfolio/hebitren-jogja-bandara.jpg", label: "Hebitren BI Jogja", caption: "Penjemputan Peserta" },
+  { src: "/assets/portfolio/temres-magelang-penjemputan.jpg", label: "Temres BI Magelang", caption: "Kedatangan Peserta" },
+  { src: "/assets/portfolio/ustegra-tur-vip.jpg", label: "Peresmian Ustegra", caption: "Tur Tamu VIP" },
+  { src: "/assets/portfolio/hebitren-jogja-kunjungan-tani.jpg", label: "Hebitren BI Jogja", caption: "Kunjungan Lapangan" },
+  { src: "/assets/portfolio/temres-magelang-gedung-bi.jpg", label: "Temres BI Magelang", caption: "Dokumentasi Udara" },
+  { src: "/assets/portfolio/ustegra-pabrik-aerial.jpg", label: "Peresmian Ustegra", caption: "Dokumentasi Udara" },
+  { src: "/assets/portfolio/temres-magelang-santai.jpg", label: "Temres BI Magelang", caption: "Momen Santai Peserta" },
 ];
 
 export default function GaleriSection() {
@@ -47,29 +48,23 @@ export default function GaleriSection() {
         {/* Masonry/Grid Layout */}
         <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
           {photos.map((photo, index) => (
-            <motion.div 
-              key={index}
+            <motion.div
+              key={photo.src}
               initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: (index % 3) * 0.1 }}
               className="relative group rounded-3xl overflow-hidden break-inside-avoid shadow-lg"
             >
               <div className="w-full aspect-[4/3] bg-slate-200 group-hover:scale-105 transition-transform duration-700 relative flex items-center justify-center">
-                {photo ? (
-                  <Image src={photo} fill alt={`Galeri ${index + 1}`} className="object-cover" />
-                ) : (
-                  <span className="text-black/30 font-bold uppercase tracking-widest text-xl">Galeri Foto</span>
-                )}
+                <Image src={photo.src} fill alt={`${photo.label} — ${photo.caption}`} className="object-cover" />
               </div>
-              
+
               <div className="absolute inset-0 bg-gradient-to-t from-blue-900/80 via-blue-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-8">
-                {photo && (
-                  <button onClick={() => setSelectedPhoto(photo)} className="absolute top-6 right-6 w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white hover:text-blue-600 transition-colors">
-                    <Maximize2 className="w-5 h-5" />
-                  </button>
-                )}
+                <button onClick={() => setSelectedPhoto(photo.src)} className="absolute top-6 right-6 w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white hover:text-blue-600 transition-colors">
+                  <Maximize2 className="w-5 h-5" />
+                </button>
                 <span className="inline-block px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-full w-max mb-3">
-                  Event
+                  {photo.label}
                 </span>
-                <h3 className="text-white font-bold text-xl">Momen Spesial {index + 1}</h3>
+                <h3 className="text-white font-bold text-xl">{photo.caption}</h3>
               </div>
             </motion.div>
           ))}

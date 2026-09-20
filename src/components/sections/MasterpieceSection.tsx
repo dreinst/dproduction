@@ -1,26 +1,30 @@
 "use client";
 
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Star, Trophy, ArrowRight } from "lucide-react";
 
 const masterpieces = [
   {
-    title: "Gala Dinner Bank Indonesia",
-    date: "Desember 2023",
+    title: "Peresmian Gedung Ekstensi PT. Ustegra",
+    date: "24 Agustus 2026",
     category: "Corporate Event",
-    description: "Menghadirkan malam penghargaan megah untuk 500+ tamu undangan VIP dengan tata panggung spektakuler dan hiburan kelas atas.",
+    description: "Mengelola seremoni peresmian gedung pabrik baru PT. Ustegra Malang secara menyeluruh, dari tur pabrik bersama tamu VIP, dekorasi panggung, hingga hiburan live band di hari puncak acara.",
+    image: "/assets/portfolio/ustegra-peresmian-aerial.jpg",
   },
   {
-    title: "Royal Wedding Anisa & Bima",
-    date: "Agustus 2023",
-    category: "Wedding",
-    description: "Pernikahan impian bergaya klasik modern di gedung bersejarah dengan dekorasi bunga segar premium sepanjang lorong.",
+    title: "Program Hebitren Bank Indonesia — Bandung",
+    date: "2026",
+    category: "Corporate Event",
+    description: "Mendampingi rangkaian kunjungan lapangan program Hebitren Bank Indonesia di Bandung, termasuk kunjungan ke Masjid Raya Al Jabbar, selama lima hari penuh dari penjemputan sampai kepulangan.",
+    image: "/assets/portfolio/hebitren-bandung-masjid.jpg",
   },
   {
-    title: "Tech Innovation Summit",
-    date: "Maret 2024",
-    category: "Exhibition",
-    description: "Pameran teknologi terbesar di Jawa Timur yang dihadiri oleh 50+ startup dan 5000+ pengunjung selama tiga hari berturut-turut.",
+    title: "Temu Responden Bank Indonesia — Magelang",
+    date: "2026",
+    category: "Corporate Event",
+    description: "Menyelenggarakan gala dinner malam puncak Temu Responden Bank Indonesia di Magelang dengan panggung taman bertema, live music, dan dokumentasi udara untuk seluruh rangkaian acara.",
+    image: "/assets/portfolio/temres-magelang-gala-malam.jpg",
   }
 ];
 
@@ -60,7 +64,8 @@ export default function MasterpieceSection() {
                   className={`relative ${isEven ? 'lg:ltr' : ''}`}
                 >
                   <div className="absolute inset-0 bg-blue-600 translate-x-4 translate-y-4 rounded-[2.5rem] -z-10 opacity-10"></div>
-                  <div className="rounded-[2.5rem] overflow-hidden aspect-[4/3] shadow-2xl bg-slate-200">
+                  <div className="relative rounded-[2.5rem] overflow-hidden aspect-[4/3] shadow-2xl bg-slate-200">
+                    <Image src={item.image} alt={item.title} fill className="object-cover" />
                   </div>
                   
                   <div className="absolute -bottom-6 -right-6 lg:-right-10 bg-white p-6 rounded-2xl shadow-xl flex items-center gap-4">
