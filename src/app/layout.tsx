@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import ConditionalLayout from "@/components/ConditionalLayout";
+import GoogleAdsTag from "@/components/GoogleAdsTag";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -100,6 +101,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.variable} ${plusJakartaSans.variable} font-sans min-h-screen flex flex-col bg-slate-50`}>
+        <GoogleAdsTag />
         <ConditionalLayout>
           {children}
         </ConditionalLayout>

@@ -47,7 +47,14 @@ export default function KontakSection() {
       
       setStatus("success");
       setFormData({ name: "", whatsapp: "", eventType: "", message: "" });
-      
+
+      // Lacak sebagai konversi Google Ads kalau tag-nya aktif (lihat
+      // src/components/GoogleAdsTag.tsx) dan label konversinya sudah diisi.
+      const conversionLabel = process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL;
+      if (conversionLabel && typeof window.gtag === "function") {
+        window.gtag("event", "conversion", { send_to: conversionLabel });
+      }
+
       setTimeout(() => {
         setStatus("idle");
       }, 3000);
