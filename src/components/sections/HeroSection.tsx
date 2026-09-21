@@ -29,15 +29,15 @@ export default function HeroSection() {
             >
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white font-medium text-sm mb-6">
                 <span className="flex h-2 w-2 rounded-full bg-blue-400 animate-pulse"></span>
-                Partner Event yang Nyaman untuk Kamu
+                Event Organizer &amp; Wedding Organizer di Malang
               </div>
-              
+
               <h1 className="text-5xl lg:text-7xl font-extrabold text-white leading-tight mb-6 tracking-tight drop-shadow-lg">
-                Rancang <span className="text-blue-400">Momen Bahagia</span> Anda Bersama Kami
+                Event Organizer &amp; <span className="text-blue-400">Wedding Organizer Malang</span> untuk Momen Bahagia Anda
               </h1>
-              
+
               <p className="text-lg text-slate-200 mb-8 leading-relaxed max-w-xl drop-shadow-md">
-                Dari konsep hingga eksekusi, D&apos;Production siap merancang acara impian Anda menjadi kenyataan. Profesional, kreatif, dan tak terlupakan.
+                D&apos;Production adalah event organizer dan wedding organizer di Malang sejak 2016. Dari konsep hingga eksekusi, kami merancang acara korporat, pemerintahan, hingga pernikahan Anda dari awal sampai selesai.
               </p>
               
               <div className="flex flex-wrap items-center gap-4">

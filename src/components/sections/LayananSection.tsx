@@ -10,7 +10,7 @@ const services = [
     title: "Event Organizer",
     icon: CalendarDays,
     color: "blue",
-    description: "Punya acara penting tapi bingung mau mulai dari mana? Serahkan saja pada D'Production! Kami adalah tim event organizer profesional yang siap mengubah ide dan konsepmu menjadi acara yang berkesan, rapi, dan berjalan lancar dari awal sampai akhir.",
+    description: "Punya acara penting tapi bingung mau mulai dari mana? Serahkan saja pada D'Production, event organizer di Malang yang siap mengubah ide dan konsepmu menjadi acara yang berkesan, rapi, dan berjalan lancar dari awal sampai akhir.",
     features: ["Corporate Gathering", "Product Launching", "Seminar & Workshop", "Gala Dinner"],
   },
   {
@@ -18,7 +18,7 @@ const services = [
     title: "Wedding Planner",
     icon: Heart,
     color: "pink",
-    description: "Hari pernikahan hanya datang sekali. Kami hadir untuk membantu mewujudkan pernikahan impianmu, mulai dari konsep, dekorasi, venue, hingga rundown acara. Semua kami rancang dengan teliti agar kamu bisa menikmati hari bahagiamu tanpa rasa khawatir.",
+    description: "Hari pernikahan hanya datang sekali. Sebagai wedding organizer di Malang, kami hadir untuk membantu mewujudkan pernikahan impianmu, mulai dari konsep, dekorasi, venue, hingga rundown acara. Semua kami rancang dengan teliti agar kamu bisa menikmati hari bahagiamu tanpa rasa khawatir.",
     features: ["Konsep & Tema", "Dekorasi Premium", "Manajemen Vendor", "Koordinasi Hari-H"],
   }
 ];

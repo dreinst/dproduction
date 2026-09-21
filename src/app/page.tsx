@@ -4,6 +4,7 @@ import LayananSection from "@/components/sections/LayananSection";
 import MasterpieceSection from "@/components/sections/MasterpieceSection";
 import KlienSection from "@/components/sections/KlienSection";
 import GaleriSection from "@/components/sections/GaleriSection";
+import FaqSection from "@/components/sections/FaqSection";
 import KontakSection from "@/components/sections/KontakSection";
 
 export default function Home() {
@@ -15,6 +16,7 @@ export default function Home() {
       <MasterpieceSection />
       <KlienSection />
       <GaleriSection />
+      <FaqSection />
       <KontakSection />
     </>
   );

@@ -38,6 +38,11 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/",
   },
+  // Isi lewat env NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION setelah verifikasi domain
+  // ini di Google Search Console (Pengaturan > Verifikasi kepemilikan > tag HTML).
+  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+    : undefined,
   robots: {
     index: true,
     follow: true,
@@ -85,6 +90,24 @@ const jsonLd = {
     "https://www.instagram.com/dpro.duction",
     "https://youtube.com/@dproductionzone",
   ],
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "Layanan D'Production",
+    itemListElement: [
+      {
+        "@type": "Offer",
+        itemOffered: { "@type": "Service", name: "Event Organizer", areaServed: "Malang" },
+      },
+      {
+        "@type": "Offer",
+        itemOffered: { "@type": "Service", name: "Wedding Organizer", areaServed: "Malang" },
+      },
+      {
+        "@type": "Offer",
+        itemOffered: { "@type": "Service", name: "Sewa Peralatan Event (Tenda, Sound System, Lighting, Kursi & Meja)", areaServed: "Malang" },
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
