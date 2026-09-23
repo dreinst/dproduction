@@ -1,88 +1,47 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { z } from 'zod';
-import { requireRole } from '@/lib/auth';
+import { apiError, handleRouteError, parseId, readJson, softDelete, updateActive } from '@/lib/api';
+import { requireAccess } from '@/lib/auth';
+import { updateSchema } from '../schema';
 
-const schema = z.object({
-  jobDesc: z.string().min(1),
-  date: z.string().transform((str) => new Date(str)),
-  client: z.string().min(1),
-  status: z.string().default('running'),
-  waktu: z.string().nullable().optional(),
-  event: z.string().nullable().optional(),
-  deskripsi: z.string().nullable().optional(),
-  linkFoto: z.string().nullable().optional(),
-  linkVideo: z.string().nullable().optional(),
-  active: z.boolean().default(true),
-});
+type Params = { params: Promise<{ id: string }> };
+const INVALID_ID = 'ID event tidak valid.';
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
+export async function GET(_req: Request, { params }: Params) {
   try {
-    const item = await prisma.workspaceEvent.findFirst({
-      where: { id, deletedAt: null },
-    });
-    
-    if (!item) return NextResponse.json({ message: 'Not found' }, { status: 404 });
-    return NextResponse.json(item);
+    const auth = await requireAccess('workspaceEvents', 'read');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, INVALID_ID);
+    const item = await prisma.workspaceEvent.findFirst({ where: { id, deletedAt: null } });
+    return item ? NextResponse.json(item) : apiError(404, 'Event tidak ditemukan.');
   } catch (error) {
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error);
   }
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
+export async function PUT(req: Request, { params }: Params) {
   try {
-    const body = await request.json();
-    const validatedData = schema.parse(body);
-
-    const item = await prisma.workspaceEvent.update({
-      where: { id },
-      data: validatedData,
-    });
-
-    return NextResponse.json(item);
+    const auth = await requireAccess('workspaceEvents', 'write');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, INVALID_ID);
+    await updateActive(prisma.workspaceEvent, id, updateSchema.parse(await readJson(req)));
+    return NextResponse.json({ message: 'Perubahan event disimpan.' });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ message: 'Validation Error', errors: error.issues }, { status: 400 });
-    }
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error);
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
+export async function DELETE(_req: Request, { params }: Params) {
   try {
-    await prisma.workspaceEvent.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-    });
-    return NextResponse.json({ message: 'Deleted successfully' });
+    const auth = await requireAccess('workspaceEvents', 'write');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, INVALID_ID);
+    await softDelete(prisma.workspaceEvent, id);
+    return NextResponse.json({ message: 'Event dihapus.' });
   } catch (error) {
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error);
   }
 }

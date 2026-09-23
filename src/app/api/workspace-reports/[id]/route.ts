@@ -1,83 +1,49 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { z } from 'zod';
-import { requireRole } from '@/lib/auth';
+import { apiError, handleRouteError, parseId, readJson } from '@/lib/api';
+import { requireAccess } from '@/lib/auth';
+import { updateSchema } from '../schema';
 
-const schema = z.object({
-  title: z.string().min(1),
-  date: z.number().int(),
-  month: z.string().min(1),
-  time: z.string().min(1),
-  client: z.string().min(1),
-  status: z.string().default('admin'),
-});
+type Params = { params: Promise<{ id: string }> };
+const INVALID_ID = 'ID report tidak valid.';
+const MESSAGES = { P2025: 'Report tidak ditemukan.' };
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
+export async function GET(_req: Request, { params }: Params) {
   try {
-    const item = await prisma.workspaceReport.findUnique({
-      where: { id },
-    });
-    
-    if (!item) return NextResponse.json({ message: 'Not found' }, { status: 404 });
-    return NextResponse.json(item);
+    const auth = await requireAccess('workspaceReports', 'read');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, INVALID_ID);
+    const item = await prisma.workspaceReport.findUnique({ where: { id } });
+    return item ? NextResponse.json(item) : apiError(404, MESSAGES.P2025);
   } catch (error) {
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error);
   }
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
+export async function PUT(req: Request, { params }: Params) {
   try {
-    const body = await request.json();
-    const validatedData = schema.parse(body);
-
-    const item = await prisma.workspaceReport.update({
-      where: { id },
-      data: validatedData,
-    });
-
-    return NextResponse.json(item);
+    const auth = await requireAccess('workspaceReports', 'write');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, INVALID_ID);
+    const data = updateSchema.parse(await readJson(req));
+    return NextResponse.json(await prisma.workspaceReport.update({ where: { id }, data }));
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ message: 'Validation Error', errors: error.issues }, { status: 400 });
-    }
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error, MESSAGES);
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
+// Tabel report belum punya deletedAt, jadi hapus di sini permanen.
+export async function DELETE(_req: Request, { params }: Params) {
   try {
-    await prisma.workspaceReport.delete({
-      where: { id },
-    });
-    return NextResponse.json({ message: 'Deleted successfully' });
+    const auth = await requireAccess('workspaceReports', 'write');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, INVALID_ID);
+    await prisma.workspaceReport.delete({ where: { id } });
+    return NextResponse.json({ message: 'Report dihapus.' });
   } catch (error) {
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error, MESSAGES);
   }
 }

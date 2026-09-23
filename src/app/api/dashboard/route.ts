@@ -1,67 +1,44 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { requireRole } from '@/lib/auth';
+import { apiError, handleRouteError } from '@/lib/api';
+import { requireAccess } from '@/lib/auth';
+import { WORKSPACE_EVENT_STATUS, type WorkspaceEventStatus } from '@/lib/rbac';
 
-export async function GET() {
-  const { authorized, response } = await requireRole(['owner', 'superadmin', 'admin', 'staff', 'tester']);
-  if (!authorized) return response;
+// WIB selalu UTC+7 tanpa jam musim panas, jadi batas tahun dan bulan cukup digeser 7 jam.
+const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
 
+const zero = (): Record<WorkspaceEventStatus, number> => ({ running: 0, selesai: 0 });
+
+export async function GET(req: Request) {
   try {
+    const auth = await requireAccess('dashboard', 'read');
+    if (!auth.authorized) return auth.response;
+
+    const raw = new URL(req.url).searchParams.get('year');
+    const year = raw === null ? new Date(Date.now() + WIB_OFFSET_MS).getUTCFullYear() : Number(raw);
+    if (raw !== null && !(/^\d{4}$/.test(raw) && year >= 2000 && year <= 2100)) {
+      return apiError(400, 'Tahun harus berupa angka 2000 sampai 2100.');
+    }
+
     const events = await prisma.workspaceEvent.findMany({
-      where: { deletedAt: null },
+      where: {
+        deletedAt: null,
+        status: { in: [...WORKSPACE_EVENT_STATUS] },
+        date: { gte: new Date(Date.UTC(year, 0) - WIB_OFFSET_MS), lt: new Date(Date.UTC(year + 1, 0) - WIB_OFFSET_MS) },
+      },
+      select: { date: true, status: true },
     });
 
-    const totalSelesai = events.filter(e => e.status.toLowerCase() === 'selesai' || e.status.toLowerCase() === 'completed').length;
-    const totalBerjalan = events.filter(e => e.status.toLowerCase() !== 'selesai' && e.status.toLowerCase() !== 'completed').length;
-
-    // Monthly data
-    const monthlyData = [
-      { month: "JAN", selesai: 0, berjalan: 0 },
-      { month: "FEB", selesai: 0, berjalan: 0 },
-      { month: "MAR", selesai: 0, berjalan: 0 },
-      { month: "APR", selesai: 0, berjalan: 0 },
-      { month: "MAY", selesai: 0, berjalan: 0 },
-      { month: "JUN", selesai: 0, berjalan: 0 },
-      { month: "JUL", selesai: 0, berjalan: 0 },
-      { month: "AUG", selesai: 0, berjalan: 0 },
-      { month: "SEP", selesai: 0, berjalan: 0 },
-      { month: "OCT", selesai: 0, berjalan: 0 },
-      { month: "NOV", selesai: 0, berjalan: 0 },
-      { month: "DEC", selesai: 0, berjalan: 0 },
-    ];
-
-    events.forEach(e => {
-      const d = new Date(e.date);
-      const m = d.getMonth(); // 0-11
-      if (e.status.toLowerCase() === 'selesai' || e.status.toLowerCase() === 'completed') {
-        monthlyData[m].selesai++;
-      } else {
-        monthlyData[m].berjalan++;
-      }
-    });
-
-    // Team data
-    // Usually jobDesc or client or user? We don't have a team association directly on WorkspaceEvent, so maybe we use jobDesc or just return empty for now, or fake it if no real team table exists. Wait, is there a team table?
-    // In schema.prisma, there is no Team table. Just User, Client, Event, Wedding, WorkspaceSalary, HeadHome, WorkspaceEvent, WorkspaceReport, GaleriFotoAlbum.
-    // The previous mock data had names. We will return empty array for teamData if no actual data exists, or fetch from users?
-    // We will just fetch from User and pretend they are the team, with random counts or 0s, since the user didn't specify.
-    // Actually, I can just return the actual users from User table and count 0 for them.
-    const users = await prisma.user.findMany({ where: { active: true } });
-    const teamData = users.map(u => ({
-      name: u.alias || u.username,
-      phone: '080000000000', // No phone in User table
-      completed: 0,
-      running: 0,
-      hasPhoto: false
-    }));
-
-    return NextResponse.json({
-      totalSelesai,
-      totalBerjalan,
-      monthlyData,
-      teamData
-    });
+    const totals = zero();
+    const monthly = MONTHS.map((month) => ({ month, ...zero() }));
+    for (const { date, status } of events) {
+      const key = status as WorkspaceEventStatus;
+      totals[key]++;
+      monthly[new Date(date.getTime() + WIB_OFFSET_MS).getUTCMonth()][key]++;
+    }
+    return NextResponse.json({ year, totals, monthly });
   } catch (error) {
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error);
   }
 }
