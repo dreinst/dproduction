@@ -143,7 +143,7 @@ model HeadHome {
   id        Int      @id @default(autoincrement())
   image     String
   active    Boolean  @default(true)
-  sortIndex Int      @default(0)
+  sortIndex Int      @unique @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -184,7 +184,7 @@ model GaleriFotoAlbum {
   tanggal    String?
   image      String?
   active     Boolean  @default(true)
-  sortIndex  Int      @default(0)
+  sortIndex  Int      @unique @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
