@@ -55,7 +55,7 @@ export default function HeroSection() {
                   17+
                 </div>
                 <div className="text-sm text-slate-300 font-medium drop-shadow-md">
-                  Dipercaya oleh lebih dari <span className="text-white font-bold">17+ Klien</span> & Perusahaan.
+                  Dipercaya oleh <span className="text-white font-bold">17+ klien</span> dan perusahaan.
                 </div>
               </div>
             </div>

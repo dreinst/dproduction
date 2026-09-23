@@ -13,7 +13,7 @@ Teknologi: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, framer
 
 ## Menjalankan di komputer lokal
 
-Butuh Node.js 20.9 atau lebih baru dan PostgreSQL (CI memakai versi 16).
+Butuh Node.js 20.19, 22.12, atau 24 ke atas (syarat Prisma 7) dan PostgreSQL (CI memakai versi 16).
 
 > Jangan pernah mengarahkan `.env.local` ke database produksi. Migrasi, seed, dan smoke test menulis ke database yang ditunjuk `DATABASE_URL`. Pakai database lokal atau database uji.
 

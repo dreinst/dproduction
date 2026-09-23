@@ -2,27 +2,27 @@
 
 import { motion } from "framer-motion";
 import { MapPin, Phone, Mail, Clock, Send, Loader2, CheckCircle2, AlertCircle, ChevronDown, MessageCircle } from "lucide-react";
-import { useState } from "react";
-import { WHATSAPP_DEFAULT_TEXT, whatsappUrl, trackWhatsAppClick, trackFormConversion } from "@/lib/site";
-
-const EVENT_OPTIONS = [
-  { value: "corporate", label: "Corporate Gathering" },
-  { value: "wedding", label: "Wedding / Pernikahan" },
-  { value: "exhibition", label: "Pameran / Exhibition" },
-  { value: "rental", label: "Sewa Peralatan" },
-  { value: "other", label: "Lainnya" },
-];
+import { useRef, useState } from "react";
+import {
+  EVENT_OPTIONS,
+  WHATSAPP_DEFAULT_TEXT,
+  WHATSAPP_PATTERN,
+  eventLabel,
+  normalizeWhatsapp,
+  whatsappUrl,
+  trackWhatsAppClick,
+  trackFormConversion,
+} from "@/lib/site";
 
 const EMPTY_FORM = { name: "", whatsapp: "", eventType: "", message: "", website: "" };
 const SEND_FAILED = "Pesan belum terkirim karena gangguan koneksi atau server.";
 const MAP_QUERY = "D'Production Event & Wedding Planner, Jl. Raya Pandanlandung No.16, Bandulan, Wagir, Malang";
 
-const normalizeWhatsapp = (value: string) => value.replace(/[\s.()-]/g, "").replace(/^\+?62/, "0");
-
 export default function KontakSection() {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error" | "failed">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const showError = (nextStatus: "error" | "failed", message: string) => {
     setStatus(nextStatus);
@@ -31,12 +31,13 @@ export default function KontakSection() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    clearTimeout(resetTimer.current);
     const whatsapp = normalizeWhatsapp(formData.whatsapp);
 
     if (!formData.name.trim() || !whatsapp || !formData.eventType || !formData.message.trim()) {
       return showError("error", "Semua field wajib diisi.");
     }
-    if (!/^08\d{7,12}$/.test(whatsapp)) {
+    if (!WHATSAPP_PATTERN.test(whatsapp)) {
       return showError("error", "Format nomor WhatsApp tidak valid (contoh: 08123456789).");
     }
 
@@ -57,14 +58,13 @@ export default function KontakSection() {
       setStatus("success");
       setFormData(EMPTY_FORM);
       trackFormConversion();
-      setTimeout(() => setStatus("idle"), 3000);
+      resetTimer.current = setTimeout(() => setStatus("idle"), 3000);
     } catch {
       showError("failed", SEND_FAILED);
     }
   };
 
-  const eventLabel = EVENT_OPTIONS.find((option) => option.value === formData.eventType)?.label ?? "";
-  const whatsappFallbackText = `${WHATSAPP_DEFAULT_TEXT}\n\nNama: ${formData.name}\nJenis acara: ${eventLabel}\nPesan: ${formData.message}`;
+  const whatsappFallbackText = `${WHATSAPP_DEFAULT_TEXT}\n\nNama: ${formData.name}\nJenis acara: ${formData.eventType ? eventLabel(formData.eventType) : ""}\nPesan: ${formData.message}`;
 
   return (
     <section id="kontak" className="py-20 lg:py-32 bg-slate-50">

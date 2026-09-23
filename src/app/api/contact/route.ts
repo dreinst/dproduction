@@ -1,14 +1,13 @@
 import { NextResponse, after } from "next/server";
 import prisma from "@/lib/prisma";
 import { notifyNewLead } from "@/lib/notify";
+import { EVENT_VALUES, WHATSAPP_PATTERN, normalizeWhatsapp } from "@/lib/site";
 import { z } from "zod";
-
-const normalizeWhatsapp = (value: string) => value.replace(/[\s.()-]/g, "").replace(/^\+?62/, "0");
 
 const contactSchema = z.object({
   name: z.string().trim().min(1).max(100),
-  whatsapp: z.string().overwrite(normalizeWhatsapp).regex(/^08\d{7,12}$/),
-  eventType: z.enum(["corporate", "wedding", "exhibition", "rental", "other"]),
+  whatsapp: z.string().overwrite(normalizeWhatsapp).regex(WHATSAPP_PATTERN),
+  eventType: z.enum(EVENT_VALUES),
   message: z.string().trim().min(1).max(2000),
 });
 
@@ -45,7 +44,8 @@ export async function POST(request: Request) {
   if (contentType !== "application/json") return reply(415, "Format kiriman tidak didukung.");
   if (!isSameOrigin(request)) return reply(403, "Kiriman dari situs lain tidak diterima.");
 
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || request.headers.get("x-real-ip") || "unknown";
+  // x-real-ip diisi proxy (Traefik di VPS, Vercel), entri pertama x-forwarded-for bisa dipalsukan klien.
+  const ip = request.headers.get("x-real-ip") || request.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
   if (isRateLimited(ip)) {
     return reply(429, "Terlalu banyak kiriman dari jaringan Anda. Silakan coba lagi dalam 10 menit atau hubungi kami lewat WhatsApp.");
   }

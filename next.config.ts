@@ -21,6 +21,9 @@ const legacyRedirects: [string, string][] = [
   ["/galeri_video", "/#galeri"],
   ["/kontak", "/#kontak"],
   ["/login", "/management/login"],
+  // Sebagian klien lama meminta path ini langsung tanpa membaca tag link di head.
+  ["/apple-touch-icon.png", "/apple-icon.png"],
+  ["/apple-touch-icon-precomposed.png", "/apple-icon.png"],
 ];
 
 const nextConfig: NextConfig = {

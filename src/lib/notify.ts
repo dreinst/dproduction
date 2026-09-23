@@ -1,4 +1,5 @@
 import type { Client } from "@prisma/client";
+import { eventLabel } from "@/lib/site";
 
 export async function notifyNewLead(lead: Client) {
   const token = process.env.LEAD_TELEGRAM_BOT_TOKEN;
@@ -9,7 +10,7 @@ export async function notifyNewLead(lead: Client) {
     `Lead baru dari website (#${lead.id})`,
     `Nama: ${lead.name}`,
     `WhatsApp: https://wa.me/62${lead.whatsapp.slice(1)}`,
-    `Jenis acara: ${lead.eventType}`,
+    `Jenis acara: ${eventLabel(lead.eventType)}`,
     `Pesan: ${lead.message}`,
   ].join("\n");
 
