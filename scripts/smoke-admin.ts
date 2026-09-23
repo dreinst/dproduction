@@ -35,7 +35,7 @@ const ENDPOINTS: Record<Resource, string> = {
 
 // Route yang belum memakai requireAccess dan masih menolak role yang sudah diizinkan API_ACCESS.
 // Hapus entri begitu route-nya diperbaiki; skrip gagal kalau entri di sini ternyata sudah sesuai.
-const PENDING = new Set<Resource>(['workspaceEvents']);
+const PENDING = new Set<Resource>([]);
 
 const runId = Date.now().toString(36);
 let ipCount = 0;

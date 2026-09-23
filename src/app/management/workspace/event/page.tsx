@@ -77,6 +77,8 @@ export default function WorkspaceEventPage() {
   );
   const pagination = usePagination(rows, `${activeTab}|${q}`);
   const tabLabel = WORKSPACE_EVENT_STATUS_LABELS[activeTab];
+  const showActive = rows.some((e) => e.active === false);
+  const actionCols = canWrite ? 1 : 0;
 
   const openForm = (item?: WorkspaceEvent) => {
     clearSaveError();
@@ -290,7 +292,7 @@ export default function WorkspaceEventPage() {
               ))}
               {pagination.pageItems.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-slate-600 text-sm">
+                  <td colSpan={3 + actionCols} className="px-4 py-8 text-center text-slate-600 text-sm">
                     {emptyText}
                   </td>
                 </tr>
@@ -309,7 +311,7 @@ export default function WorkspaceEventPage() {
                 <th className={th}>Deskripsi</th>
                 <th className={th}>Link Foto</th>
                 <th className={th}>Link Video</th>
-                <th className={thCenter}>Aktif</th>
+                {showActive && <th className={thCenter}>Aktif</th>}
                 {canWrite && <th className={thCenter}>Aksi</th>}
               </tr>
             </thead>
@@ -324,7 +326,9 @@ export default function WorkspaceEventPage() {
                   <td className={`${td} text-slate-700`}>{item.deskripsi}</td>
                   <td className={`${td} whitespace-nowrap`}>{link(item.linkFoto, "Buka foto")}</td>
                   <td className={`${td} whitespace-nowrap`}>{link(item.linkVideo, "Buka video")}</td>
-                  <td className={`${td} text-center text-slate-700`}>{item.active === false ? "Tidak" : "Ya"}</td>
+                  {showActive && (
+                    <td className={`${td} text-center text-slate-700`}>{item.active === false ? "Tidak" : "Ya"}</td>
+                  )}
                   {canWrite && (
                     <td className={td}>
                       <div className="flex items-center justify-center gap-1.5">{editButtons(item)}</div>
@@ -334,7 +338,7 @@ export default function WorkspaceEventPage() {
               ))}
               {pagination.pageItems.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-8 text-center text-slate-600 text-sm">
+                  <td colSpan={8 + actionCols} className="px-4 py-8 text-center text-slate-600 text-sm">
                     {emptyText}
                   </td>
                 </tr>

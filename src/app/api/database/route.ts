@@ -31,7 +31,7 @@ export async function GET() {
 
     // Baris yang di-soft-delete tidak dihitung, tetapi waktu hapusnya tetap tercatat sebagai update terakhir.
     const rows = await prisma.$queryRaw<Row[]>`
-      SELECT 'Client' AS t, (count(*) FILTER (WHERE "deletedAt" IS NULL))::int AS records, max("createdAt") AS last FROM "Client"
+      SELECT 'Client' AS t, (count(*) FILTER (WHERE "deletedAt" IS NULL))::int AS records, greatest(max("createdAt"), max("deletedAt")) AS last FROM "Client"
       UNION ALL SELECT 'Event', (count(*) FILTER (WHERE "deletedAt" IS NULL))::int, max("updatedAt") FROM "Event"
       UNION ALL SELECT 'Wedding', (count(*) FILTER (WHERE "deletedAt" IS NULL))::int, max("updatedAt") FROM "Wedding"
       UNION ALL SELECT 'Rental', count(*)::int, max("updatedAt") FROM "Rental"
