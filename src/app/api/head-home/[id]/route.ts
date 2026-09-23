@@ -1,80 +1,61 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
-import { z } from 'zod';
-import { requireRole } from '@/lib/auth';
+import { apiError, handleRouteError, parseId, readJson } from '@/lib/api';
+import { requireAccess } from '@/lib/auth';
+import { MESSAGES, updateSchema } from '../schema';
 
-const schema = z.object({
-  image: z.string().min(1),
-  active: z.boolean().default(true),
-  sortIndex: z.number().int().default(0),
-});
+type Params = { params: Promise<{ id: string }> };
+const SERIALIZABLE = { isolationLevel: Prisma.TransactionIsolationLevel.Serializable };
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
+export async function GET(_req: Request, { params }: Params) {
   try {
-    const item = await prisma.headHome.findUnique({
-      where: { id },
-    });
-    
-    if (!item) return NextResponse.json({ message: 'Not found' }, { status: 404 });
-    return NextResponse.json(item);
+    const auth = await requireAccess('headHome', 'read');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, 'ID gambar tidak valid.');
+    const item = await prisma.headHome.findUnique({ where: { id } });
+    return item ? NextResponse.json(item) : apiError(404, MESSAGES.P2025);
   } catch (error) {
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error, MESSAGES);
   }
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
+export async function PUT(req: Request, { params }: Params) {
   try {
-    const body = await request.json();
-    const validatedData = schema.parse(body);
+    const auth = await requireAccess('headHome', 'write');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, 'ID gambar tidak valid.');
+    const { sortIndex, ...data } = updateSchema.parse(await readJson(req));
 
-    const item = await prisma.headHome.update({
-      where: { id },
-      data: validatedData,
-    });
-
+    const item = await prisma.$transaction(async (tx) => {
+      if (sortIndex !== undefined) {
+        const current = await tx.headHome.findUnique({ where: { id }, select: { sortIndex: true } });
+        const other = await tx.headHome.findUnique({ where: { sortIndex }, select: { id: true } });
+        // sortIndex unik: item ini diparkir di -1 dulu, lalu bertukar urutan dengan pemilik urutan tujuan.
+        if (current && other && other.id !== id) {
+          await tx.headHome.update({ where: { id }, data: { sortIndex: -1 } });
+          await tx.headHome.update({ where: { id: other.id }, data: { sortIndex: current.sortIndex } });
+        }
+      }
+      return tx.headHome.update({ where: { id }, data: { ...data, sortIndex } });
+    }, SERIALIZABLE);
     return NextResponse.json(item);
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ message: 'Validation Error', errors: error.issues }, { status: 400 });
-    }
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error, MESSAGES);
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
+export async function DELETE(_req: Request, { params }: Params) {
   try {
-    await prisma.headHome.delete({
-      where: { id },
-    });
-    return NextResponse.json({ message: 'Deleted successfully' });
+    const auth = await requireAccess('headHome', 'write');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, 'ID gambar tidak valid.');
+    await prisma.headHome.delete({ where: { id } });
+    return NextResponse.json({ message: 'Gambar dihapus.' });
   } catch (error) {
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error, MESSAGES);
   }
 }

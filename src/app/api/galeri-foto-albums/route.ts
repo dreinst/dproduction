@@ -1,48 +1,28 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { z } from 'zod';
-import { requireRole } from '@/lib/auth';
-
-const schema = z.object({
-  album: z.string().min(1),
-  keterangan: z.string().nullable().optional(),
-  tanggal: z.string().nullable().optional(),
-  image: z.string().nullable().optional(),
-  active: z.boolean().default(true),
-  sortIndex: z.number().int().default(0),
-});
+import { handleRouteError, readJson } from '@/lib/api';
+import { requireAccess } from '@/lib/auth';
+import { MESSAGES, createSchema } from './schema';
 
 export async function GET() {
-  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
-  if (!authorized) return response;
-
   try {
-    const items = await prisma.galeriFotoAlbum.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
-    return NextResponse.json(items);
+    const auth = await requireAccess('galeriFotoAlbums', 'read');
+    if (!auth.authorized) return auth.response;
+    return NextResponse.json(await prisma.galeriFotoAlbum.findMany({ orderBy: { sortIndex: 'asc' } }));
   } catch (error) {
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error);
   }
 }
 
-export async function POST(request: Request) {
-  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
-  if (!authorized) return response;
-
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    const validatedData = schema.parse(body);
-
-    const item = await prisma.galeriFotoAlbum.create({
-      data: validatedData,
-    });
-
+    const auth = await requireAccess('galeriFotoAlbums', 'write');
+    if (!auth.authorized) return auth.response;
+    const data = createSchema.parse(await readJson(req));
+    const { _max } = await prisma.galeriFotoAlbum.aggregate({ _max: { sortIndex: true } });
+    const item = await prisma.galeriFotoAlbum.create({ data: { ...data, sortIndex: (_max.sortIndex ?? 0) + 1 } });
     return NextResponse.json(item, { status: 201 });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ message: 'Validation Error', errors: error.issues }, { status: 400 });
-    }
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error, MESSAGES);
   }
 }

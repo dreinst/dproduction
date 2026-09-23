@@ -1,302 +1,282 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Pencil, MapPin, Phone, Mail, Globe, Calendar, Building, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Pencil, MapPin, Phone, Mail, Globe, Calendar, Building, type LucideIcon } from "lucide-react";
 import { useCrud } from "@/hooks/useCrud";
+import Modal from "@/components/management/Modal";
 
-interface KantorSettingItem {
+interface KantorSetting {
   id: number;
-  companyName: string;
-  status: string;
-  motto1: string;
-  motto2: string;
-  description: string;
-  foundedDate: string;
-  address: string;
-  phone: string;
-  email: string;
-  website: string;
-  facebookUrl: string;
-  instagramUrl: string;
-  youtubeUrl: string;
-  tiktokUrl: string;
-  aboutUs: string;
-  googleMapsUrl: string;
+  companyName: string | null;
+  status: string | null;
+  motto1: string | null;
+  motto2: string | null;
+  description: string | null;
+  foundedDate: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  youtubeUrl: string | null;
+  tiktokUrl: string | null;
+  aboutUs: string | null;
+  googleMapsUrl: string | null;
+}
+
+type Field = Exclude<keyof KantorSetting, "id">;
+type FormState = Record<Field, string>;
+
+const FIELDS: { key: Field; label: string; max: number; rows?: number; date?: boolean; inputMode?: "tel" | "email" | "url"; placeholder?: string }[] = [
+  { key: "companyName", label: "Nama perusahaan", max: 200 },
+  { key: "status", label: "Status", max: 200, placeholder: "Contoh: Your event partner" },
+  { key: "motto1", label: "Motto baris 1 (teks gelap)", max: 200 },
+  { key: "motto2", label: "Motto baris 2 (teks biru)", max: 200 },
+  { key: "description", label: "Deskripsi motto", max: 1000, rows: 2 },
+  { key: "foundedDate", label: "Tanggal berdiri", max: 10, date: true },
+  { key: "phone", label: "Nomor telepon", max: 50, inputMode: "tel", placeholder: "081938938800" },
+  { key: "email", label: "Email", max: 200, inputMode: "email", placeholder: "nama@gmail.com" },
+  { key: "website", label: "Website", max: 2000, inputMode: "url", placeholder: "https://dpro.events" },
+  { key: "facebookUrl", label: "URL Facebook", max: 2000, inputMode: "url", placeholder: "https://www.facebook.com/namahalaman" },
+  { key: "instagramUrl", label: "URL Instagram", max: 2000, inputMode: "url", placeholder: "https://www.instagram.com/dpro.duction" },
+  { key: "youtubeUrl", label: "URL YouTube", max: 2000, inputMode: "url", placeholder: "https://youtube.com/@dproductionzone" },
+  { key: "tiktokUrl", label: "URL TikTok", max: 2000, inputMode: "url", placeholder: "https://www.tiktok.com/@namaakun" },
+  { key: "googleMapsUrl", label: "URL embed Google Maps", max: 2000, inputMode: "url", placeholder: "https://www.google.com/maps/embed?pb=..." },
+  { key: "address", label: "Alamat kantor", max: 500, rows: 2 },
+  { key: "aboutUs", label: "Tentang kami", max: 5000, rows: 6 },
+];
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const inputClass =
+  "w-full px-4 py-2 border border-slate-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100";
+
+// Tanggal disimpan TTTT-BB-HH tanpa jam, jadi ditampilkan dalam UTC supaya tidak bergeser sehari di zona waktu lain.
+function formatTanggal(value: string | null) {
+  if (!value || !ISO_DATE.test(value)) return value ?? "";
+  const date = new Date(`${value}T00:00:00Z`);
+  return isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString("id-ID", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" });
+}
+
+const empty = <span className="italic text-slate-500">Belum diisi</span>;
+
+function link(value: string | null, href = value) {
+  if (!value) return empty;
+  if (!href) return value;
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
+      {value}
+    </a>
+  );
+}
+
+const webLink = (value: string | null) => link(value, value && /^https:\/\//i.test(value) ? value : null);
+
+function Row({ icon: Icon, label, children }: { icon?: LucideIcon; label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1 px-6 py-4 sm:flex-row sm:items-start sm:gap-4">
+      <span className="flex shrink-0 items-center gap-2 text-sm font-medium text-slate-500 sm:w-40">
+        {Icon && <Icon className="w-4 h-4" aria-hidden />}
+        {label}
+      </span>
+      <span className="min-w-0 text-sm text-slate-700 break-words">{children}</span>
+    </div>
+  );
 }
 
 export default function SettingKantorPage() {
-  const { data, loading, error, updateItem } = useCrud<KantorSettingItem>({ endpoint: '/api/kantor-settings' });
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { data, loading, error, saveError, clearSaveError, updateItem } = useCrud<KantorSetting>({
+    endpoint: "/api/kantor-settings",
+  });
+  const [formOpen, setFormOpen] = useState(false);
+  const [form, setForm] = useState<FormState | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formError, setFormError] = useState("");
-  
-  const [formData, setFormData] = useState<Partial<KantorSettingItem>>({});
 
-  const settings = data?.[0] || null;
+  const settings = data[0];
+  const legacyDate = settings?.foundedDate && !ISO_DATE.test(settings.foundedDate) ? settings.foundedDate : null;
 
-  const handleOpenModal = () => {
-    if (settings) {
-      setFormData({
-        companyName: settings.companyName || "",
-        status: settings.status || "",
-        motto1: settings.motto1 || "",
-        motto2: settings.motto2 || "",
-        description: settings.description || "",
-        foundedDate: settings.foundedDate || "",
-        address: settings.address || "",
-        phone: settings.phone || "",
-        email: settings.email || "",
-        website: settings.website || "",
-        facebookUrl: settings.facebookUrl || "",
-        instagramUrl: settings.instagramUrl || "",
-        youtubeUrl: settings.youtubeUrl || "",
-        tiktokUrl: settings.tiktokUrl || "",
-        aboutUs: settings.aboutUs || "",
-        googleMapsUrl: settings.googleMapsUrl || ""
-      });
-    }
-    setFormError("");
-    setIsModalOpen(true);
+  if (loading && !settings) return <div className="p-8 text-center text-slate-600">Memuat setting kantor...</div>;
+  if (error) {
+    return (
+      <div role="alert" className="p-8 text-center text-red-600">
+        {error}
+      </div>
+    );
+  }
+  if (!settings) return <div className="p-8 text-center text-slate-600">Data setting kantor tidak ditemukan.</div>;
+
+  const openForm = () => {
+    clearSaveError();
+    setForm(
+      Object.fromEntries(
+        FIELDS.map(({ key }) => [key, key === "foundedDate" && legacyDate ? "" : (settings[key] ?? "")]),
+      ) as FormState,
+    );
+    setFormOpen(true);
   };
 
   const handleSave = async () => {
-    if (!settings) return;
+    if (!form) return;
     setIsSubmitting(true);
-    setFormError("");
-
-    const success = await updateItem(settings.id, formData);
+    const payload: Partial<Record<Field, string | null>> = Object.fromEntries(
+      FIELDS.map(({ key }) => [key, form[key].trim() || null]),
+    );
+    // Tanggal lama yang tidak dikenali tidak dikirim ulang, jadi tetap tersimpan kalau field dibiarkan kosong.
+    if (legacyDate && !payload.foundedDate) delete payload.foundedDate;
+    const ok = await updateItem(settings.id, payload);
     setIsSubmitting(false);
-
-    if (success) {
-      setIsModalOpen(false);
-    } else {
-      setFormError("Gagal menyimpan pengaturan kantor.");
-    }
+    if (ok) setFormOpen(false);
   };
 
-  if (loading) {
-    return <div className="p-8 text-center text-slate-500">Loading setting kantor...</div>;
-  }
-
-  if (error) {
-    return <div className="p-8 text-center text-red-500">Error: {error}</div>;
-  }
-
-  if (!settings) {
-    return <div className="p-8 text-center text-slate-500">Setting belum diinisialisasi.</div>;
-  }
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">SETTING KANTOR</h1>
-        <button onClick={handleOpenModal} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 flex items-center gap-2">
-          <Pencil className="w-4 h-4" /> Edit Setting
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-slate-800">Setting Kantor</h1>
+        <button
+          type="button"
+          onClick={openForm}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+        >
+          <Pencil className="w-4 h-4" aria-hidden />
+          Edit Setting
         </button>
       </div>
 
-      {/* Company name bar */}
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-        <p className="font-bold text-slate-800 text-lg">{settings.companyName}</p>
+        <p className="font-bold text-slate-800 text-lg break-words">{settings.companyName || empty}</p>
       </div>
 
-      {/* Settings grid */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100">
-        <div className="flex items-center px-6 py-4 gap-4">
-          <span className="text-slate-400 w-32 text-sm font-medium">Status</span>
-          <span className="text-slate-700 text-sm">{settings.status || "-"}</span>
-        </div>
-
+        <Row label="Status">{settings.status || empty}</Row>
         <div className="px-6 py-4">
-          <span className="text-slate-400 text-sm font-medium mb-2 block">Motto</span>
-          <h2 className="text-3xl font-extrabold text-slate-800">
-            {settings.motto1}
-          </h2>
-          <h2 className="text-3xl font-extrabold text-blue-600">{settings.motto2}</h2>
-          <p className="text-slate-500 mt-2 text-sm">
-            {settings.description}
-          </p>
+          <span className="text-slate-500 text-sm font-medium mb-2 block">Motto</span>
+          {settings.motto1 || settings.motto2 ? (
+            <>
+              <p className="text-2xl sm:text-3xl font-extrabold text-slate-800 break-words">{settings.motto1}</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-blue-600 break-words">{settings.motto2}</p>
+            </>
+          ) : (
+            <p className="text-sm">{empty}</p>
+          )}
+          {settings.description && <p className="text-slate-600 mt-2 text-sm break-words">{settings.description}</p>}
         </div>
+        <Row icon={Calendar} label="Tanggal berdiri">
+          {formatTanggal(settings.foundedDate) || empty}
+        </Row>
+        <Row icon={Building} label="Alamat">
+          {settings.address || empty}
+        </Row>
+        <Row icon={Phone} label="Telepon">
+          {settings.phone || empty}
+        </Row>
+        <Row icon={Mail} label="Email">
+          {link(settings.email, settings.email && EMAIL.test(settings.email) ? `mailto:${settings.email}` : null)}
+        </Row>
+        <Row icon={Globe} label="Website">
+          {webLink(settings.website)}
+        </Row>
+        <Row icon={MapPin} label="Google Maps">
+          {webLink(settings.googleMapsUrl)}
+        </Row>
+      </div>
 
-        <div className="flex items-center px-6 py-4 gap-4">
-          <Calendar className="w-5 h-5 text-slate-400" />
-          <span className="text-slate-700 text-sm">{settings.foundedDate ? new Date(settings.foundedDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : "-"}</span>
-        </div>
-
-        <div className="flex items-center px-6 py-4 gap-4">
-          <Building className="w-5 h-5 text-slate-400" />
-          <span className="text-slate-700 text-sm">{settings.address || "-"}</span>
-        </div>
-
-        <div className="flex items-center px-6 py-4 gap-4">
-          <Phone className="w-5 h-5 text-slate-400" />
-          <span className="text-slate-700 text-sm">{settings.phone || "-"}</span>
-        </div>
-
-        <div className="flex items-center px-6 py-4 gap-4">
-          <Mail className="w-5 h-5 text-slate-400" />
-          <span className="text-slate-700 text-sm">{settings.email || "-"}</span>
-        </div>
-
-        <div className="flex items-center px-6 py-4 gap-4">
-          <Globe className="w-5 h-5 text-slate-400" />
-          <span className="text-blue-600 text-sm">{settings.website || "-"}</span>
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+        <h2 className="px-6 pt-5 font-bold text-slate-800">Media sosial</h2>
+        <div className="divide-y divide-slate-100">
+          <Row label="Facebook">{webLink(settings.facebookUrl)}</Row>
+          <Row label="Instagram">{webLink(settings.instagramUrl)}</Row>
+          <Row label="YouTube">{webLink(settings.youtubeUrl)}</Row>
+          <Row label="TikTok">{webLink(settings.tiktokUrl)}</Row>
         </div>
       </div>
 
-      {/* Map placeholder */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-        <div className="w-full h-64 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400">
-          <div className="text-center">
-            <MapPin className="w-8 h-8 mx-auto mb-2" />
-            <p className="text-sm">Google Maps Embed</p>
-            <p className="text-xs mt-1">{settings.googleMapsUrl}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Social Media */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-3">
-        <h3 className="font-bold text-slate-800">Link Media Sosial</h3>
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-3 py-2 border-b border-slate-50">
-            <span className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">f</span>
-            <span className="text-blue-600">{settings.facebookUrl || "-"}</span>
-          </div>
-          <div className="flex items-center gap-3 py-2 border-b border-slate-50">
-            <span className="w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xs font-bold">ig</span>
-            <span className="text-blue-600">{settings.instagramUrl || "-"}</span>
-          </div>
-          <div className="flex items-center gap-3 py-2 border-b border-slate-50">
-            <span className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center text-white text-xs font-bold">yt</span>
-            <span className="text-blue-600">{settings.youtubeUrl || "-"}</span>
-          </div>
-          <div className="flex items-center gap-3 py-2">
-            <span className="w-6 h-6 bg-black rounded-full flex items-center justify-center text-white text-xs font-bold">tt</span>
-            <span className="text-slate-400 text-sm">{settings.tiktokUrl || "-"}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Tentang Kami */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-3">
-        <div className="flex items-center gap-2">
-          <h3 className="font-bold text-slate-800">Tentang Kami</h3>
-        </div>
-        <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
-          {settings.aboutUs}
+        <h2 className="font-bold text-slate-800">Tentang kami</h2>
+        <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap break-words">
+          {settings.aboutUs || empty}
         </p>
       </div>
 
-      {/* Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h2 className="text-lg font-bold text-slate-800">Edit Setting Kantor</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors" disabled={isSubmitting}>
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="p-6 overflow-y-auto space-y-4">
-              {formError && <div className="p-3 bg-red-100 text-red-600 rounded-lg text-sm">{formError}</div>}
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Nama Perusahaan</label>
-                  <input type="text" value={formData.companyName || ""} onChange={e => setFormData({...formData, companyName: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Status Partner</label>
-                  <input type="text" value={formData.status || ""} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Berdiri</label>
-                <input type="date" value={formData.foundedDate || ""} onChange={e => setFormData({...formData, foundedDate: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Motto 1 (Teks Gelap)</label>
-                  <input type="text" value={formData.motto1 || ""} onChange={e => setFormData({...formData, motto1: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Motto 2 (Teks Biru)</label>
-                  <input type="text" value={formData.motto2 || ""} onChange={e => setFormData({...formData, motto2: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Deskripsi Motto</label>
-                <textarea value={formData.description || ""} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-h-[60px]" disabled={isSubmitting} />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Nomor Telepon</label>
-                  <input type="text" value={formData.phone || ""} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                  <input type="text" value={formData.email || ""} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Website</label>
-                  <input type="text" value={formData.website || ""} onChange={e => setFormData({...formData, website: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Facebook URL</label>
-                  <input type="text" value={formData.facebookUrl || ""} onChange={e => setFormData({...formData, facebookUrl: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Instagram URL</label>
-                  <input type="text" value={formData.instagramUrl || ""} onChange={e => setFormData({...formData, instagramUrl: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">YouTube URL</label>
-                  <input type="text" value={formData.youtubeUrl || ""} onChange={e => setFormData({...formData, youtubeUrl: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">TikTok URL</label>
-                  <input type="text" value={formData.tiktokUrl || ""} onChange={e => setFormData({...formData, tiktokUrl: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Alamat Kantor</label>
-                <textarea value={formData.address || ""} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-h-[60px]" disabled={isSubmitting} />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Google Maps Embed URL / iFrame</label>
-                <textarea value={formData.googleMapsUrl || ""} onChange={e => setFormData({...formData, googleMapsUrl: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-h-[60px]" disabled={isSubmitting} />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Tentang Kami</label>
-                <textarea value={formData.aboutUs || ""} onChange={e => setFormData({...formData, aboutUs: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-h-[120px]" disabled={isSubmitting} />
-              </div>
-            </div>
-            
-            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 mt-auto">
-              <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors" disabled={isSubmitting}>Batal</button>
-              <button onClick={handleSave} disabled={isSubmitting} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm shadow-blue-600/20 transition-colors">
-                {isSubmitting ? 'Menyimpan...' : 'Simpan'}
-              </button>
-            </div>
+      <Modal
+        open={formOpen && !!form}
+        title="Edit Setting Kantor"
+        onClose={() => setFormOpen(false)}
+        onSubmit={handleSave}
+        busy={isSubmitting}
+        size="lg"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setFormOpen(false)}
+              disabled={isSubmitting}
+              className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+            >
+              {isSubmitting ? "Menyimpan..." : "Simpan"}
+            </button>
+          </>
+        }
+      >
+        {saveError && (
+          <div role="alert" className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+            {saveError}
           </div>
-        </div>
-      )}
+        )}
+        <p className="mb-4 text-xs text-slate-500">
+          Kosongkan yang belum ada. Semua link diisi alamat lengkap yang diawali https://.
+        </p>
+        {form && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {FIELDS.map(({ key, label, max, rows, date, inputMode, placeholder }) => {
+              const id = `kantor-${key}`;
+              const props = {
+                id,
+                value: form[key],
+                maxLength: max,
+                placeholder,
+                disabled: isSubmitting,
+                className: inputClass,
+                required: key === "companyName",
+              };
+              const onChange = (e: { target: { value: string } }) => setForm({ ...form, [key]: e.target.value });
+              return (
+                <div key={key} className={rows ? "sm:col-span-2" : undefined}>
+                  <label htmlFor={id} className="block text-sm font-medium text-slate-700 mb-1">
+                    {label}
+                  </label>
+                  {rows ? (
+                    <textarea {...props} rows={rows} onChange={onChange} />
+                  ) : (
+                    <input
+                      {...props}
+                      type={date ? "date" : "text"}
+                      inputMode={inputMode}
+                      onChange={onChange}
+                      aria-describedby={date && legacyDate ? `${id}-hint` : undefined}
+                    />
+                  )}
+                  {date && legacyDate && (
+                    <p id={`${id}-hint`} className="mt-1 text-xs text-amber-800">
+                      Tanggal tersimpan &quot;{legacyDate}&quot; tidak dikenali. Pilih tanggal baru, atau biarkan kosong
+                      supaya tanggal lama tetap tersimpan.
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
