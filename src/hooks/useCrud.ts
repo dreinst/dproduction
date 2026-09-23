@@ -17,15 +17,16 @@ export function useCrud<T extends { id: number }>({ endpoint }: UseCrudOptions<T
       if (!res.ok) throw new Error('Failed to fetch data');
       const json = await res.json();
       setData(json);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message || 'An error occurred');
     } finally {
       setLoading(false);
     }
   }, [endpoint]);
 
   useEffect(() => {
-    fetchAll();
+    queueMicrotask(fetchAll);
   }, [fetchAll]);
 
   const createItem = async (payload: Omit<T, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -38,8 +39,9 @@ export function useCrud<T extends { id: number }>({ endpoint }: UseCrudOptions<T
       if (!res.ok) throw new Error('Failed to create item');
       await fetchAll();
       return true;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
       return false;
     }
   };
@@ -54,8 +56,9 @@ export function useCrud<T extends { id: number }>({ endpoint }: UseCrudOptions<T
       if (!res.ok) throw new Error('Failed to update item');
       await fetchAll();
       return true;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
       return false;
     }
   };
@@ -66,8 +69,9 @@ export function useCrud<T extends { id: number }>({ endpoint }: UseCrudOptions<T
       if (!res.ok) throw new Error('Failed to delete item');
       await fetchAll();
       return true;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
       return false;
     }
   };

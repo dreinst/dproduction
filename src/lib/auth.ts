@@ -29,15 +29,18 @@ export function forbiddenResponse() {
   return NextResponse.json({ message: 'Forbidden: Insufficient privileges' }, { status: 403 });
 }
 
-export async function requireRole(allowedRoles: string[]) {
+export async function requireRole(allowedRoles: string[]): Promise<
+  | { authorized: true; response: null; user: NonNullable<Awaited<ReturnType<typeof getUserFromToken>>> }
+  | { authorized: false; response: NextResponse; user: Awaited<ReturnType<typeof getUserFromToken>> }
+> {
   const user = await getUserFromToken();
   if (!user) {
     return { authorized: false, response: unauthorizedResponse(), user: null };
   }
-  
+
   if (!allowedRoles.includes(user.role)) {
     return { authorized: false, response: forbiddenResponse(), user };
   }
-  
+
   return { authorized: true, response: null, user };
 }

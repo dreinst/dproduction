@@ -130,11 +130,13 @@ export default function Sidebar({ onClose, role }: SidebarProps) {
       (item) => item.children?.some((child) => pathname === child.href)
     );
     if (activeGroup) {
-      setExpandedMenus(prev => {
-        if (!prev.includes(activeGroup.name)) {
-          return [...prev, activeGroup.name];
-        }
-        return prev;
+      queueMicrotask(() => {
+        setExpandedMenus(prev => {
+          if (!prev.includes(activeGroup.name)) {
+            return [...prev, activeGroup.name];
+          }
+          return prev;
+        });
       });
     }
   }, [pathname]);
