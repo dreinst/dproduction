@@ -9,7 +9,7 @@ Teknologi: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, framer
 - Landing page satu halaman di `/`. Isinya masih ditulis langsung di `src/components/sections/`, belum dibaca dari database.
 - Form kontak mengirim ke `POST /api/contact` dan menyimpan lead di tabel `Client`.
 - `GET /api/health` menjalankan `SELECT 1` ke database dan membalas `{"ok":true}` (200) atau `{"ok":false}` (503). Endpoint ini untuk monitor eksternal.
-- Dashboard `/management` dan API lainnya sedang diparkir di `src/app/_parked/`, jadi belum bisa diakses. Cara mengaktifkannya ada di `src/app/_parked/README.md`.
+- Dashboard `/management` dan API lainnya sedang diparkir di `src/app/_parked/`, jadi belum bisa diakses. Cara mengaktifkannya ada di `src/app/_parked/README.md`. Saat mengaktifkannya, cabut juga pengecualian lint untuk `src/components/management` dan `src/hooks/useCrud.ts` di `eslint.config.mjs`, lalu bereskan error lint di kedua tempat itu.
 
 ## Menjalankan di komputer lokal
 
@@ -46,7 +46,7 @@ Butuh Node.js 20.9 atau lebih baru dan PostgreSQL (CI memakai versi 16).
    ```
    Buka `http://localhost:3005`.
 
-Opsional: `npx tsx --env-file=.env.local scripts/seed-portfolio-events.ts` mengisi tabel `Event` dengan 14 event portofolio. Event yang sudah ada (dicocokkan dari nama, nama lama, atau foto, termasuk yang sudah dihapus) dilewati. Skrip ini punya pengaman host yang sama dengan seed.
+Opsional: `npx tsx --env-file=.env.local scripts/seed-portfolio-events.ts` mengisi tabel `Event` dengan 14 event portofolio. Skrip ini hanya berjalan kalau tabel `Event` benar-benar kosong. Baris yang sudah dihapus lewat dashboard tetap dihitung. Kalau tabel sudah berisi, skrip tidak mengubah apa pun, karena nama event bisa diganti lewat dashboard dan tidak ada kunci lain untuk mencocokkannya. Setelah terisi, kelola event lewat dashboard. Skrip ini punya pengaman host yang sama dengan seed.
 
 ## Variabel lingkungan
 
@@ -77,7 +77,7 @@ Contoh lengkap ada di `.env.example`. Variabel berawalan `NEXT_PUBLIC_` dibaca s
 | `npx tsc --noEmit` | Cek tipe TypeScript. |
 | `node scripts/smoke-test.mjs` | Uji cepat terhadap server yang sedang jalan. |
 
-Smoke test memeriksa `/`, `/robots.txt`, `/sitemap.xml`, `/opengraph-image`, `/api/health`, serta `POST /api/contact` yang valid dan tidak valid. Alamat server diambil dari `BASE_URL` (default `http://localhost:3000`) dan hanya boleh `localhost` atau `127.0.0.1`, karena uji form kontak menyimpan satu lead ke database.
+Smoke test memeriksa `/`, `/robots.txt`, `/sitemap.xml`, gambar Open Graph (path-nya diambil dari meta `og:image` di beranda), `/api/health`, serta `POST /api/contact` yang valid dan tidak valid. Alamat server diambil dari `BASE_URL` (default `http://localhost:3000`) dan hanya boleh `localhost` atau `127.0.0.1`, karena uji form kontak menyimpan satu lead ke database.
 
 ## CI
 

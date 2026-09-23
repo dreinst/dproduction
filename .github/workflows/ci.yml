@@ -54,5 +54,5 @@ jobs:
       - name: Smoke test
         run: |
           npm start > server.log 2>&1 &
-          timeout 60 bash -c 'until curl -s -o /dev/null http://localhost:3000/; do sleep 1; done'
+          timeout 60 bash -c 'until curl -s -o /dev/null http://localhost:3000/; do sleep 1; done' || { cat server.log; exit 1; }
           node scripts/smoke-test.mjs || { cat server.log; exit 1; }
