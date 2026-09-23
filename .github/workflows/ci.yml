@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dproduction_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # Semua nilai di sini dummy khusus CI, bukan rahasia.
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dproduction_ci?schema=public
+      JWT_SECRET: ci-dummy-jwt-secret
+      SEED_PASSWORD: ci-dummy-password
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npx prisma generate
+      - run: npx tsc --noEmit
+      - run: npx prisma migrate deploy
+      - run: npx prisma db seed
+      - run: npm run build
+
+      - name: Smoke test
+        run: |
+          npm start > server.log 2>&1 &
+          timeout 60 bash -c 'until curl -s -o /dev/null http://localhost:3000/; do sleep 1; done' || { cat server.log; exit 1; }
+          node scripts/smoke-test.mjs || { cat server.log; exit 1; }

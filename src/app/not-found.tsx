@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Home } from "lucide-react";
+import { Home } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: { absolute: "Halaman Tidak Ditemukan | D'Production" },
+  robots: { index: false },
+};
 
 export default function NotFound() {
   return (

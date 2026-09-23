@@ -68,18 +68,18 @@ export default function FaqSection() {
                 className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm"
               >
                 <button
+                  type="button"
                   onClick={() => setOpenIndex(isOpen ? null : index)}
                   className="w-full flex items-center justify-between gap-4 text-left px-6 py-5"
                   aria-expanded={isOpen}
+                  aria-controls={`faq-jawaban-${index}`}
                 >
                   <span className="font-bold text-slate-900">{faq.question}</span>
                   <ChevronDown className={`w-5 h-5 text-blue-600 shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
                 </button>
-                {isOpen && (
-                  <div className="px-6 pb-5 text-slate-600 leading-relaxed">
-                    {faq.answer}
-                  </div>
-                )}
+                <div id={`faq-jawaban-${index}`} hidden={!isOpen} className="px-6 pb-5 text-slate-600 leading-relaxed">
+                  {faq.answer}
+                </div>
               </motion.div>
             );
           })}

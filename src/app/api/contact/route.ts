@@ -1,50 +1,72 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import prisma from "@/lib/prisma";
+import { notifyNewLead } from "@/lib/notify";
+import { EVENT_VALUES, WHATSAPP_PATTERN, normalizeWhatsapp } from "@/lib/site";
 import { z } from "zod";
 
 const contactSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  whatsapp: z.string().min(1, "WhatsApp number is required"),
-  eventType: z.string().min(1, "Event type is required"),
-  message: z.string().min(1, "Message is required"),
+  name: z.string().trim().min(1).max(100),
+  whatsapp: z.string().overwrite(normalizeWhatsapp).regex(WHATSAPP_PATTERN),
+  eventType: z.enum(EVENT_VALUES),
+  message: z.string().trim().min(1).max(2000),
 });
 
-export async function POST(request: Request) {
+const WINDOW_MS = 10 * 60 * 1000;
+const MAX_PER_WINDOW = 5;
+const hits = new Map<string, number[]>();
+
+function isRateLimited(ip: string) {
+  const since = Date.now() - WINDOW_MS;
+  if (hits.size > 1000) {
+    for (const [key, times] of hits) if (times[times.length - 1] <= since) hits.delete(key);
+  }
+  const recent = (hits.get(ip) ?? []).filter((time) => time > since);
+  if (recent.length >= MAX_PER_WINDOW) return true;
+  hits.set(ip, [...recent, Date.now()]);
+  return false;
+}
+
+function isSameOrigin(request: Request) {
+  const origin = request.headers.get("origin");
+  if (!origin) return true;
   try {
-    const body = await request.json();
-    
-    // Validate with Zod
-    const parsed = contactSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { success: false, message: "Validasi gagal", errors: parsed.error.issues },
-        { status: 400 }
-      );
-    }
+    return new URL(origin).host === request.headers.get("host");
+  } catch {
+    return false;
+  }
+}
 
-    const { name, whatsapp, eventType, message } = parsed.data;
+const reply = (status: number, message: string) =>
+  NextResponse.json({ success: status < 300, message }, { status });
 
-    // Save to Prisma Client table
-    const newClient = await prisma.client.create({
-      data: {
-        name,
-        whatsapp,
-        eventType,
-        message,
-      }
-    });
+export async function POST(request: Request) {
+  const contentType = request.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
+  if (contentType !== "application/json") return reply(415, "Format kiriman tidak didukung.");
+  if (!isSameOrigin(request)) return reply(403, "Kiriman dari situs lain tidak diterima.");
 
-    console.log("Contact form submission saved:", newClient);
+  // x-real-ip diisi proxy (Traefik di VPS, Vercel), entri pertama x-forwarded-for bisa dipalsukan klien.
+  const ip = request.headers.get("x-real-ip") || request.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  if (isRateLimited(ip)) {
+    return reply(429, "Terlalu banyak kiriman dari jaringan Anda. Silakan coba lagi dalam 10 menit atau hubungi kami lewat WhatsApp.");
+  }
 
-    return NextResponse.json(
-      { success: true, message: "Pesan berhasil dikirim!" },
-      { status: 201 }
-    );
+  const body = await request.json().catch(() => null);
+  if (body === null) return reply(400, "Data kiriman tidak terbaca.");
+
+  const thankYou = "Pesan berhasil dikirim!";
+  if ((body as { website?: unknown }).website) return reply(201, thankYou);
+
+  const parsed = contactSchema.safeParse(body);
+  if (!parsed.success) return reply(400, "Data belum lengkap atau tidak valid. Periksa kembali isian Anda.");
+
+  try {
+    const lead = await prisma.client.create({ data: parsed.data });
+    console.log(`Lead baru tersimpan, id ${lead.id}`);
+    after(() => notifyNewLead(lead));
+    return reply(201, thankYou);
   } catch (error) {
-    console.error("Error processing contact form:", error);
-    return NextResponse.json(
-      { success: false, message: "Terjadi kesalahan saat memproses pesan." },
-      { status: 500 }
-    );
+    const { name, code } = (error ?? {}) as { name?: string; code?: string };
+    console.error(`Gagal menyimpan lead: ${name ?? "tidak diketahui"} ${code ?? ""}`.trim());
+    return reply(500, "Terjadi kesalahan saat memproses pesan.");
   }
 }
