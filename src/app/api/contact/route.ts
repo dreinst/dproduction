@@ -5,7 +5,7 @@ import { EVENT_VALUES, WHATSAPP_PATTERN, normalizeWhatsapp } from "@/lib/site";
 import { z } from "zod";
 
 const contactSchema = z.object({
-  name: z.string().trim().min(1).max(100),
+  name: z.string().overwrite((value) => value.replace(/\s+/g, " ").trim()).min(1).max(100),
   whatsapp: z.string().overwrite(normalizeWhatsapp).regex(WHATSAPP_PATTERN),
   eventType: z.enum(EVENT_VALUES),
   message: z.string().trim().min(1).max(2000),
@@ -66,7 +66,9 @@ export async function POST(request: Request) {
     return reply(201, thankYou);
   } catch (error) {
     const { name, code } = (error ?? {}) as { name?: string; code?: string };
-    console.error(`Gagal menyimpan lead: ${name ?? "tidak diketahui"} ${code ?? ""}`.trim());
+    // Error Prisma bisa memuat nilai isian (data pribadi), jadi hanya nama dan kodenya yang dicatat.
+    const detail = code ? code : error instanceof Error && name === "Error" ? error.message : "";
+    console.error(`Gagal menyimpan lead: ${name ?? "tidak diketahui"} ${detail}`.trim());
     return reply(500, "Terjadi kesalahan saat memproses pesan.");
   }
 }

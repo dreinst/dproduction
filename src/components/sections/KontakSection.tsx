@@ -96,7 +96,7 @@ export default function KontakSection() {
           {/* Contact Info Cards */}
           <motion.div 
             initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}
-            className="lg:col-span-2 space-y-6"
+            className="lg:col-span-2 space-y-6 max-lg:transform-none!"
           >
             <div className="glass-card p-8 flex items-start gap-6 group">
               <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
@@ -149,7 +149,7 @@ export default function KontakSection() {
           {/* Contact Form & Map */}
           <motion.div 
             initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }}
-            className="lg:col-span-3 glass-card p-8 lg:p-12"
+            className="lg:col-span-3 glass-card p-8 lg:p-12 max-lg:transform-none!"
           >
             <h3 className="text-2xl font-bold text-slate-900 mb-8">Kirim Pesan Langsung</h3>
             

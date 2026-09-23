@@ -8,8 +8,8 @@ export async function notifyNewLead(lead: Client) {
 
   const text = [
     `Lead baru dari website (#${lead.id})`,
-    `Nama: ${lead.name}`,
     `WhatsApp: https://wa.me/62${lead.whatsapp.slice(1)}`,
+    `Nama: ${lead.name}`,
     `Jenis acara: ${eventLabel(lead.eventType)}`,
     `Pesan: ${lead.message}`,
   ].join("\n");

@@ -67,7 +67,7 @@ export default function HeroSection() {
                 <Image
                   src="/assets/portfolio/temres-magelang-gala-malam.jpg"
                   fill
-                  sizes="(min-width: 640px) 512px, 100vw"
+                  sizes="(min-width: 640px) 860px, 170vw"
                   loading="eager"
                   fetchPriority="high"
                   alt="Gala malam Temu Responden Bank Indonesia di Magelang"
@@ -85,7 +85,7 @@ export default function HeroSection() {
               <motion.div
                 animate={{ y: [-10, 10, -10] }}
                 transition={reduceMotion ? { duration: 0 } : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-6 -right-6 lg:-right-12 gradient-bg p-4 rounded-2xl flex items-center gap-4 z-30 shadow-lg shadow-blue-500/30"
+                className="absolute -top-6 right-2 sm:-right-6 xl:-right-12 gradient-bg p-4 rounded-2xl flex items-center gap-4 z-30 shadow-lg shadow-blue-500/30"
               >
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-white shadow-inner">
                   <CalendarDays className="w-6 h-6" />
