@@ -35,7 +35,11 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    return legacyRedirects.map(([source, destination]) => ({ source, destination, permanent: true }));
+    return [
+      ...legacyRedirects.map(([source, destination]) => ({ source, destination, permanent: true })),
+      // Sementara (307) karena lokasi final dashboard admin belum diputuskan.
+      { source: "/login", destination: "/management/login", permanent: false },
+    ];
   },
 };
 
