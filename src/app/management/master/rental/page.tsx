@@ -1,9 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
-import Image from "next/image";
-import { Plus, Pencil, Trash2, CheckSquare, Search, Image as ImageIcon, X } from "lucide-react";
+import { useState } from "react";
+import { CheckSquare, Pencil, Plus, Search, Square, Trash2 } from "lucide-react";
 import { useCrud } from "@/hooks/useCrud";
+import { usePagination } from "@/hooks/usePagination";
+import Modal from "@/components/management/Modal";
+import Pagination, { PageSizeSelect } from "@/components/management/Pagination";
+import AdminThumb from "@/components/management/AdminThumb";
+import { useAdminUser } from "@/components/management/AdminShell";
 
 interface RentalItem {
   id: number;
@@ -16,265 +20,425 @@ interface RentalItem {
   active: boolean;
 }
 
+const EMPTY_FORM = { name: "", description: "", price: "", unit: "", waCart: "", photo: "", active: true };
+const inputClass =
+  "w-full px-4 py-2 border border-slate-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100";
+const th = "px-3 py-3 text-left font-semibold";
+const td = "px-3 py-3 align-top";
+const stickyTh = "sticky right-0 bg-slate-800 px-3 py-3 text-center font-semibold";
+const stickyTd =
+  "sticky right-0 bg-white px-2 py-2 align-top shadow-[-6px_0_6px_-6px_rgba(15,23,42,0.35)] group-hover:bg-slate-50";
+
 export default function MasterRentalPage() {
-  const { data, loading, error, createItem, updateItem, deleteItem } = useCrud<RentalItem>({ endpoint: '/api/rentals' });
-  const [statusFilter, setStatusFilter] = useState("Aktif");
-  const [showEntries, setShowEntries] = useState(50);
+  const canWrite = useAdminUser().can("rentals", "write");
+  const { data, loading, error, saveError, clearSaveError, createItem, updateItem, deleteItem } = useCrud<RentalItem>({
+    endpoint: "/api/rentals",
+  });
+  const [statusFilter, setStatusFilter] = useState<"aktif" | "semua">("aktif");
   const [searchQuery, setSearchQuery] = useState("");
-  
-  // Modal states
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [currentEditing, setCurrentEditing] = useState<RentalItem | null>(null);
-  
-  // Form state
-  const [formData, setFormData] = useState({ name: "", description: "", price: "", unit: "", waCart: "", photo: "", active: true });
-  const [formError, setFormError] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<RentalItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<RentalItem | null>(null);
+  const [form, setForm] = useState(EMPTY_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleOpenModal = (item?: RentalItem) => {
-    setFormError("");
-    if (item) {
-      setCurrentEditing(item);
-      setFormData({ name: item.name, description: item.description || "", price: item.price || "", unit: item.unit || "", waCart: item.waCart || "", photo: item.photo || "", active: item.active });
-    } else {
-      setCurrentEditing(null);
-      setFormData({ name: "", description: "", price: "", unit: "", waCart: "", photo: "", active: true });
-    }
-    setIsModalOpen(true);
+  const q = searchQuery.trim().toLowerCase();
+  const filtered = data.filter(
+    (r) =>
+      (statusFilter === "semua" || r.active) &&
+      (!q || `${r.name} ${r.description ?? ""}`.toLowerCase().includes(q)),
+  );
+  const pagination = usePagination(filtered, `${statusFilter}|${q}`);
+
+  const openForm = (item?: RentalItem) => {
+    clearSaveError();
+    setEditing(item ?? null);
+    setForm(
+      item
+        ? {
+            name: item.name,
+            description: item.description ?? "",
+            price: item.price ?? "",
+            unit: item.unit ?? "",
+            waCart: item.waCart ?? "",
+            photo: item.photo ?? "",
+            active: item.active,
+          }
+        : EMPTY_FORM,
+    );
+    setFormOpen(true);
   };
 
   const handleSave = async () => {
-    if (!formData.name.trim()) {
-      setFormError("Nama rental wajib diisi");
-      return;
-    }
-    setFormError("");
     setIsSubmitting(true);
-
     const payload = {
-      name: formData.name,
-      description: formData.description || null,
-      price: formData.price || null,
-      unit: formData.unit || null,
-      waCart: formData.waCart || null,
-      photo: formData.photo || null,
-      active: formData.active,
+      name: form.name.trim(),
+      description: form.description.trim() || null,
+      price: form.price.trim() || null,
+      unit: form.unit.trim() || null,
+      waCart: form.waCart.trim() || null,
+      photo: form.photo.trim() || null,
+      active: form.active,
     };
-
-    let success = false;
-    if (currentEditing) {
-      success = await updateItem(currentEditing.id, payload);
-    } else {
-      success = await createItem(payload);
-    }
-    
+    const ok = editing ? await updateItem(editing.id, payload) : await createItem(payload);
     setIsSubmitting(false);
+    if (ok) setFormOpen(false);
+  };
 
-    if (success) {
-      setIsModalOpen(false);
-    } else {
-      setFormError("Gagal menyimpan data");
-    }
+  const openDelete = (item: RentalItem) => {
+    clearSaveError();
+    setDeleteTarget(item);
   };
 
   const handleDelete = async () => {
-    if (currentEditing) {
-      setIsSubmitting(true);
-      const success = await deleteItem(currentEditing.id);
-      setIsSubmitting(false);
-      
-      if (success) {
-        setIsDeleteModalOpen(false);
-        setCurrentEditing(null);
-      }
-    }
+    if (!deleteTarget) return;
+    setIsSubmitting(true);
+    const ok = await deleteItem(deleteTarget.id);
+    setIsSubmitting(false);
+    if (ok) setDeleteTarget(null);
   };
 
-  const filteredDataRaw = data.filter(item => 
-    (statusFilter === "Semua" || (statusFilter === "Aktif" && item.active)) && 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const errorBox = saveError && (
+    <div role="alert" className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+      {saveError}
+    </div>
   );
-  
-  const filteredData = filteredDataRaw.slice(0, showEntries);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-800 uppercase">Master Persewaan</h1>
+      <h1 className="text-2xl font-bold text-slate-800">Master Rental</h1>
 
-      {error && (
-        <div className="p-4 bg-red-100 text-red-600 rounded-lg text-sm">{error}</div>
-      )}
-
-      {/* Filters and Add Button */}
-      <div>
-        <label className="block text-sm text-slate-500 mb-1">Status Aktif</label>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white min-w-[180px]">
-          <option>Aktif</option>
-          <option>Semua</option>
-        </select>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <label htmlFor="rental-status" className="block text-sm text-slate-600 mb-1">
+            Status
+          </label>
+          <select
+            id="rental-status"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as "aktif" | "semua")}
+            className="px-4 py-2 border border-slate-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white min-w-[200px]"
+          >
+            <option value="aktif">Hanya yang aktif</option>
+            <option value="semua">Semua</option>
+          </select>
+        </div>
+        {canWrite && (
+          <button
+            type="button"
+            onClick={() => openForm()}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+          >
+            <Plus className="w-4 h-4" aria-hidden />
+            Tambah Rental
+          </button>
+        )}
       </div>
-
-      <button onClick={() => handleOpenModal()} className="w-10 h-10 bg-teal-500 hover:bg-teal-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors" title="Input">
-        <Plus className="w-5 h-5" />
-      </button>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-          <span>Show</span>
-          <input type="number" value={showEntries} onChange={(e) => setShowEntries(Number(e.target.value))} className="w-16 px-2 py-1.5 border border-slate-200 rounded text-center text-sm" />
-          <span>entries</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-500">Search:</span>
-          <div className="relative">
-             <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-8 pr-3 py-1.5 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" />
-             <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-          </div>
+        <PageSizeSelect pagination={pagination} />
+        <div className="relative w-full sm:w-72">
+          <label htmlFor="rental-search" className="sr-only">
+            Cari rental
+          </label>
+          <input
+            id="rental-search"
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Cari nama atau deskripsi"
+            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+          />
+          <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden />
         </div>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
-        <table className="w-full min-w-[1000px]">
-          <thead>
-            <tr className="bg-slate-800 text-white text-sm">
-              <th className="px-3 py-3 text-left font-semibold w-10">No</th>
-              <th className="px-3 py-3 text-left font-semibold">Nama</th>
-              <th className="px-3 py-3 text-left font-semibold">Deskripsi</th>
-              <th className="px-3 py-3 text-left font-semibold">Harga</th>
-              <th className="px-3 py-3 text-left font-semibold">Satuan</th>
-              <th className="px-3 py-3 text-left font-semibold">WA Cart</th>
-              <th className="px-3 py-3 text-center font-semibold">Foto</th>
-              <th className="px-3 py-3 text-center font-semibold w-16">Aktif</th>
-              <th className="px-3 py-3 text-center font-semibold w-24">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-slate-500 text-sm">Loading...</td>
+        {loading && !data.length ? (
+          <div className="p-8 text-center text-slate-600">Memuat data rental...</div>
+        ) : error ? (
+          <div role="alert" className="p-8 text-center text-red-600">
+            {error}
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-800 text-white">
+                <th className={th}>No</th>
+                <th className={`${th} min-w-40`}>Nama</th>
+                <th className={`${th} min-w-56`}>Deskripsi</th>
+                <th className={th}>Harga</th>
+                <th className={th}>Satuan</th>
+                <th className={th}>WA Cart</th>
+                <th className={`${th} text-center`}>Foto</th>
+                <th className={`${th} text-center`}>Aktif</th>
+                {canWrite && <th className={stickyTh}>Aksi</th>}
               </tr>
-            ) : filteredData.length === 0 ? (
-              <tr>
-                 <td colSpan={9} className="px-4 py-8 text-center text-slate-500 text-sm">Tidak ada data</td>
-              </tr>
-            ) : (
-              filteredData.map((item, idx) => (
-              <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors text-sm">
-                <td className="px-3 py-3 text-slate-600">{idx + 1}.</td>
-                <td className="px-3 py-3 text-slate-800 font-medium">{item.name}</td>
-                <td className="px-3 py-3 text-slate-600 truncate max-w-[150px]">{item.description}</td>
-                <td className="px-3 py-3 text-slate-600 whitespace-nowrap">{item.price}</td>
-                <td className="px-3 py-3 text-slate-600">{item.unit}</td>
-                <td className="px-3 py-3 text-blue-600 truncate max-w-[100px]">
-                  {item.waCart ? <a href={item.waCart} target="_blank" rel="noreferrer" className="hover:underline">Link</a> : "-"}
-                </td>
-                <td className="px-3 py-3 text-center">
-                   {item.photo ? (
-                      <div className="w-10 h-10 rounded bg-slate-200 mx-auto overflow-hidden">
-                         <Image src={item.photo} alt={item.name} width={40} height={40} className="w-full h-full object-cover" />
+            </thead>
+            <tbody>
+              {pagination.pageItems.map((item, idx) => (
+                <tr key={item.id} className="group border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                  <td className={`${td} text-slate-600`}>{pagination.from + idx}.</td>
+                  <td className={`${td} font-medium text-slate-800`}>{item.name}</td>
+                  <td className={`${td} text-slate-600`}>
+                    <p className="line-clamp-2">{item.description}</p>
+                  </td>
+                  <td className={`${td} whitespace-nowrap text-slate-700`}>{item.price}</td>
+                  <td className={`${td} text-slate-700`}>{item.unit}</td>
+                  <td className={td}>
+                    {item.waCart && (
+                      <a
+                        href={item.waCart}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-700 hover:underline"
+                        aria-label={`Buka WA Cart ${item.name} di tab baru`}
+                      >
+                        Buka
+                      </a>
+                    )}
+                  </td>
+                  <td className={td}>
+                    <div className="flex justify-center">
+                      <AdminThumb src={item.photo} alt={item.name} />
+                    </div>
+                  </td>
+                  <td className={`${td} text-center`}>
+                    {item.active ? (
+                      <CheckSquare className="w-5 h-5 text-green-600 mx-auto" aria-label="Aktif" />
+                    ) : (
+                      <Square className="w-5 h-5 text-slate-400 mx-auto" aria-label="Nonaktif" />
+                    )}
+                  </td>
+                  {canWrite && (
+                    <td className={stickyTd}>
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openForm(item)}
+                          className="p-2 text-yellow-700 hover:bg-yellow-50 rounded transition-colors"
+                          aria-label={`Edit rental ${item.name}`}
+                          title="Edit"
+                        >
+                          <Pencil className="w-4 h-4" aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openDelete(item)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                          aria-label={`Hapus rental ${item.name}`}
+                          title="Hapus"
+                        >
+                          <Trash2 className="w-4 h-4" aria-hidden />
+                        </button>
                       </div>
-                   ) : (
-                      <div className="w-10 h-10 rounded bg-slate-100 mx-auto flex items-center justify-center text-slate-400">
-                         <ImageIcon className="w-4 h-4" />
-                      </div>
-                   )}
-                </td>
-                <td className="px-3 py-3 text-center">
-                  {item.active ? <CheckSquare className="w-4 h-4 text-green-500 mx-auto" /> : <span className="text-slate-400">-</span>}
-                </td>
-                <td className="px-3 py-3 text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <button onClick={() => handleOpenModal(item)} className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded transition-colors" title="Edit">
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => { setCurrentEditing(item); setIsDeleteModalOpen(true); }} className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors" title="Hapus">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            )))}
-          </tbody>
-        </table>
+                    </td>
+                  )}
+                </tr>
+              ))}
+              {pagination.pageItems.length === 0 && (
+                <tr>
+                  <td colSpan={canWrite ? 9 : 8} className="px-4 py-8 text-center text-slate-600">
+                    Tidak ada rental yang cocok.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
 
-      <p className="text-sm text-blue-600">Showing {filteredData.length > 0 ? 1 : 0} to {filteredData.length} of {filteredDataRaw.length} entries</p>
+      <Pagination pagination={pagination} />
 
-      {/* Add/Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 sticky top-0">
-              <h2 className="text-lg font-bold text-slate-800">{currentEditing ? "Edit Master Rental" : "Tambah Master Rental"}</h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors" disabled={isSubmitting}>
-                <X className="w-5 h-5" />
-              </button>
+      <Modal
+        open={formOpen}
+        title={editing ? "Edit Rental" : "Tambah Rental"}
+        onClose={() => setFormOpen(false)}
+        onSubmit={handleSave}
+        busy={isSubmitting}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setFormOpen(false)}
+              disabled={isSubmitting}
+              className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+            >
+              {isSubmitting ? "Menyimpan..." : "Simpan"}
+            </button>
+          </>
+        }
+      >
+        {errorBox}
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="rental-name" className="block text-sm font-medium text-slate-700 mb-1">
+              Nama rental
+            </label>
+            <input
+              id="rental-name"
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className={inputClass}
+              disabled={isSubmitting}
+              required
+              maxLength={200}
+            />
+          </div>
+          <div>
+            <label htmlFor="rental-description" className="block text-sm font-medium text-slate-700 mb-1">
+              Deskripsi (opsional)
+            </label>
+            <textarea
+              id="rental-description"
+              rows={3}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className={inputClass}
+              disabled={isSubmitting}
+              maxLength={2000}
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="rental-price" className="block text-sm font-medium text-slate-700 mb-1">
+                Harga (opsional)
+              </label>
+              <input
+                id="rental-price"
+                type="text"
+                inputMode="numeric"
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                className={inputClass}
+                disabled={isSubmitting}
+                maxLength={30}
+                aria-describedby="rental-price-hint"
+              />
+              <p id="rental-price-hint" className="mt-1 text-xs text-slate-500">
+                Angka rupiah, misalnya 1500000 atau Rp 1.500.000.
+              </p>
             </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nama Rental</label>
-                <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
-                {formError && <p className="text-red-500 text-xs mt-1">{formError}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Deskripsi</label>
-                <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 min-h-[80px]" disabled={isSubmitting} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                 <div>
-                   <label className="block text-sm font-medium text-slate-700 mb-1">Harga</label>
-                   <input type="text" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
-                 </div>
-                 <div>
-                   <label className="block text-sm font-medium text-slate-700 mb-1">Satuan</label>
-                   <input type="text" value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
-                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">WA Cart URL</label>
-                <input type="text" value={formData.waCart} onChange={e => setFormData({...formData, waCart: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" placeholder="https://wa.me/p/..." disabled={isSubmitting} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">URL Foto (Opsional)</label>
-                <input type="text" value={formData.photo} onChange={e => setFormData({...formData, photo: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30" disabled={isSubmitting} />
-              </div>
-              <div className="flex items-center gap-2 pt-2">
-                <input type="checkbox" id="active-check-rt" checked={formData.active} onChange={e => setFormData({...formData, active: e.target.checked})} className="w-4 h-4 text-blue-600 rounded border-slate-300" disabled={isSubmitting} />
-                <label htmlFor="active-check-rt" className="text-sm font-medium text-slate-700">Aktif</label>
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 sticky bottom-0">
-              <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors" disabled={isSubmitting}>Batal</button>
-              <button onClick={handleSave} disabled={isSubmitting} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm shadow-blue-600/20 transition-colors">
-                {isSubmitting ? 'Menyimpan...' : 'Simpan'}
-              </button>
+            <div>
+              <label htmlFor="rental-unit" className="block text-sm font-medium text-slate-700 mb-1">
+                Satuan (opsional)
+              </label>
+              <input
+                id="rental-unit"
+                type="text"
+                value={form.unit}
+                onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                className={inputClass}
+                disabled={isSubmitting}
+                maxLength={50}
+                aria-describedby="rental-unit-hint"
+              />
+              <p id="rental-unit-hint" className="mt-1 text-xs text-slate-500">
+                Misalnya per hari atau per unit.
+              </p>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="w-8 h-8" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-800 mb-2">Hapus Data?</h3>
-              <p className="text-slate-500 text-sm">Apakah Anda yakin ingin menghapus &quot;{currentEditing?.name}&quot;?</p>
-            </div>
-            <div className="px-6 py-4 bg-slate-50 flex justify-center gap-3">
-              <button onClick={() => setIsDeleteModalOpen(false)} disabled={isSubmitting} className="px-6 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>
-              <button onClick={handleDelete} disabled={isSubmitting} className="px-6 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
-                {isSubmitting ? 'Menghapus...' : 'Ya, Hapus'}
-              </button>
-            </div>
+          <div>
+            <label htmlFor="rental-wacart" className="block text-sm font-medium text-slate-700 mb-1">
+              Link WA Cart (opsional)
+            </label>
+            <input
+              id="rental-wacart"
+              type="text"
+              inputMode="url"
+              value={form.waCart}
+              onChange={(e) => setForm({ ...form, waCart: e.target.value })}
+              className={inputClass}
+              disabled={isSubmitting}
+              maxLength={2000}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              aria-describedby="rental-wacart-hint"
+            />
+            <p id="rental-wacart-hint" className="mt-1 text-xs text-slate-500">
+              Diawali https://, misalnya https://wa.me/p/1234567890.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="rental-photo" className="block text-sm font-medium text-slate-700 mb-1">
+              URL foto (opsional)
+            </label>
+            <input
+              id="rental-photo"
+              type="text"
+              inputMode="url"
+              value={form.photo}
+              onChange={(e) => setForm({ ...form, photo: e.target.value })}
+              className={inputClass}
+              disabled={isSubmitting}
+              maxLength={2000}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              aria-describedby="rental-photo-hint"
+            />
+            <p id="rental-photo-hint" className="mt-1 text-xs text-slate-500">
+              Diawali https:// atau / untuk file di situs ini, misalnya /assets/nama-foto.jpg.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              id="rental-active"
+              type="checkbox"
+              checked={form.active}
+              onChange={(e) => setForm({ ...form, active: e.target.checked })}
+              disabled={isSubmitting}
+              className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="rental-active" className="text-sm font-medium text-slate-700">
+              Aktif
+            </label>
           </div>
         </div>
-      )}
+      </Modal>
+
+      <Modal
+        open={!!deleteTarget}
+        title="Hapus rental?"
+        onClose={() => setDeleteTarget(null)}
+        busy={isSubmitting}
+        size="sm"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(null)}
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+            >
+              {isSubmitting ? "Menghapus..." : "Hapus permanen"}
+            </button>
+          </>
+        }
+      >
+        {errorBox}
+        <p className="text-sm text-slate-700">
+          Rental <span className="font-semibold text-slate-900">{deleteTarget?.name}</span> akan dihapus permanen dan
+          tidak bisa dikembalikan. Kalau hanya ingin menyembunyikannya, batalkan lalu nonaktifkan lewat tombol Edit.
+        </p>
+      </Modal>
     </div>
   );
 }

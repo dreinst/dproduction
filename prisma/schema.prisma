@@ -68,7 +68,7 @@ model Rental {
 
 model GradeEvent {
   id        Int      @id @default(autoincrement())
-  grade     String
+  grade     String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

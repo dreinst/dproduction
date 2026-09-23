@@ -1,82 +1,46 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { z } from 'zod';
-import { requireRole } from '@/lib/auth';
+import { apiError, handleRouteError, parseId, readJson, softDelete, updateActive } from '@/lib/api';
+import { requireAccess } from '@/lib/auth';
+import { updateSchema } from '../schema';
 
-const schema = z.object({
-  name: z.string().min(1),
-  description: z.string().nullable().optional(),
-  photo: z.string().nullable().optional(),
-  active: z.boolean().default(true),
-});
+type Params = { params: Promise<{ id: string }> };
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
+export async function GET(_req: Request, { params }: Params) {
   try {
-    const item = await prisma.wedding.findFirst({
-      where: { id, deletedAt: null },
-    });
-    
-    if (!item) return NextResponse.json({ message: 'Not found' }, { status: 404 });
-    return NextResponse.json(item);
+    const auth = await requireAccess('weddings', 'read');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, 'ID wedding tidak valid.');
+    const wedding = await prisma.wedding.findFirst({ where: { id, deletedAt: null } });
+    return wedding ? NextResponse.json(wedding) : apiError(404, 'Wedding tidak ditemukan atau sudah dihapus.');
   } catch (error) {
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error);
   }
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
+export async function PUT(req: Request, { params }: Params) {
   try {
-    const body = await request.json();
-    const validatedData = schema.parse(body);
-
-    const item = await prisma.wedding.update({
-      where: { id },
-      data: validatedData,
-    });
-
-    return NextResponse.json(item);
+    const auth = await requireAccess('weddings', 'write');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, 'ID wedding tidak valid.');
+    await updateActive(prisma.wedding, id, updateSchema.parse(await readJson(req)));
+    return NextResponse.json(await prisma.wedding.findUnique({ where: { id } }));
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ message: 'Validation Error', errors: error.issues }, { status: 400 });
-    }
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error);
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
+export async function DELETE(_req: Request, { params }: Params) {
   try {
-    await prisma.wedding.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-    });
-    return NextResponse.json({ message: 'Deleted successfully' });
+    const auth = await requireAccess('weddings', 'write');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, 'ID wedding tidak valid.');
+    await softDelete(prisma.wedding, id);
+    return NextResponse.json({ message: 'Wedding dihapus.' });
   } catch (error) {
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error);
   }
 }
