@@ -18,6 +18,8 @@ export const metadata: Metadata = {
     locale: "id_ID",
     url: "/",
     siteName: "D'Production",
+    // Gambar OG ada di src/app (URL tetap /opengraph-image); openGraph di sini menimpa bawaan root, jadi disebut lagi.
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "D'Production | Event Organizer Profesional di Malang" }],
   },
 };
 

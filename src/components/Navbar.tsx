@@ -51,6 +51,15 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const closeOnEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [isOpen]);
+
   const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     if (pathname !== "/") {
       setIsOpen(false);
@@ -115,7 +124,7 @@ export default function Navbar() {
           </nav>
 
           {/* CTA Button */}
-          <div className="hidden xl:flex items-center">
+          <div className="hidden lg:flex items-center ml-auto xl:ml-0 mr-3 xl:mr-0">
             <a
               href={whatsappUrl()}
               target="_blank"
@@ -149,7 +158,7 @@ export default function Navbar() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className="xl:hidden bg-white/95 backdrop-blur-xl border-b border-gray-100 shadow-xl"
+            className="xl:hidden bg-white/95 backdrop-blur-xl border-b border-gray-100 shadow-xl max-h-[calc(100dvh-5rem)] overflow-y-auto"
           >
             <nav className="flex flex-col px-4 pt-4 pb-8 space-y-2">
               {links.map((link) => {
