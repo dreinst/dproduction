@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { CalendarDays, Heart, Speaker, Box, CheckCircle2, ArrowRight } from "lucide-react";
+import { whatsappUrl, trackWhatsAppClick } from "@/lib/site";
 
 const services = [
   {
@@ -32,7 +33,7 @@ const rentals = [
 
 export default function LayananSection() {
   return (
-    <section id="layanan" className="py-20 lg:py-32 bg-slate-50">
+    <section id="layanan" className="py-20 lg:py-32 bg-slate-50 overflow-x-clip">
       <div className="container mx-auto px-4 lg:px-8">
         
         {/* Header */}
@@ -64,12 +65,12 @@ export default function LayananSection() {
             const isEven = index % 2 === 1;
             
             return (
-              <div key={service.id} className={`grid lg:grid-cols-2 gap-12 lg:gap-20 items-center ${isEven ? 'lg:rtl' : ''}`}>
+              <div key={service.id} className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
                 
                 <motion.div 
                   initial={{ opacity: 0, x: isEven ? 50 : -50 }} whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true, margin: "-100px" }}
-                  className={isEven ? 'lg:ltr' : ''}
+                  className="max-lg:transform-none!"
                 >
                   <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-8 shadow-lg ${service.color === 'blue' ? 'gradient-bg shadow-blue-500/30' : 'bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-pink-500/30'}`}>
                     <Icon className="w-8 h-8" />
@@ -86,7 +87,7 @@ export default function LayananSection() {
                       </li>
                     ))}
                   </ul>
-                  <a href="https://wa.me/6281938938800" target="_blank" className="inline-flex items-center gap-2 text-blue-600 font-bold hover:text-blue-700 transition-colors group">
+                  <a href={whatsappUrl()} target="_blank" rel="noopener noreferrer" onClick={trackWhatsAppClick} className="inline-flex items-center gap-2 text-blue-600 font-bold hover:text-blue-700 transition-colors group">
                     Konsultasi Detail <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </a>
                 </motion.div>
@@ -94,10 +95,10 @@ export default function LayananSection() {
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true, margin: "-100px" }}
-                  className={`relative ${isEven ? 'lg:ltr' : ''}`}
+                  className={`relative ${isEven ? 'lg:order-first' : ''}`}
                 >
                   <div className="relative rounded-3xl overflow-hidden aspect-[4/3] shadow-2xl bg-slate-200">
-                    <Image src={index === 0 ? "/assets/portfolio/ustegra-peresmian-aerial.jpg" : "/assets/hero img 6.jpg"} fill alt={service.title} className="object-cover" />
+                    <Image src={index === 0 ? "/assets/portfolio/ustegra-peresmian-aerial.jpg" : "/assets/hero img 6.jpg"} fill sizes="(min-width: 1024px) 45vw, 100vw" alt={service.title} className="object-cover" />
                     <div className="absolute inset-0 bg-slate-900/10"></div>
                   </div>
                   {/* Decoration block */}
@@ -140,7 +141,7 @@ export default function LayananSection() {
             </div>
             
             <div className="mt-12 text-center">
-              <a href="https://wa.me/6281938938800" target="_blank" rel="noopener noreferrer" className="inline-block px-8 py-4 bg-white text-slate-900 rounded-full font-bold hover:bg-slate-100 transition-colors">
+              <a href={whatsappUrl()} target="_blank" rel="noopener noreferrer" onClick={trackWhatsAppClick} className="inline-block px-8 py-4 bg-white text-slate-900 rounded-full font-bold hover:bg-slate-100 transition-colors">
                 Tanya Ketersediaan via WhatsApp
               </a>
             </div>
