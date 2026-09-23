@@ -1,84 +1,46 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { z } from 'zod';
-import { requireRole } from '@/lib/auth';
+import { apiError, handleRouteError, parseId, readJson, softDelete, updateActive } from '@/lib/api';
+import { requireAccess } from '@/lib/auth';
+import { updateSchema } from '../schema';
 
-const eventSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  description: z.string().nullable().optional(),
-  photo: z.string().nullable().optional(),
-  active: z.boolean().default(true),
-});
+type Params = { params: Promise<{ id: string }> };
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
+export async function GET(_req: Request, { params }: Params) {
   try {
-    const event = await prisma.event.findFirst({
-      where: { id, deletedAt: null },
-    });
-    
-    if (!event) return NextResponse.json({ message: 'Event not found' }, { status: 404 });
-    
-    return NextResponse.json(event);
+    const auth = await requireAccess('events', 'read');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, 'ID event tidak valid.');
+    const event = await prisma.event.findFirst({ where: { id, deletedAt: null } });
+    return event ? NextResponse.json(event) : apiError(404, 'Event tidak ditemukan atau sudah dihapus.');
   } catch (error) {
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error);
   }
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
+export async function PUT(req: Request, { params }: Params) {
   try {
-    const body = await request.json();
-    const validatedData = eventSchema.parse(body);
-
-    const event = await prisma.event.update({
-      where: { id },
-      data: validatedData,
-    });
-
-    return NextResponse.json(event);
+    const auth = await requireAccess('events', 'write');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, 'ID event tidak valid.');
+    await updateActive(prisma.event, id, updateSchema.parse(await readJson(req)));
+    return NextResponse.json(await prisma.event.findUnique({ where: { id } }));
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ message: 'Validation Error', errors: error.issues }, { status: 400 });
-    }
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error);
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
+export async function DELETE(_req: Request, { params }: Params) {
   try {
-    await prisma.event.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-    });
-
-    return NextResponse.json({ message: 'Event deleted successfully' });
+    const auth = await requireAccess('events', 'write');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, 'ID event tidak valid.');
+    await softDelete(prisma.event, id);
+    return NextResponse.json({ message: 'Event dihapus.' });
   } catch (error) {
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error);
   }
 }
