@@ -1,48 +1,26 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { z } from 'zod';
-import { requireRole } from '@/lib/auth';
-
-const schema = z.object({
-  title: z.string().min(1),
-  date: z.number().int(),
-  month: z.string().min(1),
-  time: z.string().min(1),
-  client: z.string().min(1),
-  status: z.string().default('admin'),
-});
+import { handleRouteError, readJson } from '@/lib/api';
+import { requireAccess } from '@/lib/auth';
+import { createSchema } from './schema';
 
 export async function GET() {
-  const { authorized, response } = await requireRole(['owner','superadmin']);
-  if (!authorized) return response;
-
   try {
-    const items = await prisma.workspaceReport.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
-    return NextResponse.json(items);
+    const auth = await requireAccess('workspaceReports', 'read');
+    if (!auth.authorized) return auth.response;
+    return NextResponse.json(await prisma.workspaceReport.findMany({ orderBy: { createdAt: 'desc' } }));
   } catch (error) {
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error);
   }
 }
 
-export async function POST(request: Request) {
-  const { authorized, response } = await requireRole(['owner','superadmin']);
-  if (!authorized) return response;
-
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    const validatedData = schema.parse(body);
-
-    const item = await prisma.workspaceReport.create({
-      data: validatedData,
-    });
-
-    return NextResponse.json(item, { status: 201 });
+    const auth = await requireAccess('workspaceReports', 'write');
+    if (!auth.authorized) return auth.response;
+    const data = createSchema.parse(await readJson(req));
+    return NextResponse.json(await prisma.workspaceReport.create({ data }), { status: 201 });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ message: 'Validation Error', errors: error.issues }, { status: 400 });
-    }
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error);
   }
 }
