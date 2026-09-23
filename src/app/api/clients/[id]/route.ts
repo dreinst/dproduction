@@ -1,82 +1,35 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { z } from 'zod';
-import { requireRole } from '@/lib/auth';
+import { apiError, handleRouteError, parseId, softDelete } from '@/lib/api';
+import { requireAccess } from '@/lib/auth';
 
-const schema = z.object({
-  name: z.string().min(1),
-  whatsapp: z.string().min(1),
-  eventType: z.string().min(1),
-  message: z.string().min(1),
-});
+type Params = { params: Promise<{ id: string }> };
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
+export async function GET(_req: Request, { params }: Params) {
   try {
-    const item = await prisma.client.findFirst({
-      where: { id, deletedAt: null },
-    });
-    
-    if (!item) return NextResponse.json({ message: 'Not found' }, { status: 404 });
-    return NextResponse.json(item);
+    const auth = await requireAccess('leads', 'read');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, 'ID lead tidak valid.');
+
+    const lead = await prisma.client.findFirst({ where: { id, deletedAt: null }, omit: { deletedAt: true } });
+    if (!lead) return apiError(404, 'Lead tidak ditemukan atau sudah dihapus.');
+    return NextResponse.json(lead);
   } catch (error) {
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error);
   }
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
+export async function DELETE(_req: Request, { params }: Params) {
   try {
-    const body = await request.json();
-    const validatedData = schema.parse(body);
+    const auth = await requireAccess('leads', 'write');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, 'ID lead tidak valid.');
 
-    const item = await prisma.client.update({
-      where: { id },
-      data: validatedData,
-    });
-
-    return NextResponse.json(item);
+    await softDelete(prisma.client, id);
+    return NextResponse.json({ message: 'Lead dihapus.' });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ message: 'Validation Error', errors: error.issues }, { status: 400 });
-    }
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
-  }
-}
-
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { authorized, response } = await requireRole(['owner','superadmin','admin']);
-  if (!authorized) return response;
-
-  const id = parseInt((await params).id);
-  if (isNaN(id)) return NextResponse.json({ message: 'Invalid ID' }, { status: 400 });
-
-  try {
-    await prisma.client.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-    });
-    return NextResponse.json({ message: 'Deleted successfully' });
-  } catch (error) {
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return handleRouteError(error);
   }
 }
