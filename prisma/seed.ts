@@ -26,6 +26,9 @@ async function main() {
 
   const generated = !process.env.SEED_PASSWORD
   const password = process.env.SEED_PASSWORD || randomBytes(18).toString('base64url')
+  if (password.trim().length < 12) {
+    throw new Error('SEED_PASSWORD minimal 12 karakter, sama dengan aturan password di dashboard.')
+  }
   const passwordHash = await bcrypt.hash(password, 10)
 
   await prisma.user.createMany({

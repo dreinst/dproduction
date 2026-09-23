@@ -1,20 +1,22 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import prisma from '@/lib/prisma';
+import { handleRouteError } from '@/lib/api';
+import { AUTH_COOKIE, clearSessionCookie, verifySession } from '@/lib/auth';
 
 export async function POST() {
+  let res: NextResponse;
   try {
-    const cookieStore = await cookies();
-    cookieStore.delete('auth_token');
-
-    return NextResponse.json(
-      { message: 'Logout successful' },
-      { status: 200 }
-    );
+    const claims = await verifySession((await cookies()).get(AUTH_COOKIE)?.value);
+    if (claims) {
+      await prisma.user.updateMany({
+        where: { id: claims.id, tokenVersion: claims.tokenVersion },
+        data: { tokenVersion: { increment: 1 } },
+      });
+    }
+    res = NextResponse.json({ message: 'Anda sudah keluar.' });
   } catch (error) {
-    console.error('Logout error:', error);
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    res = handleRouteError(error);
   }
+  return clearSessionCookie(res);
 }

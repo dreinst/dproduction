@@ -30,7 +30,7 @@ jobs:
     # Semua nilai di sini dummy khusus CI, bukan rahasia.
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dproduction_ci?schema=public
-      JWT_SECRET: ci-dummy-jwt-secret
+      JWT_SECRET: ci-dummy-jwt-secret-minimal-32-karakter
       SEED_PASSWORD: ci-dummy-password
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
       NEXT_TELEMETRY_DISABLED: "1"
@@ -56,3 +56,4 @@ jobs:
           npm start > server.log 2>&1 &
           timeout 60 bash -c 'until curl -s -o /dev/null http://localhost:3000/; do sleep 1; done' || { cat server.log; exit 1; }
           node scripts/smoke-test.mjs || { cat server.log; exit 1; }
+          npx tsx scripts/smoke-admin.ts || { cat server.log; exit 1; }

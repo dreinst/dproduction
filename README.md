@@ -55,7 +55,7 @@ Contoh lengkap ada di `.env.example`. Variabel berawalan `NEXT_PUBLIC_` dibaca s
 | Nama | Wajib | Kegunaan |
 | --- | --- | --- |
 | `DATABASE_URL` | Ya | Koneksi PostgreSQL. Kalau kosong, request yang memakai database gagal dengan pesan yang jelas, sedangkan build tetap jalan. |
-| `JWT_SECRET` | Untuk dashboard | Kunci token login dashboard `/management`. |
+| `JWT_SECRET` | Untuk dashboard | Kunci tanda tangan token login dashboard `/management`. Dibaca saat aplikasi berjalan, jadi build tetap jalan tanpa nilai ini, tetapi harus terpasang sebagai env runtime di hosting. Isi string acak minimal 32 byte, misalnya hasil `openssl rand -hex 32`. Kalau kosong atau kurang dari 32 karakter, login dan API dashboard membalas 500. Mengganti nilainya membuat semua sesi login lama tidak berlaku. |
 | `NEXT_PUBLIC_SITE_URL` | Tidak | URL kanonik untuk metadata, `robots.txt`, dan `sitemap.xml`. Default `https://dproduction-iota.vercel.app`. |
 | `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | Tidak | Kode verifikasi Google Search Console. |
 | `NEXT_PUBLIC_GOOGLE_ADS_ID` | Tidak | ID Google Ads (`AW-...`). Kalau kosong, tag Google Ads tidak dimuat. |
@@ -65,6 +65,31 @@ Contoh lengkap ada di `.env.example`. Variabel berawalan `NEXT_PUBLIC_` dibaca s
 | `LEAD_TELEGRAM_CHAT_ID` | Tidak | Chat tujuan notifikasi lead baru. |
 | `SEED_PASSWORD` | Tidak | Password akun baru saat seed. |
 | `ALLOW_REMOTE_SEED` | Tidak | Isi `1` untuk mengizinkan seed ke host selain `localhost` atau `127.0.0.1`. |
+
+## Hak akses dashboard
+
+Role resmi hanya `owner`, `superadmin`, `admin`, `staff`, dan `tester`. Role lain (misalnya `Superuser` atau `Owner` berhuruf besar) ditolak saat login, di proxy, dan di API. Aturannya ditulis sekali di `src/lib/rbac.ts`: `API_ACCESS` untuk API dan `NAV` untuk menu serta halaman. Proxy, route API (`requireAccess`), Sidebar, dan tombol di halaman (`useAdminUser().can`) membaca file yang sama. Pembagian di bawah masih sementara dan menunggu keputusan akhir pemilik.
+
+| Modul | Halaman | Boleh melihat | Boleh mengubah |
+| --- | --- | --- | --- |
+| Dashboard | `/management` | semua role | tidak ada |
+| Workspace Event | `/management/workspace/event` | semua role | owner, superadmin, admin |
+| Workspace Report | `/management/workspace/report` | owner, superadmin | owner, superadmin |
+| Workspace Salary | `/management/workspace/salary` | owner, superadmin | owner, superadmin |
+| Master (Foto, Event, Wedding, Rental, Grade Event, JobDesc) | `/management/master/*` | owner, superadmin, admin | owner, superadmin, admin |
+| Galeri Foto dan Video | `/management/galeri/*` | owner, superadmin, admin | owner, superadmin, admin |
+| Lead Masuk (tabel `Client`) | `/management/leads` | owner, superadmin, admin | owner, superadmin, admin |
+| Setting Kantor dan Head Home | `/management/setting/kantor`, `/management/setting/head-home` | owner, superadmin | owner, superadmin |
+| Database | `/management/database` | owner, superadmin | owner, superadmin |
+| Setting Login (akun user) | `/management/setting/login` | owner | owner |
+
+- Halaman di bawah `/management` yang tidak ada di daftar ini ditolak dan dialihkan ke `/management`.
+- Staff dan tester hanya membaca. Tombol tambah, edit, hapus, dan tandai selesai disembunyikan untuk mereka.
+- Token login berumur 24 jam dan dicocokkan ke database di setiap request API. Logout, ganti password, ganti level, menonaktifkan, dan menghapus user langsung memutus sesi lama user itu.
+- Lima kali gagal login berturut mengunci akun selama 15 menit. Satu IP dibatasi 20 percobaan login per 15 menit. Hitungan per IP disimpan di memori, jadi berlaku per instance server.
+- Username disimpan dalam huruf kecil, 3 sampai 50 karakter, berisi huruf, angka, titik, garis bawah, atau tanda hubung. Password minimal 12 karakter.
+- Owner tidak bisa menurunkan level, menonaktifkan, atau menghapus akunnya sendiri, dan setiap perubahan yang membuat owner aktif tinggal nol ditolak.
+- `npx tsx scripts/smoke-admin.ts` menguji matriks ini terhadap server yang sedang jalan (butuh `SEED_PASSWORD` dan `JWT_SECRET` yang sama dengan server, `BASE_URL` default `http://localhost:3000`). Skrip ini membuat lalu menghapus satu user uji, jadi hanya boleh diarahkan ke localhost.
 
 ## Perintah
 
