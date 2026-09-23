@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const auth = await requireAccess('galeriFotoAlbums', 'read');
     if (!auth.authorized) return auth.response;
-    return NextResponse.json(await prisma.galeriFotoAlbum.findMany({ orderBy: { sortIndex: 'asc' } }));
+    return NextResponse.json(await prisma.galeriFotoAlbum.findMany({ orderBy: [{ sortIndex: 'asc' }, { id: 'asc' }] }));
   } catch (error) {
     return handleRouteError(error);
   }

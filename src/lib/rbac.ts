@@ -123,8 +123,17 @@ export function canAccessPath(role: unknown, pathname: string): boolean {
 }
 
 export function safeNextPath(raw: string | null | undefined): string | null {
-  if (!raw || !/^\/management(?:[/?#]|$)/.test(raw) || /[\\\s]|\/\/|\/\.\.?(?:[/?#]|$)/.test(raw)) return null;
-  return /^\/management\/login(?:[/?#]|$)/.test(raw) ? null : raw;
+  if (!raw || !raw.startsWith('/') || /[\\\s]|^\/\//.test(raw)) return null;
+  let url: URL;
+  try {
+    // Di-resolve dulu supaya segmen titik, termasuk yang ter-encode (%2e), ikut dinormalkan sebelum dicek.
+    url = new URL(raw, 'http://internal.invalid');
+  } catch {
+    return null;
+  }
+  if (url.origin !== 'http://internal.invalid') return null;
+  if (!/^\/management(?:\/|$)/.test(url.pathname) || /^\/management\/login(?:\/|$)/.test(url.pathname)) return null;
+  return url.pathname + url.search + url.hash;
 }
 
 export const WORKSPACE_EVENT_STATUS = ['running', 'selesai'] as const;

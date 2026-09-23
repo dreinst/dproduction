@@ -21,12 +21,6 @@ const inputClass =
 const moveClass =
   "w-8 h-8 rounded flex items-center justify-center text-white transition-colors disabled:cursor-not-allowed disabled:bg-slate-300";
 
-// next/image di mode dev melempar error untuk URL yang belum bisa diurai (misalnya "https://" yang baru diketik).
-const thumbSrc = (value?: string | null) => {
-  const url = value?.trim() ?? "";
-  return [...url].every((c) => c > " ") && (url.startsWith("/") || URL.canParse(url)) ? url : null;
-};
-
 export default function HeadHomePage() {
   const { data, loading, error, saveError, clearSaveError, createItem, updateItem, deleteItem } = useCrud<HeadImage>({
     endpoint: "/api/head-home",
@@ -169,7 +163,7 @@ export default function HeadHomePage() {
                     <td className="hidden sm:table-cell px-4 py-3 text-sm text-slate-600">{no}</td>
                     <td className="px-3 sm:px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <AdminThumb src={thumbSrc(item.image)} alt={`Gambar ${no}`} />
+                        <AdminThumb src={item.image} alt={`Gambar ${no}`} />
                         <span className="hidden sm:inline text-xs text-slate-600 break-all">{item.image}</span>
                         {!item.active && <span className="sm:hidden text-xs text-slate-500">Nonaktif</span>}
                       </div>
@@ -290,7 +284,7 @@ export default function HeadHomePage() {
                 placeholder="/assets/portfolio/tentang-kami-dekorasi-ustegra.jpg"
                 aria-describedby="head-image-hint"
               />
-              <AdminThumb src={thumbSrc(form.image)} alt="Pratinjau gambar" />
+              <AdminThumb src={form.image} alt="Pratinjau gambar" />
             </div>
             <p id="head-image-hint" className="mt-1 text-xs text-slate-500">
               Path file di situs ini (diawali /, spasi ditulis %20) atau alamat lengkap yang diawali https://.
@@ -341,7 +335,7 @@ export default function HeadHomePage() {
       >
         {errorBox}
         <div className="flex items-center gap-3">
-          <AdminThumb src={thumbSrc(deleteTarget?.image)} alt="Gambar yang akan dihapus" />
+          <AdminThumb src={deleteTarget?.image} alt="Gambar yang akan dihapus" />
           <p className="text-sm text-slate-700">
             Gambar <span className="font-semibold text-slate-900 break-all">{deleteTarget?.image}</span> akan dihapus
             permanen dan tidak bisa dikembalikan. Kalau hanya ingin menyembunyikannya, batalkan lalu hapus centang Aktif

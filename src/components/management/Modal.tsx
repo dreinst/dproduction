@@ -10,6 +10,7 @@ type ModalProps = {
   children: ReactNode;
   footer?: ReactNode;
   onSubmit?: (e: FormEvent<HTMLFormElement>) => void;
+  onInput?: () => void;
   busy?: boolean;
   size?: "sm" | "md" | "lg" | "xl";
 };
@@ -22,7 +23,7 @@ export default function Modal(props: ModalProps) {
   return props.open ? <ModalDialog {...props} /> : null;
 }
 
-function ModalDialog({ title, onClose, children, footer, onSubmit, busy = false, size = "md" }: ModalProps) {
+function ModalDialog({ title, onClose, children, footer, onSubmit, onInput, busy = false, size = "md" }: ModalProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -33,7 +34,9 @@ function ModalDialog({ title, onClose, children, footer, onSubmit, busy = false,
     const first = dialog?.querySelector<HTMLElement>(`[data-modal-body] :is(${FOCUSABLE})`) ?? dialog;
     first?.focus();
     return () => {
+      // Pemicu bisa sudah hilang (baris dihapus atau pindah tab); jatuhkan fokus ke konten utama, bukan ke body.
       if (trigger?.isConnected) trigger.focus();
+      else document.getElementById("konten")?.focus();
     };
   }, []);
 
@@ -133,6 +136,7 @@ function ModalDialog({ title, onClose, children, footer, onSubmit, busy = false,
         {onSubmit ? (
           <form
             className="flex min-h-0 flex-1 flex-col"
+            onInput={onInput}
             onSubmit={(e) => {
               e.preventDefault();
               if (!busy) onSubmit(e);

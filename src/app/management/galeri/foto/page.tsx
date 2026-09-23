@@ -30,12 +30,6 @@ const filterClass =
 const moveClass =
   "w-8 h-8 rounded flex items-center justify-center text-white transition-colors disabled:cursor-not-allowed disabled:bg-slate-300";
 
-// next/image di mode dev melempar error untuk URL yang belum bisa diurai (misalnya "https://" yang baru diketik).
-const thumbSrc = (value?: string | null) => {
-  const url = value?.trim() ?? "";
-  return [...url].every((c) => c > " ") && (url.startsWith("/") || URL.canParse(url)) ? url : null;
-};
-
 function isIsoDate(value: string) {
   const time = Date.parse(`${value}T00:00:00Z`);
   return ISO_DATE.test(value) && !isNaN(time) && new Date(time).toISOString().startsWith(value);
@@ -240,7 +234,7 @@ export default function GaleriFotoPage() {
                       {!item.active && <span className="sm:hidden block text-xs text-slate-500">Nonaktif</span>}
                     </td>
                     <td className="px-3 sm:px-4 py-3">
-                      <AdminThumb src={thumbSrc(item.image)} alt={name} />
+                      <AdminThumb src={item.image} alt={name} />
                     </td>
                     <td className="hidden md:table-cell px-4 py-3 text-sm text-slate-600 max-w-[240px] break-words">
                       {item.keterangan}
@@ -416,7 +410,7 @@ export default function GaleriFotoPage() {
                 placeholder="/assets/portfolio/temres-magelang-gala-malam.jpg"
                 aria-describedby="album-image-hint"
               />
-              <AdminThumb src={thumbSrc(form.image)} alt="Pratinjau foto" />
+              <AdminThumb src={form.image} alt="Pratinjau foto" />
             </div>
             <p id="album-image-hint" className="mt-1 text-xs text-slate-500">
               Path file di situs ini (diawali /, spasi ditulis %20) atau alamat lengkap yang diawali https://.

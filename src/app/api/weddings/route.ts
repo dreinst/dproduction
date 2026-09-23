@@ -9,7 +9,7 @@ export async function GET() {
     const auth = await requireAccess('weddings', 'read');
     if (!auth.authorized) return auth.response;
     return NextResponse.json(
-      await prisma.wedding.findMany({ where: { deletedAt: null }, orderBy: { createdAt: 'desc' } }),
+      await prisma.wedding.findMany({ where: { deletedAt: null }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] }),
     );
   } catch (error) {
     return handleRouteError(error);

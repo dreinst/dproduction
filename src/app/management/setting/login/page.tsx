@@ -17,7 +17,7 @@ interface User {
   active: boolean;
 }
 
-type FormState = { username: string; password: string; alias: string; role: Role; active: boolean };
+type FormState = { username: string; password: string; alias: string; role: Role | ""; active: boolean };
 
 const EMPTY_FORM: FormState = { username: "", password: "", alias: "", role: "staff", active: true };
 const inputClass =
@@ -55,7 +55,7 @@ export default function SettingLoginPage() {
             username: user.username,
             password: "",
             alias: user.alias ?? "",
-            role: isRole(user.role) ? user.role : "staff",
+            role: isRole(user.role) ? user.role : "",
             active: user.active,
           }
         : EMPTY_FORM,
@@ -222,6 +222,7 @@ export default function SettingLoginPage() {
         title={editing ? "Edit User" : "Tambah User"}
         onClose={() => setFormOpen(false)}
         onSubmit={handleSave}
+        onInput={clearSaveError}
         busy={isSubmitting}
         footer={
           <>
@@ -318,13 +319,21 @@ export default function SettingLoginPage() {
               onChange={(e) => setForm({ ...form, role: e.target.value as Role })}
               className={`${inputClass} bg-white`}
               disabled={isSubmitting || editingSelf}
+              required
+              aria-describedby={editing && !isRole(editing.role) ? "user-role-hint" : undefined}
             >
+              {form.role === "" && <option value="">Pilih level</option>}
               {ROLES.map((role) => (
                 <option key={role} value={role}>
                   {ROLE_LABELS[role]}
                 </option>
               ))}
             </select>
+            {editing && !isRole(editing.role) && (
+              <p id="user-role-hint" className="mt-1 text-xs text-amber-700">
+                Level lama &quot;{editing.role}&quot; tidak dikenal. Pilih level baru sebelum menyimpan.
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-3">

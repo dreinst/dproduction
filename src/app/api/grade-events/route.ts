@@ -8,7 +8,7 @@ export async function GET() {
   try {
     const auth = await requireAccess('gradeEvents', 'read');
     if (!auth.authorized) return auth.response;
-    return NextResponse.json(await prisma.gradeEvent.findMany({ orderBy: { createdAt: 'desc' } }));
+    return NextResponse.json(await prisma.gradeEvent.findMany({ orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] }));
   } catch (error) {
     return handleRouteError(error);
   }

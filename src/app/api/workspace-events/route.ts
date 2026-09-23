@@ -8,7 +8,7 @@ export async function GET() {
   try {
     const auth = await requireAccess('workspaceEvents', 'read');
     if (!auth.authorized) return auth.response;
-    const items = await prisma.workspaceEvent.findMany({ where: { deletedAt: null }, orderBy: { createdAt: 'desc' } });
+    const items = await prisma.workspaceEvent.findMany({ where: { deletedAt: null }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
     return NextResponse.json(items);
   } catch (error) {
     return handleRouteError(error);

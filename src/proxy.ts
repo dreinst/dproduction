@@ -6,6 +6,9 @@ const LOGIN_PATH = '/management/login';
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const MAX_BODY_BYTES = 1_000_000;
 
+// Bentuk sama dengan respons API (success + message), termasuk untuk /api/contact publik.
+const reject = (status: number, message: string) => NextResponse.json({ success: false, message }, { status });
+
 function guardApi(request: NextRequest) {
   if (!MUTATING.has(request.method)) return NextResponse.next();
 
@@ -16,18 +19,20 @@ function guardApi(request: NextRequest) {
       originHost = new URL(origin).host;
     } catch {}
     if (originHost !== request.headers.get('host')) {
-      return NextResponse.json({ message: 'Permintaan dari situs lain ditolak.' }, { status: 403 });
+      return reject(403, 'Permintaan dari situs lain ditolak.');
     }
   }
 
-  const length = Number(request.headers.get('content-length') ?? 0);
-  if (length > MAX_BODY_BYTES) {
-    return NextResponse.json({ message: 'Data yang dikirim terlalu besar.' }, { status: 413 });
+  const lengthHeader = request.headers.get('content-length');
+  const length = Number(lengthHeader ?? 0);
+  // Body chunked tanpa Content-Length tidak bisa dicek ukurannya di sini; fetch dari browser selalu mengirim ukurannya.
+  if (length > MAX_BODY_BYTES || (lengthHeader === null && request.headers.has('transfer-encoding'))) {
+    return reject(413, 'Data yang dikirim terlalu besar atau ukurannya tidak diketahui.');
   }
-  const hasBody = length > 0 || request.headers.has('transfer-encoding');
+  const hasBody = length > 0;
   const type = request.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
   if (hasBody && type !== 'application/json') {
-    return NextResponse.json({ message: 'Format data harus JSON.' }, { status: 415 });
+    return reject(415, 'Format data harus JSON.');
   }
   return NextResponse.next();
 }

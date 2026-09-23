@@ -87,7 +87,7 @@ export default function AdminLoginPage({ searchParams }: { searchParams: SearchP
               Sesi Anda sudah berakhir. Silakan masuk lagi.
             </p>
           )}
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form method="post" onSubmit={handleLogin} className="space-y-5">
             <div>
               <label htmlFor="login-username" className="block text-slate-300 text-sm font-medium mb-2">
                 Username

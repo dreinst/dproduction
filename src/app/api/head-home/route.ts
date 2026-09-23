@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const auth = await requireAccess('headHome', 'read');
     if (!auth.authorized) return auth.response;
-    return NextResponse.json(await prisma.headHome.findMany({ orderBy: { sortIndex: 'asc' } }));
+    return NextResponse.json(await prisma.headHome.findMany({ orderBy: [{ sortIndex: 'asc' }, { id: 'asc' }] }));
   } catch (error) {
     return handleRouteError(error);
   }

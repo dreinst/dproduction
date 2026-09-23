@@ -42,7 +42,13 @@ export async function PUT(req: Request, { params }: Params) {
         (data.active !== undefined && data.active !== current.active);
       const updated = await tx.user.update({
         where: { id },
-        data: { ...data, passwordHash, ...(revoke && { tokenVersion: { increment: 1 } }) },
+        data: {
+          ...data,
+          passwordHash,
+          ...(revoke && { tokenVersion: { increment: 1 } }),
+          // Owner membuka kunci akun dengan mengganti password atau mengaktifkan ulang user.
+          ...((passwordHash !== undefined || data.active === true) && { failedLogins: 0, lockedUntil: null }),
+        },
         select: { ...userSelect, tokenVersion: true },
       });
       if (current.role === 'owner' && current.active) await ensureActiveOwnerLeft(tx);

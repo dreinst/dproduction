@@ -8,7 +8,7 @@ type Props = { pagination: Pick<PaginationState, "page" | "totalPages" | "total"
 
 export default function Pagination({ pagination: p }: Props) {
   const button =
-    "inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
+    "inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600 hover:bg-slate-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50";
 
   return (
     <nav aria-label="Navigasi halaman tabel" className="flex flex-wrap items-center justify-between gap-3">
@@ -20,7 +20,7 @@ export default function Pagination({ pagination: p }: Props) {
           type="button"
           className={button}
           onClick={() => p.setPage(p.page - 1)}
-          disabled={p.page <= 1}
+          aria-disabled={p.page <= 1}
           aria-label="Halaman sebelumnya"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
@@ -33,7 +33,7 @@ export default function Pagination({ pagination: p }: Props) {
           type="button"
           className={button}
           onClick={() => p.setPage(p.page + 1)}
-          disabled={p.page >= p.totalPages}
+          aria-disabled={p.page >= p.totalPages}
           aria-label="Halaman berikutnya"
         >
           <span className="hidden sm:inline">Berikutnya</span>

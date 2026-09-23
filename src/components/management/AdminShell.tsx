@@ -29,6 +29,17 @@ function AuthedShell({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
+    if (!sidebarOpen) return;
+    const closeOnEscape = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setSidebarOpen(false);
+      document.querySelector<HTMLElement>("[data-menu-toggle]")?.focus();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [sidebarOpen]);
+
+  useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
@@ -81,12 +92,18 @@ function AuthedShell({ children }: { children: ReactNode }) {
   return (
     <AdminUserContext.Provider value={ctx}>
       <div className="min-h-screen bg-slate-100">
+        <a
+          href="#konten"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-blue-700 focus:shadow-lg"
+        >
+          Langsung ke konten
+        </a>
         {sidebarOpen && (
           <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" aria-hidden onClick={() => setSidebarOpen(false)} />
         )}
         <div
-          className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 lg:translate-x-0 ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          className={`fixed inset-y-0 left-0 z-50 transform transition-[transform,visibility] duration-300 lg:visible lg:translate-x-0 ${
+            sidebarOpen ? "visible translate-x-0" : "invisible -translate-x-full"
           }`}
         >
           <Sidebar onClose={() => setSidebarOpen(false)} role={ctx.user.role} />
@@ -94,7 +111,7 @@ function AuthedShell({ children }: { children: ReactNode }) {
 
         <div className="lg:pl-64">
           <AdminHeader user={ctx.user} menuOpen={sidebarOpen} onMenuToggle={() => setSidebarOpen((open) => !open)} />
-          <main className="p-6 lg:p-8">{children}</main>
+          <main id="konten" tabIndex={-1} className="p-6 lg:p-8 focus:outline-none">{children}</main>
           <footer className="px-6 lg:px-8 py-4 text-center text-slate-500 text-xs border-t border-slate-200">
             {`© ${new Date().getFullYear()} D'Production. Hak cipta dilindungi.`}
           </footer>

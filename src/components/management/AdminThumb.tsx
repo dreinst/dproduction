@@ -9,8 +9,10 @@ type Props = { src?: string | null; alt?: string };
 export default function AdminThumb({ src, alt = "" }: Props) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const url = src?.trim() ?? "";
-  const external = /^https?:\/\//i.test(url);
-  const local = url.startsWith("/") && !url.startsWith("//");
+  // Data lama bisa berisi spasi, karakter kontrol, atau URL setengah jadi; next/image melempar error untuk itu.
+  const parsable = !/[\s\u0000-\u001f\u007f]/.test(url) && URL.canParse(url, "http://localhost");
+  const external = parsable && /^https?:\/\/[^/]/i.test(url);
+  const local = parsable && url.startsWith("/") && !url.startsWith("//");
 
   if ((!external && !local) || failedSrc === url) {
     return (

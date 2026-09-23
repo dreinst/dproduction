@@ -129,6 +129,10 @@ async function revocationAndLockout(owner: string) {
     for (let i = 0; i < 5; i++) statuses.push((await login(username, 'password-yang-salah')).status);
     check(statuses.join(' ') === '401 401 401 401 429', `5 gagal berturut mengunci akun (${statuses.join(' ')})`);
     check((await login(username, password)).status === 429, 'password benar tetap ditolak selama terkunci');
+
+    const newPassword = `${password}-baru`;
+    await send('PUT', `/api/users/${id}`, owner, { password: newPassword });
+    check((await login(username, newPassword)).status === 200, 'owner membuka kunci dengan mengganti password');
   } finally {
     check((await send('DELETE', `/api/users/${id}`, owner)).status === 200, 'user uji dihapus');
   }

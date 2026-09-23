@@ -66,6 +66,7 @@ export default function WorkspaceEventPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<WorkspaceEvent | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<WorkspaceEvent | null>(null);
+  const [doneTarget, setDoneTarget] = useState<WorkspaceEvent | null>(null);
   const [markingId, setMarkingId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm("running"));
@@ -122,11 +123,13 @@ export default function WorkspaceEventPage() {
     if (ok) setFormOpen(false);
   };
 
-  const markDone = async (item: WorkspaceEvent) => {
+  const markDone = async () => {
+    if (!doneTarget) return;
     clearSaveError();
-    setMarkingId(item.id);
-    await updateItem(item.id, { status: "selesai" });
+    setMarkingId(doneTarget.id);
+    const ok = await updateItem(doneTarget.id, { status: "selesai" });
     setMarkingId(null);
+    if (ok) setDoneTarget(null);
   };
 
   const openDelete = (item: WorkspaceEvent) => {
@@ -239,7 +242,7 @@ export default function WorkspaceEventPage() {
         </div>
       </div>
 
-      {!formOpen && !deleteTarget && errorBox(saveError)}
+      {!formOpen && !deleteTarget && !doneTarget && errorBox(saveError)}
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
         {loading && !data.length ? (
@@ -273,7 +276,7 @@ export default function WorkspaceEventPage() {
                       <div className="flex items-center justify-center gap-1.5">
                         <button
                           type="button"
-                          onClick={() => markDone(item)}
+                          onClick={() => setDoneTarget(item)}
                           disabled={markingId !== null}
                           className="inline-flex items-center gap-1 p-1.5 sm:px-2.5 text-green-700 hover:bg-green-50 rounded transition-colors disabled:opacity-50"
                           aria-label={`Tandai selesai: ${item.jobDesc}`}
@@ -503,6 +506,39 @@ export default function WorkspaceEventPage() {
             />
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={!!doneTarget}
+        title="Tandai event selesai?"
+        onClose={() => setDoneTarget(null)}
+        busy={markingId !== null}
+        size="sm"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setDoneTarget(null)}
+              disabled={markingId !== null}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={markDone}
+              disabled={markingId !== null}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+            >
+              {markingId !== null ? "Menyimpan..." : "Tandai selesai"}
+            </button>
+          </>
+        }
+      >
+        {errorBox(saveError)}
+        <p className="text-sm text-slate-700">
+          Event <span className="font-semibold text-slate-900">{doneTarget?.jobDesc}</span> akan dipindah ke tab Selesai.
+        </p>
       </Modal>
 
       <Modal

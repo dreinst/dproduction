@@ -8,7 +8,7 @@ export async function GET() {
   try {
     const auth = await requireAccess('workspaceReports', 'read');
     if (!auth.authorized) return auth.response;
-    return NextResponse.json(await prisma.workspaceReport.findMany({ orderBy: { createdAt: 'desc' } }));
+    return NextResponse.json(await prisma.workspaceReport.findMany({ orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] }));
   } catch (error) {
     return handleRouteError(error);
   }

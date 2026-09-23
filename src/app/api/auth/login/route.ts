@@ -23,7 +23,9 @@ const DUMMY_HASH = '$2b$10$si907M1wzpEuH1H8NAF6r.zq/OwVCiu3LBddqZuNhEboOaORQutai
 
 export async function POST(req: Request) {
   try {
-    if (!rateLimit(`login:${clientIp(req)}`, IP_LIMIT, IP_WINDOW_MS)) {
+    // Tanpa IP (tidak di balik proxy) semua klien akan berbagi satu hitungan; kunci per akun tetap berlaku.
+    const ip = clientIp(req);
+    if (ip !== 'unknown' && !rateLimit(`login:${ip}`, IP_LIMIT, IP_WINDOW_MS)) {
       return apiError(429, 'Terlalu banyak percobaan masuk dari jaringan ini. Coba lagi dalam 15 menit.');
     }
 

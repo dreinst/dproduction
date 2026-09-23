@@ -23,6 +23,7 @@ export default function AdminHeader({ user, menuOpen, onMenuToggle }: AdminHeade
         <button
           type="button"
           onClick={onMenuToggle}
+          data-menu-toggle
           aria-label={menuOpen ? "Tutup menu" : "Buka menu"}
           aria-expanded={menuOpen}
           className="lg:hidden p-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"

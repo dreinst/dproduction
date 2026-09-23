@@ -11,7 +11,7 @@ export async function GET() {
   try {
     const auth = await requireAccess('users', 'read');
     if (!auth.authorized) return auth.response;
-    return NextResponse.json(await prisma.user.findMany({ orderBy: { createdAt: 'desc' }, select: userSelect }));
+    return NextResponse.json(await prisma.user.findMany({ orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], select: userSelect }));
   } catch (error) {
     return handleRouteError(error);
   }

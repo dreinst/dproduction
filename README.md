@@ -9,7 +9,8 @@ Teknologi: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, framer
 - Landing page satu halaman di `/`. Isinya masih ditulis langsung di `src/components/sections/`, belum dibaca dari database.
 - Form kontak mengirim ke `POST /api/contact` dan menyimpan lead di tabel `Client`.
 - `GET /api/health` menjalankan `SELECT 1` ke database dan membalas `{"ok":true}` (200) atau `{"ok":false}` (503). Endpoint ini untuk monitor eksternal.
-- Dashboard `/management` dan API lainnya sedang diparkir di `src/app/_parked/`, jadi belum bisa diakses. Cara mengaktifkannya ada di `src/app/_parked/README.md`. Saat mengaktifkannya, cabut juga pengecualian lint untuk `src/components/management` dan `src/hooks/useCrud.ts` di `eslint.config.mjs`, lalu bereskan error lint di kedua tempat itu.
+- Dashboard admin ada di `/management` (login di `/management/login`) dengan API di `src/app/api/*`. Pembagian hak akses ada di bagian Hak akses dashboard. Dashboard butuh `DATABASE_URL` dan `JWT_SECRET`.
+- Subpage publik lama (klien, team, katalog, detail-event) masih diparkir di `src/app/_parked/` dan tidak dirutekan. Beberapa berisi data karangan, jangan diaktifkan tanpa diperiksa.
 
 ## Menjalankan di komputer lokal
 
@@ -21,7 +22,7 @@ Butuh Node.js 20.19, 22.12, atau 24 ke atas (syarat Prisma 7) dan PostgreSQL (CI
    ```bash
    npm ci
    ```
-2. Salin contoh env lalu isi, minimal `DATABASE_URL`:
+2. Salin contoh env lalu isi `DATABASE_URL`, dan `JWT_SECRET` kalau ingin memakai dashboard:
    ```bash
    cp .env.example .env.local
    ```
@@ -55,7 +56,7 @@ Contoh lengkap ada di `.env.example`. Variabel berawalan `NEXT_PUBLIC_` dibaca s
 | Nama | Wajib | Kegunaan |
 | --- | --- | --- |
 | `DATABASE_URL` | Ya | Koneksi PostgreSQL. Kalau kosong, request yang memakai database gagal dengan pesan yang jelas, sedangkan build tetap jalan. |
-| `JWT_SECRET` | Untuk dashboard | Kunci tanda tangan token login dashboard `/management`. Dibaca saat aplikasi berjalan, jadi build tetap jalan tanpa nilai ini, tetapi harus terpasang sebagai env runtime di hosting. Isi string acak minimal 32 byte, misalnya hasil `openssl rand -hex 32`. Kalau kosong atau kurang dari 32 karakter, login dan API dashboard membalas 500. Mengganti nilainya membuat semua sesi login lama tidak berlaku. |
+| `JWT_SECRET` | Untuk dashboard | Kunci tanda tangan token login dashboard `/management`. Dibaca saat aplikasi berjalan, jadi build tetap jalan tanpa nilai ini, tetapi harus terpasang sebagai env runtime di hosting. Isi string acak minimal 32 byte, misalnya hasil `openssl rand -hex 32`. Kalau kosong atau kurang dari 32 karakter, login membalas 500 (pesan jelas di log server), API dashboard lain membalas 401, dan halaman admin kembali ke login. Mengganti nilainya membuat semua sesi login lama tidak berlaku. |
 | `NEXT_PUBLIC_SITE_URL` | Tidak | URL kanonik untuk metadata, `robots.txt`, dan `sitemap.xml`. Default `https://dproduction-iota.vercel.app`. |
 | `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | Tidak | Kode verifikasi Google Search Console. |
 | `NEXT_PUBLIC_GOOGLE_ADS_ID` | Tidak | ID Google Ads (`AW-...`). Kalau kosong, tag Google Ads tidak dimuat. |
@@ -85,8 +86,9 @@ Role resmi hanya `owner`, `superadmin`, `admin`, `staff`, dan `tester`. Role lai
 
 - Halaman di bawah `/management` yang tidak ada di daftar ini ditolak dan dialihkan ke `/management`.
 - Staff dan tester hanya membaca. Tombol tambah, edit, hapus, dan tandai selesai disembunyikan untuk mereka.
-- Token login berumur 24 jam dan dicocokkan ke database di setiap request API. Logout, ganti password, ganti level, menonaktifkan, dan menghapus user langsung memutus sesi lama user itu.
-- Lima kali gagal login berturut mengunci akun selama 15 menit. Satu IP dibatasi 20 percobaan login per 15 menit. Hitungan per IP disimpan di memori, jadi berlaku per instance server.
+- Token login berumur 24 jam dan dicocokkan ke database di setiap request API. Logout, ganti password, ganti level, menonaktifkan, dan menghapus user langsung memutus sesi lama user itu. Logout berarti keluar dari semua perangkat yang memakai akun itu, jadi sebaiknya satu akun untuk satu orang.
+- Lima kali gagal login berturut mengunci akun selama 15 menit, juga kalau percobaannya dikirim bersamaan. Username yang tidak ada diperlakukan sama (hitungannya di memori server) supaya keberadaan akun tidak bisa ditebak. Satu IP dibatasi 20 percobaan login per 15 menit; hitungan per IP juga di memori, jadi berlaku per instance server dan dilewati kalau IP klien tidak diketahui.
+- Owner membuka kunci akun lain dengan mengganti password atau mengaktifkan ulang akun itu di Setting Login. Kalau satu-satunya owner terkunci, tunggu 15 menit atau buka lewat SQL: `UPDATE "User" SET "failedLogins" = 0, "lockedUntil" = NULL WHERE username = '...';`. Karena itu siapkan minimal dua akun owner di produksi.
 - Username disimpan dalam huruf kecil, 3 sampai 50 karakter, berisi huruf, angka, titik, garis bawah, atau tanda hubung. Password minimal 12 karakter.
 - Owner tidak bisa menurunkan level, menonaktifkan, atau menghapus akunnya sendiri, dan setiap perubahan yang membuat owner aktif tinggal nol ditolak.
 - `npx tsx scripts/smoke-admin.ts` menguji matriks ini terhadap server yang sedang jalan (butuh `SEED_PASSWORD` dan `JWT_SECRET` yang sama dengan server, `BASE_URL` default `http://localhost:3000`). Skrip ini membuat lalu menghapus satu user uji, jadi hanya boleh diarahkan ke localhost.
@@ -98,7 +100,7 @@ Role resmi hanya `owner`, `superadmin`, `admin`, `staff`, dan `tester`. Role lai
 | `npm run dev` | Server pengembangan di port 3005. |
 | `npm run build` | `prisma generate` lalu `next build`. |
 | `npm start` | Menjalankan hasil build di port 3000. Untuk port lain: `npm start -- -p 3005`. |
-| `npm run lint` | ESLint untuk seluruh repo, kecuali kode dashboard yang diparkir (daftarnya di `eslint.config.mjs`). |
+| `npm run lint` | ESLint untuk seluruh repo, kecuali `src/app/_parked`. |
 | `npx tsc --noEmit` | Cek tipe TypeScript. |
 | `node scripts/smoke-test.mjs` | Uji cepat terhadap server yang sedang jalan. |
 
@@ -106,13 +108,13 @@ Smoke test memeriksa `/`, `/robots.txt`, `/sitemap.xml`, gambar Open Graph (path
 
 ## CI
 
-`.github/workflows/ci.yml` berjalan di setiap push dan pull request: Postgres 16 sebagai service, `npm ci`, lint, cek tipe, `prisma migrate deploy`, seed, build dengan env dummy, `next start`, lalu smoke test. Vercel tetap men-deploy setiap push ke `main`. Supaya CI benar-benar menahan perubahan yang rusak, aktifkan branch protection di GitHub dan jadikan job CI sebagai required check.
+`.github/workflows/ci.yml` berjalan di setiap push dan pull request: Postgres 16 sebagai service, `npm ci`, lint, cek tipe, `prisma migrate deploy`, seed, build dengan env dummy, `next start`, lalu `scripts/smoke-test.mjs` dan `scripts/smoke-admin.ts`. Vercel tetap men-deploy setiap push ke `main`. Supaya CI benar-benar menahan perubahan yang rusak, aktifkan branch protection di GitHub dan jadikan job CI sebagai required check.
 
 ## Header keamanan dan redirect
 
 `next.config.ts` mengirim header keamanan dasar ke semua route (`X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Content-Security-Policy: frame-ancestors 'none'`, `Permissions-Policy`) dan mematikan header `X-Powered-By`.
 
-URL dari situs lama diarahkan permanen (308) ke section yang sesuai:
+URL dari situs lama diarahkan permanen (308) ke section yang sesuai. Pengecualian: `/login` diarahkan sementara (307) ke `/management/login`, karena lokasi final dashboard belum diputuskan.
 
 | URL lama | Tujuan |
 | --- | --- |
@@ -121,14 +123,27 @@ URL dari situs lama diarahkan permanen (308) ke section yang sesuai:
 | `/rental`, `/rental/detail`, `/event`, `/wedding` | `/#layanan` |
 | `/galeri_foto`, `/galeri_video` | `/#galeri` |
 | `/kontak` | `/#kontak` |
-| `/login` | `/management/login` |
 
-Garis miring di akhir URL dan query string (misalnya `/rental/detail/?id=1`) ikut tertangani. Selama dashboard masih diparkir, `/management/login` sendiri masih 404.
+Garis miring di akhir URL dan query string (misalnya `/rental/detail/?id=1`) ikut tertangani. Semua respons `/api/*` dikirim dengan `Cache-Control: no-store` karena memuat data pribadi.
+
+## Deploy ke produksi
+
+Hosting final (Vercel atau VPS lewat Coolify) belum diputuskan. Apa pun pilihannya, urutannya sama:
+
+1. Backup database produksi dulu.
+2. Terapkan migrasi ke database produksi SEBELUM kode baru tayang, dari mesin yang bisa menjangkau database (misalnya lewat Tailscale atau dari dalam jaringan VPS): `DATABASE_URL=<url-produksi> npx prisma migrate deploy`. Build tidak menjalankan migrasi. Migrasi `grade_event_unique` gagal kalau tabel `GradeEvent` sudah berisi grade kembar, jadi cek dulu `SELECT grade, count(*) FROM "GradeEvent" GROUP BY grade HAVING count(*) > 1;`.
+3. Pasang env runtime di hosting: `DATABASE_URL` dan `JWT_SECRET` (acak, minimal 32 byte). Jangan jadikan keduanya env saat build, supaya nilainya tidak tertanam di image.
+4. Jangan jalankan `prisma db seed` di produksi. Buat akun owner lewat dashboard oleh owner yang sudah ada, dan pastikan ada dua owner.
+5. Setelah tayang: cek `/api/health` (200), login ke `/management`, dan buka satu halaman tiap modul.
+
+Catatan: port PgBouncer 6433 di VPS hanya terbuka lewat Tailscale. Kalau hosting final Vercel, database perlu jalur lain yang bisa dijangkau Vercel.
 
 ## Struktur folder
 
-- `src/app`: route App Router (landing, `api/contact`, `api/health`, `opengraph-image`, `robots`, `sitemap`).
-- `src/components/sections`: section landing page.
-- `src/lib`: koneksi Prisma, helper situs (link WhatsApp dan konversi Google Ads), dan autentikasi.
+- `src/app/(site)`: layout dan halaman landing publik (Navbar, Footer, tag Ads hanya dimuat di sini).
+- `src/app/management`: halaman dashboard admin. `src/app/api`: route API (kontak, health, auth, users, dan tiap modul).
+- `src/components/sections`: section landing page. `src/components/management`: Sidebar, Header, Modal, AdminThumb, Pagination.
+- `src/lib`: `prisma.ts` (koneksi), `site.ts` (WhatsApp, opsi form kontak, konversi Ads), `rbac.ts` (role dan hak akses), `session.ts` (token dan cookie), `auth.ts` (sesi dari database, `requireAccess`), `api.ts` (validasi dan penanganan error route), `rate-limit.ts`, `notify.ts`.
+- `src/hooks`: `useCrud` dan `usePagination` untuk halaman admin.
 - `prisma`: skema, migrasi, dan seed akun.
 - `scripts`: seed portofolio, pengaman host database, dan smoke test.
