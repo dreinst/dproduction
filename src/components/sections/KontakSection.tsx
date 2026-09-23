@@ -153,7 +153,7 @@ export default function KontakSection() {
           >
             <h3 className="text-2xl font-bold text-slate-900 mb-8">Kirim Pesan Langsung</h3>
             
-            <form className="space-y-6 mb-10" onSubmit={handleSubmit}>
+            <form method="post" className="space-y-6 mb-10" onSubmit={handleSubmit}>
               
               {(status === "error" || status === "failed") && (
                 <div role="alert" className="bg-red-50 text-red-600 p-4 rounded-xl flex items-start gap-3 border border-red-100">
