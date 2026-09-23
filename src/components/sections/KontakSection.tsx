@@ -1,69 +1,70 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MapPin, Phone, Mail, Clock, Send, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, Send, Loader2, CheckCircle2, AlertCircle, ChevronDown, MessageCircle } from "lucide-react";
 import { useState } from "react";
+import { WHATSAPP_DEFAULT_TEXT, whatsappUrl, trackWhatsAppClick, trackFormConversion } from "@/lib/site";
+
+const EVENT_OPTIONS = [
+  { value: "corporate", label: "Corporate Gathering" },
+  { value: "wedding", label: "Wedding / Pernikahan" },
+  { value: "exhibition", label: "Pameran / Exhibition" },
+  { value: "rental", label: "Sewa Peralatan" },
+  { value: "other", label: "Lainnya" },
+];
+
+const EMPTY_FORM = { name: "", whatsapp: "", eventType: "", message: "", website: "" };
+const SEND_FAILED = "Pesan belum terkirim karena gangguan koneksi atau server.";
+const MAP_QUERY = "D'Production Event & Wedding Planner, Jl. Raya Pandanlandung No.16, Bandulan, Wagir, Malang";
+
+const normalizeWhatsapp = (value: string) => value.replace(/[\s.()-]/g, "").replace(/^\+?62/, "0");
 
 export default function KontakSection() {
-  const [formData, setFormData] = useState({
-    name: "",
-    whatsapp: "",
-    eventType: "",
-    message: ""
-  });
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error" | "failed">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+
+  const showError = (nextStatus: "error" | "failed", message: string) => {
+    setStatus(nextStatus);
+    setErrorMessage(message);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.name || !formData.whatsapp || !formData.eventType || !formData.message) {
-      setStatus("error");
-      setErrorMessage("Semua field wajib diisi.");
-      return;
+    const whatsapp = normalizeWhatsapp(formData.whatsapp);
+
+    if (!formData.name.trim() || !whatsapp || !formData.eventType || !formData.message.trim()) {
+      return showError("error", "Semua field wajib diisi.");
     }
-    
-    const waRegex = /^08\d{8,11}$/;
-    if (!waRegex.test(formData.whatsapp)) {
-      setStatus("error");
-      setErrorMessage("Format nomor WhatsApp tidak valid (contoh: 08123456789).");
-      return;
+    if (!/^08\d{7,12}$/.test(whatsapp)) {
+      return showError("error", "Format nomor WhatsApp tidak valid (contoh: 08123456789).");
     }
 
     setStatus("loading");
-    
+
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, whatsapp })
       });
-      
-      if (!res.ok) {
-        setStatus("error");
-        setErrorMessage("Terjadi kesalahan. Silakan coba lagi nanti.");
-        return;
+      const data: { success?: unknown; message?: unknown } | null = await res.json().catch(() => null);
+
+      if (!res.ok || data?.success !== true) {
+        return showError("failed", typeof data?.message === "string" ? data.message : SEND_FAILED);
       }
-      
+
       setStatus("success");
-      setFormData({ name: "", whatsapp: "", eventType: "", message: "" });
-
-      // Lacak sebagai konversi Google Ads kalau tag-nya aktif (lihat
-      // src/components/GoogleAdsTag.tsx) dan label konversinya sudah diisi.
-      const conversionLabel = process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL;
-      if (conversionLabel && typeof window.gtag === "function") {
-        window.gtag("event", "conversion", { send_to: conversionLabel });
-      }
-
-      setTimeout(() => {
-        setStatus("idle");
-      }, 3000);
-      
+      setFormData(EMPTY_FORM);
+      trackFormConversion();
+      setTimeout(() => setStatus("idle"), 3000);
     } catch {
-      setStatus("error");
-      setErrorMessage("Terjadi kesalahan. Silakan coba lagi nanti.");
+      showError("failed", SEND_FAILED);
     }
   };
+
+  const eventLabel = EVENT_OPTIONS.find((option) => option.value === formData.eventType)?.label ?? "";
+  const whatsappFallbackText = `${WHATSAPP_DEFAULT_TEXT}\n\nNama: ${formData.name}\nJenis acara: ${eventLabel}\nPesan: ${formData.message}`;
 
   return (
     <section id="kontak" className="py-20 lg:py-32 bg-slate-50">
@@ -115,7 +116,7 @@ export default function KontakSection() {
               </div>
               <div>
                 <h3 className="font-bold text-xl text-slate-900 mb-2">Telepon / WA</h3>
-                <a href="https://wa.me/6281938938800" className="text-slate-600 hover:text-blue-600 transition-colors font-medium">
+                <a href={whatsappUrl()} target="_blank" rel="noopener noreferrer" onClick={trackWhatsAppClick} className="text-slate-600 hover:text-blue-600 transition-colors font-medium">
                   +62 819-3893-8800
                 </a>
               </div>
@@ -125,9 +126,9 @@ export default function KontakSection() {
               <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
                 <Mail className="w-6 h-6" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h3 className="font-bold text-xl text-slate-900 mb-2">Email</h3>
-                <a href="mailto:dproductionorganizer@gmail.com" className="text-slate-600 hover:text-blue-600 transition-colors font-medium">
+                <a href="mailto:dproductionorganizer@gmail.com" className="break-all text-slate-600 hover:text-blue-600 transition-colors font-medium">
                   dproductionorganizer@gmail.com
                 </a>
               </div>
@@ -139,7 +140,7 @@ export default function KontakSection() {
               </div>
               <div>
                 <h3 className="font-bold text-xl text-slate-900 mb-2">Jam Kerja</h3>
-                <p className="text-slate-600">Senin - Sabtu: 09.00 - 17.00 WIB</p>
+                <p className="text-slate-600">Senin sampai Sabtu, 09.00 sampai 17.00 WIB</p>
                 <p className="text-slate-600">Minggu: Libur / Sesuai Janji</p>
               </div>
             </div>
@@ -154,15 +155,25 @@ export default function KontakSection() {
             
             <form className="space-y-6 mb-10" onSubmit={handleSubmit}>
               
-              {status === "error" && (
-                <div className="bg-red-50 text-red-600 p-4 rounded-xl flex items-start gap-3 border border-red-100">
+              {(status === "error" || status === "failed") && (
+                <div role="alert" className="bg-red-50 text-red-600 p-4 rounded-xl flex items-start gap-3 border border-red-100">
                   <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                  <p className="text-sm font-medium">{errorMessage}</p>
+                  <div className="text-sm font-medium">
+                    <p>{errorMessage}</p>
+                    {status === "failed" && (
+                      <>
+                        <p className="mt-1 text-slate-600">Isian Anda masih tersimpan. Anda bisa langsung mengirimnya lewat WhatsApp.</p>
+                        <a href={whatsappUrl(whatsappFallbackText)} target="_blank" rel="noopener noreferrer" onClick={trackWhatsAppClick} className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-700 text-white font-bold hover:bg-green-800 transition-colors">
+                          <MessageCircle className="w-4 h-4" /> Kirim lewat WhatsApp
+                        </a>
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
               
               {status === "success" && (
-                <div className="bg-green-50 text-green-600 p-4 rounded-xl flex items-start gap-3 border border-green-100">
+                <div role="status" className="bg-green-50 text-green-600 p-4 rounded-xl flex items-start gap-3 border border-green-100">
                   <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
                   <p className="text-sm font-medium">Pesan berhasil dikirim! Tim kami akan segera menghubungi Anda.</p>
                 </div>
@@ -170,27 +181,33 @@ export default function KontakSection() {
 
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Nama Lengkap</label>
-                  <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} disabled={status === "loading"} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50" placeholder="John Doe" />
+                  <label htmlFor="kontak-nama" className="block text-sm font-bold text-slate-700 mb-2">Nama Lengkap</label>
+                  <input id="kontak-nama" name="name" type="text" autoComplete="name" required maxLength={100} value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} disabled={status === "loading"} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50" placeholder="John Doe" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">No. WhatsApp</label>
-                  <input type="text" value={formData.whatsapp} onChange={(e) => setFormData({...formData, whatsapp: e.target.value})} disabled={status === "loading"} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50" placeholder="08123456789" />
+                  <label htmlFor="kontak-whatsapp" className="block text-sm font-bold text-slate-700 mb-2">No. WhatsApp</label>
+                  <input id="kontak-whatsapp" name="whatsapp" type="tel" inputMode="tel" autoComplete="tel" required value={formData.whatsapp} onChange={(e) => setFormData({...formData, whatsapp: e.target.value})} disabled={status === "loading"} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50" placeholder="08123456789" />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">Jenis Acara</label>
-                <select value={formData.eventType} onChange={(e) => setFormData({...formData, eventType: e.target.value})} disabled={status === "loading"} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none disabled:opacity-50">
-                  <option value="">Pilih Jenis Acara...</option>
-                  <option value="corporate">Corporate Gathering</option>
-                  <option value="wedding">Wedding / Pernikahan</option>
-                  <option value="exhibition">Pameran / Exhibition</option>
-                  <option value="other">Lainnya</option>
-                </select>
+                <label htmlFor="kontak-acara" className="block text-sm font-bold text-slate-700 mb-2">Jenis Acara</label>
+                <div className="relative">
+                  <select id="kontak-acara" name="eventType" autoComplete="off" required value={formData.eventType} onChange={(e) => setFormData({...formData, eventType: e.target.value})} disabled={status === "loading"} className="w-full pl-5 pr-12 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none disabled:opacity-50">
+                    <option value="">Pilih Jenis Acara...</option>
+                    {EVENT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                </div>
               </div>
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">Pesan & Detail Acara</label>
-                <textarea rows={4} value={formData.message} onChange={(e) => setFormData({...formData, message: e.target.value})} disabled={status === "loading"} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none disabled:opacity-50" placeholder="Ceritakan konsep atau kebutuhan acara Anda..."></textarea>
+                <label htmlFor="kontak-pesan" className="block text-sm font-bold text-slate-700 mb-2">Pesan & Detail Acara</label>
+                <textarea id="kontak-pesan" name="message" autoComplete="off" required maxLength={2000} rows={4} value={formData.message} onChange={(e) => setFormData({...formData, message: e.target.value})} disabled={status === "loading"} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none disabled:opacity-50" placeholder="Ceritakan konsep atau kebutuhan acara Anda..."></textarea>
+              </div>
+              <div className="hidden" aria-hidden="true">
+                <label htmlFor="kontak-website">Website</label>
+                <input id="kontak-website" name="website" type="text" tabIndex={-1} autoComplete="off" value={formData.website} onChange={(e) => setFormData({...formData, website: e.target.value})} />
               </div>
               <button type="submit" disabled={status === "loading"} className="w-full py-4 gradient-bg text-white rounded-xl font-bold shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:translate-y-0">
                 {status === "loading" ? (
@@ -203,7 +220,8 @@ export default function KontakSection() {
 
             <div className="w-full h-64 bg-slate-200 rounded-2xl overflow-hidden relative">
               <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d15804.81156829705!2d112.597793!3d-7.978007!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e7882afb1854ea7%3A0xebc95971a812e95f!2sD&#39;Production!5e0!3m2!1sen!2sid!4v1714578168234!5m2!1sen!2sid" 
+                title="Peta lokasi kantor D'Production di Wagir, Malang"
+                src={`https://www.google.com/maps?q=${encodeURIComponent(MAP_QUERY)}&output=embed`}
                 className="absolute inset-0 w-full h-full border-0" 
                 allowFullScreen={false} 
                 loading="lazy" 
