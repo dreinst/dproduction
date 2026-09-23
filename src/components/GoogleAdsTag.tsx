@@ -1,9 +1,6 @@
 import Script from "next/script";
 
-// Google tag (gtag.js) untuk Google Ads -- HANYA aktif kalau env
-// NEXT_PUBLIC_GOOGLE_ADS_ID diisi (format: AW-XXXXXXXXX, didapat dari akun
-// Google Ads > Alat > Konversi > Tag Google). Kosong = komponen ini tidak
-// merender apa pun, aman dibiarkan terpasang sebelum akun Ads ada.
+// ID berformat AW-XXXXXXXXX dari Google Ads > Alat > Konversi > Tag Google. Tanpa env, komponen ini tidak merender apa pun.
 export default function GoogleAdsTag() {
   const adsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID;
   if (!adsId) return null;

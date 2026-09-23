@@ -8,7 +8,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
       url: SITE_URL,
-      lastModified: new Date(),
+      // Tanggal tetap supaya lastmod tidak berubah tiap build; perbarui saat isi beranda berubah.
+      lastModified: "2026-09-24",
       changeFrequency: "weekly",
       priority: 1,
     },

@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { MapPin, Phone, Mail } from "lucide-react";
+import { whatsappUrl, trackWhatsAppClick } from "@/lib/site";
 
 const menu = [
   { href: "/#beranda", label: "Beranda" },
@@ -26,7 +29,7 @@ export default function Footer() {
                 alt="D'Production Event Organizer"
                 width={521}
                 height={106}
-                className="h-9 w-auto"
+                className="h-9 w-auto brightness-0 invert"
               />
             </Link>
             <p className="text-slate-400 text-sm leading-relaxed pr-4">
@@ -66,11 +69,11 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="w-5 h-5 text-blue-500 shrink-0" />
-                <a href="https://wa.me/6281938938800" target="_blank" rel="noopener noreferrer" className="text-sm text-slate-400 hover:text-white transition-colors">081938938800</a>
+                <a href={whatsappUrl()} target="_blank" rel="noopener noreferrer" onClick={trackWhatsAppClick} className="text-sm text-slate-400 hover:text-white transition-colors">081938938800</a>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-5 h-5 text-blue-500 shrink-0" />
-                <a href="mailto:dproductionorganizer@gmail.com" className="text-sm text-slate-400 hover:text-white transition-colors">dproductionorganizer@gmail.com</a>
+                <a href="mailto:dproductionorganizer@gmail.com" className="min-w-0 break-all text-sm text-slate-400 hover:text-white transition-colors">dproductionorganizer@gmail.com</a>
               </li>
             </ul>
           </div>
@@ -79,10 +82,10 @@ export default function Footer() {
 
         {/* Copyright */}
         <div className="pt-8 border-t border-slate-800/60 flex flex-col items-center justify-center">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-400">
             © 2026 <span className="text-slate-300 font-semibold">D&apos;Production</span>. All Rights Reserved.
           </p>
-          <p className="text-xs text-slate-600 mt-2">
+          <p className="text-xs text-slate-400 mt-2">
             Made by dreinst, organized by D&apos;Production Event Organizer
           </p>
         </div>
