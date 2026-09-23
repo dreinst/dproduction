@@ -19,6 +19,12 @@ const SAFE_HREF = /^(https?:\/\/|\/(?!\/))/i;
 const inputClass =
   "w-full px-4 py-2 border border-slate-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100";
 
+// next/image di mode dev melempar error untuk URL yang belum bisa diurai (misalnya "https://" yang baru diketik).
+const thumbSrc = (value?: string | null) => {
+  const url = value?.trim() ?? "";
+  return [...url].every((c) => c > " ") && (url.startsWith("/") || URL.canParse(url)) ? url : null;
+};
+
 export default function MasterFotoPage() {
   const { data, loading, error, saveError, clearSaveError, createItem, updateItem, deleteItem } = useCrud<Foto>({
     endpoint: "/api/galeri-foto",
@@ -125,7 +131,7 @@ export default function MasterFotoPage() {
                   <td className="hidden sm:table-cell px-4 py-3 text-sm text-slate-600">{pagination.from + i}</td>
                   <td className="px-3 sm:px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <AdminThumb src={foto.image} alt={`Foto ${pagination.from + i}`} />
+                      <AdminThumb src={thumbSrc(foto.image)} alt={`Foto ${pagination.from + i}`} />
                       <span className="hidden sm:inline text-xs text-slate-600 break-all">{foto.image}</span>
                     </div>
                   </td>
@@ -223,7 +229,7 @@ export default function MasterFotoPage() {
                 placeholder="/assets/portfolio/hebitren-bandung-masjid.jpg"
                 aria-describedby="foto-image-hint"
               />
-              <AdminThumb src={form.image} alt="Pratinjau gambar" />
+              <AdminThumb src={thumbSrc(form.image)} alt="Pratinjau gambar" />
             </div>
             <p id="foto-image-hint" className="mt-1 text-xs text-slate-500">
               Path file di situs ini (diawali /, spasi ditulis %20) atau alamat lengkap yang diawali https://.
@@ -277,7 +283,7 @@ export default function MasterFotoPage() {
       >
         {errorBox}
         <div className="flex items-center gap-3">
-          <AdminThumb src={deleteTarget?.image} alt="Foto yang akan dihapus" />
+          <AdminThumb src={thumbSrc(deleteTarget?.image)} alt="Foto yang akan dihapus" />
           <p className="text-sm text-slate-700">
             Foto <span className="font-semibold text-slate-900 break-all">{deleteTarget?.image}</span> akan dihapus permanen dan
             tidak bisa dikembalikan.

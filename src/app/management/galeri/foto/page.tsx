@@ -30,13 +30,26 @@ const filterClass =
 const moveClass =
   "w-8 h-8 rounded flex items-center justify-center text-white transition-colors disabled:cursor-not-allowed disabled:bg-slate-300";
 
+// next/image di mode dev melempar error untuk URL yang belum bisa diurai (misalnya "https://" yang baru diketik).
+const thumbSrc = (value?: string | null) => {
+  const url = value?.trim() ?? "";
+  return [...url].every((c) => c > " ") && (url.startsWith("/") || URL.canParse(url)) ? url : null;
+};
+
+function isIsoDate(value: string) {
+  const time = Date.parse(`${value}T00:00:00Z`);
+  return ISO_DATE.test(value) && !isNaN(time) && new Date(time).toISOString().startsWith(value);
+}
+
 // Tanggal disimpan TTTT-BB-HH tanpa jam, jadi ditampilkan dalam UTC supaya tidak bergeser sehari di zona waktu lain.
 function formatTanggal(value: string | null) {
-  if (!value || !ISO_DATE.test(value)) return value ?? "";
-  const date = new Date(`${value}T00:00:00Z`);
-  return isNaN(date.getTime())
-    ? value
-    : date.toLocaleDateString("id-ID", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" });
+  if (!value || !isIsoDate(value)) return value ?? "";
+  return new Date(`${value}T00:00:00Z`).toLocaleDateString("id-ID", {
+    timeZone: "UTC",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 export default function GaleriFotoPage() {
@@ -62,7 +75,7 @@ export default function GaleriFotoPage() {
       (!q || item.album.toLowerCase().includes(q) || (item.keterangan ?? "").toLowerCase().includes(q)),
   );
   const pagination = usePagination(filtered, `${albumFilter}|${statusFilter}|${q}`);
-  const legacyTanggal = editing?.tanggal && !ISO_DATE.test(editing.tanggal) ? editing.tanggal : null;
+  const legacyTanggal = editing?.tanggal && !isIsoDate(editing.tanggal) ? editing.tanggal : null;
 
   const openForm = (item?: Album) => {
     clearSaveError();
@@ -72,7 +85,7 @@ export default function GaleriFotoPage() {
         ? {
             album: item.album,
             keterangan: item.keterangan ?? "",
-            tanggal: item.tanggal && ISO_DATE.test(item.tanggal) ? item.tanggal : "",
+            tanggal: item.tanggal && isIsoDate(item.tanggal) ? item.tanggal : "",
             image: item.image ?? "",
             active: item.active,
           }
@@ -227,7 +240,7 @@ export default function GaleriFotoPage() {
                       {!item.active && <span className="sm:hidden block text-xs text-slate-500">Nonaktif</span>}
                     </td>
                     <td className="px-3 sm:px-4 py-3">
-                      <AdminThumb src={item.image} alt={name} />
+                      <AdminThumb src={thumbSrc(item.image)} alt={name} />
                     </td>
                     <td className="hidden md:table-cell px-4 py-3 text-sm text-slate-600 max-w-[240px] break-words">
                       {item.keterangan}
@@ -242,7 +255,7 @@ export default function GaleriFotoPage() {
                           onClick={() => move(index, index - 1)}
                           disabled={moving || index === 0}
                           className={`${moveClass} bg-green-600 hover:bg-green-700`}
-                          aria-label={`Naikkan urutan ${name}`}
+                          aria-label={`Naikkan urutan foto ${no}, ${name}`}
                           title="Naikkan"
                         >
                           <ArrowUp className="w-4 h-4" aria-hidden />
@@ -252,7 +265,7 @@ export default function GaleriFotoPage() {
                           onClick={() => move(index, index + 1)}
                           disabled={moving || index === filtered.length - 1}
                           className={`${moveClass} bg-red-600 hover:bg-red-700`}
-                          aria-label={`Turunkan urutan ${name}`}
+                          aria-label={`Turunkan urutan foto ${no}, ${name}`}
                           title="Turunkan"
                         >
                           <ArrowDown className="w-4 h-4" aria-hidden />
@@ -272,7 +285,7 @@ export default function GaleriFotoPage() {
                           type="button"
                           onClick={() => openForm(item)}
                           className="p-1.5 text-yellow-700 hover:bg-yellow-50 rounded transition-colors"
-                          aria-label={`Edit ${name}`}
+                          aria-label={`Edit foto ${no}, ${name}`}
                           title="Edit"
                         >
                           <Pencil className="w-4 h-4" aria-hidden />
@@ -281,7 +294,7 @@ export default function GaleriFotoPage() {
                           type="button"
                           onClick={() => openDelete(item)}
                           className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                          aria-label={`Hapus ${name}`}
+                          aria-label={`Hapus foto ${no}, ${name}`}
                           title="Hapus"
                         >
                           <Trash2 className="w-4 h-4" aria-hidden />
@@ -403,7 +416,7 @@ export default function GaleriFotoPage() {
                 placeholder="/assets/portfolio/temres-magelang-gala-malam.jpg"
                 aria-describedby="album-image-hint"
               />
-              <AdminThumb src={form.image} alt="Pratinjau foto" />
+              <AdminThumb src={thumbSrc(form.image)} alt="Pratinjau foto" />
             </div>
             <p id="album-image-hint" className="mt-1 text-xs text-slate-500">
               Path file di situs ini (diawali /, spasi ditulis %20) atau alamat lengkap yang diawali https://.

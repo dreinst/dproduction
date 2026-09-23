@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
-import { apiError, handleRouteError, parseId, readJson } from '@/lib/api';
+import { HttpError, apiError, handleRouteError, parseId, readJson } from '@/lib/api';
 import { requireAccess } from '@/lib/auth';
 import { MESSAGES, updateSchema } from '../schema';
 
@@ -33,10 +33,16 @@ export async function PUT(req: Request, { params }: Params) {
       if (sortIndex !== undefined) {
         const current = await tx.galeriFotoAlbum.findUnique({ where: { id }, select: { sortIndex: true } });
         const other = await tx.galeriFotoAlbum.findUnique({ where: { sortIndex }, select: { id: true } });
-        // sortIndex unik: item ini diparkir di -1 dulu, lalu bertukar urutan dengan pemilik urutan tujuan.
+        // Urutan hanya ditukar dengan pemiliknya. Karena unik, id terkecil diparkir di -id dulu; kunci berurutan id mencegah deadlock.
+        if (current && !other) throw new HttpError(409, 'Urutan sudah berubah. Muat ulang halaman lalu coba lagi.');
         if (current && other && other.id !== id) {
-          await tx.galeriFotoAlbum.update({ where: { id }, data: { sortIndex: -1 } });
-          await tx.galeriFotoAlbum.update({ where: { id: other.id }, data: { sortIndex: current.sortIndex } });
+          const [a, b] = [
+            { id, sortIndex },
+            { id: other.id, sortIndex: current.sortIndex },
+          ].sort((x, y) => x.id - y.id);
+          await tx.galeriFotoAlbum.update({ where: { id: a.id }, data: { sortIndex: -a.id } });
+          await tx.galeriFotoAlbum.update({ where: { id: b.id }, data: { sortIndex: b.sortIndex } });
+          await tx.galeriFotoAlbum.update({ where: { id: a.id }, data: { sortIndex: a.sortIndex } });
         }
       }
       return tx.galeriFotoAlbum.update({ where: { id }, data: { ...data, sortIndex } });

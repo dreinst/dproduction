@@ -13,7 +13,13 @@ export async function PUT(req: Request, { params }: Params) {
     const id = parseId((await params).id);
     if (!id) return apiError(400, 'ID setting kantor tidak valid.');
     if (id !== KANTOR_ID) return apiError(404, 'Setting kantor tidak ditemukan.');
-    const data = kantorSchema.parse(await readJson(req));
+    const parsed = kantorSchema.safeParse(await readJson(req));
+    // Data lama bisa salah di beberapa field sekaligus, jadi semua pesan dikirim agar bisa dibetulkan dalam sekali simpan.
+    if (!parsed.success) {
+      const { issues } = parsed.error;
+      return apiError(400, [...new Set(issues.map((issue) => issue.message))].join('\n'), { issues });
+    }
+    const data = parsed.data;
     const settings = await prisma.kantorSetting.upsert({
       where: { id: KANTOR_ID },
       create: { id: KANTOR_ID, ...data },

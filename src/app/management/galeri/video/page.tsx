@@ -222,7 +222,7 @@ export default function GaleriVideoPage() {
         <div className="space-y-4">
           <div>
             <label htmlFor="video-url" className="block text-sm font-medium text-slate-700 mb-1">
-              URL video YouTube
+              URL video
             </label>
             <input
               id="video-url"
