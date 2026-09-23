@@ -1,74 +1,33 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
-import { z } from 'zod';
-import { requireRole } from '@/lib/auth';
 import bcrypt from 'bcrypt';
+import { z } from 'zod';
+import prisma from '@/lib/prisma';
+import { handleRouteError, readJson } from '@/lib/api';
+import { requireAccess, userFields, userSelect } from '@/lib/auth';
 
-const schema = z.object({
-  username: z.string().min(1),
-  password: z.string().min(6), // Required on create
-  alias: z.string().nullable().optional(),
-  role: z.string().default('admin'),
-  active: z.boolean().default(true),
-});
+const createSchema = z.object({ ...userFields, active: userFields.active.default(true) });
 
 export async function GET() {
-  const { authorized, response } = await requireRole(['owner']);
-  if (!authorized) return response;
-  // Only superusers or admin can view users? Let's just let authenticated users view for now.
   try {
-    const data = await prisma.user.findMany({
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        username: true,
-        alias: true,
-        role: true,
-        active: true,
-        createdAt: true,
-      }
-    });
-    return NextResponse.json(data);
+    const auth = await requireAccess('users', 'read');
+    if (!auth.authorized) return auth.response;
+    return NextResponse.json(await prisma.user.findMany({ orderBy: { createdAt: 'desc' }, select: userSelect }));
   } catch (error) {
-    console.error('Error fetching users:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleRouteError(error);
   }
 }
 
 export async function POST(req: Request) {
-  const { authorized, response } = await requireRole(['owner']);
-  if (!authorized) return response;
-
   try {
-    const json = await req.json();
-    const parsed = schema.safeParse(json);
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid data', details: parsed.error.issues }, { status: 400 });
-    }
-
-    const { password, ...rest } = parsed.data;
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const data = await prisma.user.create({
-      data: {
-        ...rest,
-        passwordHash,
-      },
-      select: {
-        id: true,
-        username: true,
-        alias: true,
-        role: true,
-        active: true,
-      }
+    const auth = await requireAccess('users', 'write');
+    if (!auth.authorized) return auth.response;
+    const { password, ...data } = createSchema.parse(await readJson(req));
+    const user = await prisma.user.create({
+      data: { ...data, passwordHash: await bcrypt.hash(password, 10) },
+      select: userSelect,
     });
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(user, { status: 201 });
   } catch (error) {
-    console.error('Error creating user:', error);
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      return NextResponse.json({ error: 'Username already exists' }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleRouteError(error, { P2002: 'Username sudah dipakai akun lain.' });
   }
 }

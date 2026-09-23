@@ -308,7 +308,7 @@ export default function GaleriFotoPage() {
                 <Trash2 className="w-8 h-8" />
               </div>
               <h3 className="text-lg font-bold text-slate-800 mb-2">Hapus Data?</h3>
-              <p className="text-slate-500 text-sm">Apakah Anda yakin ingin menghapus foto "{currentEditing?.keterangan}"?</p>
+              <p className="text-slate-500 text-sm">Apakah Anda yakin ingin menghapus foto &quot;{currentEditing?.keterangan}&quot;?</p>
             </div>
             <div className="px-6 py-4 bg-slate-50 flex justify-center gap-3">
               <button onClick={() => setIsDeleteModalOpen(false)} disabled={isSubmitting} className="px-6 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">Batal</button>

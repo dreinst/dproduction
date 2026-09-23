@@ -1,405 +1,385 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Trash2, CheckSquare, Search, Square, X } from "lucide-react";
+import { Plus, Pencil, Trash2, CheckSquare, Search, Square } from "lucide-react";
 import { useCrud } from "@/hooks/useCrud";
+import { usePagination } from "@/hooks/usePagination";
+import Modal from "@/components/management/Modal";
+import Pagination, { PageSizeSelect } from "@/components/management/Pagination";
+import { useAdminUser } from "@/components/management/AdminShell";
+import { ROLES, ROLE_LABELS, isRole, type Role } from "@/lib/rbac";
 
 interface User {
   id: number;
   username: string;
-  alias: string;
+  alias: string | null;
   role: string;
   active: boolean;
 }
 
+type FormState = { username: string; password: string; alias: string; role: Role; active: boolean };
+
+const EMPTY_FORM: FormState = { username: "", password: "", alias: "", role: "staff", active: true };
+const inputClass =
+  "w-full px-4 py-2 border border-slate-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100";
+
 export default function SettingLoginPage() {
-  const { data: usersData, loading, error, createItem, updateItem, deleteItem } = useCrud<User>({ endpoint: '/api/users' });
-  const [statusFilter, setStatusFilter] = useState("Aktif");
-  const [showEntries, setShowEntries] = useState(50);
+  const { user: me } = useAdminUser();
+  const { data, loading, error, saveError, clearSaveError, createItem, updateItem, deleteItem } = useCrud<User>({
+    endpoint: "/api/users",
+  });
+  const [statusFilter, setStatusFilter] = useState<"aktif" | "semua">("aktif");
   const [searchQuery, setSearchQuery] = useState("");
-  const [page, setPage] = useState(1);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [currentEditing, setCurrentEditing] = useState<User | null>(null);
-
+  const [formOpen, setFormOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [editing, setEditing] = useState<User | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formError, setFormError] = useState("");
-  const [formData, setFormData] = useState({
-    username: "",
-    password: "", // Handled separately as it's only required on create/change
-    alias: "",
-    role: "Superuser",
-    active: true,
-  });
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
-  const safeData = usersData || [];
+  const q = searchQuery.trim().toLowerCase();
+  const filteredUsers = data.filter(
+    (u) =>
+      (statusFilter === "semua" || u.active) &&
+      (!q || u.username.toLowerCase().includes(q) || (u.alias ?? "").toLowerCase().includes(q)),
+  );
+  const pagination = usePagination(filteredUsers, `${statusFilter}|${q}`);
+  const editingSelf = editing?.id === me.id;
 
-  const filteredUsers = safeData.filter((u) => {
-    if (statusFilter === "Aktif" && !u.active) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      return (
-        (u.username || "").toLowerCase().includes(q) ||
-        (u.alias || "").toLowerCase().includes(q)
-      );
-    }
-    return true;
-  });
-
-  const totalPages = Math.ceil(filteredUsers.length / showEntries) || 1;
-  const paginatedUsers = filteredUsers.slice((page - 1) * showEntries, page * showEntries);
-
-  const handleOpenModal = (user?: User) => {
-    setFormError("");
-    if (user) {
-      setCurrentEditing(user);
-      setFormData({
-        username: user.username,
-        password: "", // clear password field
-        alias: user.alias || "",
-        role: user.role,
-        active: user.active ?? true,
-      });
-    } else {
-      setCurrentEditing(null);
-      setFormData({ username: "", password: "", alias: "", role: "admin", active: true });
-    }
-    setIsModalOpen(true);
+  const openForm = (user?: User) => {
+    clearSaveError();
+    setEditing(user ?? null);
+    setForm(
+      user
+        ? {
+            username: user.username,
+            password: "",
+            alias: user.alias ?? "",
+            role: isRole(user.role) ? user.role : "staff",
+            active: user.active,
+          }
+        : EMPTY_FORM,
+    );
+    setFormOpen(true);
   };
 
   const handleSave = async () => {
-    if (!formData.username) {
-       setFormError("Username wajib diisi");
-       return;
-    }
-    if (!currentEditing && (!formData.password || formData.password.length < 6)) {
-       setFormError("Password wajib diisi saat membuat user baru (min 6 karakter)");
-       return;
-    }
-
     setIsSubmitting(true);
-    setFormError("");
-
-    let success = false;
-    if (currentEditing) {
-      const payload: Partial<typeof formData> = { ...formData };
-      if (!payload.password) {
-        delete payload.password;
-      }
-      success = await updateItem(currentEditing.id, payload);
-    } else {
-      success = await createItem(formData);
-    }
-
+    const { password, ...rest } = form;
+    const payload = { ...rest, alias: rest.alias.trim() || null, ...(password ? { password } : {}) };
+    const created = { ...payload, password };
+    const ok = editing ? await updateItem(editing.id, payload) : await createItem(created);
     setIsSubmitting(false);
-
-    if (success) {
-      setIsModalOpen(false);
-    } else {
-      setFormError("Gagal menyimpan data (mungkin username sudah terpakai).");
-    }
+    if (ok) setFormOpen(false);
   };
 
-  const handleDeleteClick = (user: User) => {
-    setCurrentEditing(user);
-    setIsDeleteModalOpen(true);
+  const openDelete = (user: User) => {
+    clearSaveError();
+    setDeleteTarget(user);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (currentEditing) {
-      setIsSubmitting(true);
-      const success = await deleteItem(currentEditing.id);
-      setIsSubmitting(false);
-      
-      if (success) {
-        setIsDeleteModalOpen(false);
-        setCurrentEditing(null);
-      }
-    }
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsSubmitting(true);
+    const ok = await deleteItem(deleteTarget.id);
+    setIsSubmitting(false);
+    if (ok) setDeleteTarget(null);
   };
+
+  const errorBox = saveError && (
+    <div role="alert" className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+      {saveError}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-800">LOGIN</h1>
+      <h1 className="text-2xl font-bold text-slate-800">Setting Login</h1>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <label className="block text-sm text-slate-500 mb-1">Status Aktif</label>
+          <label htmlFor="user-status" className="block text-sm text-slate-600 mb-1">
+            Status
+          </label>
           <select
+            id="user-status"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white min-w-[200px]"
+            onChange={(e) => setStatusFilter(e.target.value as "aktif" | "semua")}
+            className="px-4 py-2 border border-slate-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white min-w-[200px]"
           >
-            <option>Aktif</option>
-            <option>Semua</option>
+            <option value="aktif">Hanya yang aktif</option>
+            <option value="semua">Semua</option>
           </select>
         </div>
+        <button
+          type="button"
+          onClick={() => openForm()}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+        >
+          <Plus className="w-4 h-4" aria-hidden />
+          Tambah User
+        </button>
       </div>
 
-      <button onClick={() => handleOpenModal()} className="w-10 h-10 bg-teal-500 hover:bg-teal-600 text-white rounded-full flex items-center justify-center shadow-md transition-colors mt-6">
-         <Plus className="w-5 h-5" />
-      </button>
-
-      {/* Controls */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-          <span>Show</span>
+        <PageSizeSelect pagination={pagination} />
+        <div className="relative w-full sm:w-72">
+          <label htmlFor="user-search" className="sr-only">
+            Cari username atau alias
+          </label>
           <input
-            type="number"
-            value={showEntries}
-            onChange={(e) => setShowEntries(Number(e.target.value))}
-            className="w-16 px-2 py-1.5 border border-slate-200 rounded text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            id="user-search"
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Cari username atau alias"
+            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
           />
-          <span>entries</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-500">Search:</span>
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-3 py-1.5 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-            />
-            <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-          </div>
+          <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden />
         </div>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
-        {loading ? (
-           <div className="p-8 text-center text-slate-500">Loading users...</div>
+        {loading && !data.length ? (
+          <div className="p-8 text-center text-slate-600">Memuat data user...</div>
         ) : error ? (
-           <div className="p-8 text-center text-red-500">Error: {error}</div>
+          <div role="alert" className="p-8 text-center text-red-600">
+            {error}
+          </div>
         ) : (
-        <table className="w-full min-w-[600px]">
-          <thead>
-            <tr className="bg-slate-800 text-white text-sm">
-              <th className="px-4 py-3 text-left font-semibold w-16">No.</th>
-              <th className="px-4 py-3 text-left font-semibold">User Name</th>
-              <th className="px-4 py-3 text-left font-semibold">Alias User</th>
-              <th className="px-4 py-3 text-left font-semibold w-32">Level</th>
-              <th className="px-4 py-3 text-center font-semibold w-24">Aktif</th>
-              <th className="px-4 py-3 text-center font-semibold w-28">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedUsers.map((user, idx) => (
-              <tr key={user.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                <td className="px-4 py-3 text-sm text-slate-600">{(page - 1) * showEntries + idx + 1}.</td>
-                <td className="px-4 py-3 text-sm text-slate-800 font-medium">{user.username}</td>
-                <td className="px-4 py-3 text-sm text-slate-600">{user.alias}</td>
-                <td className="px-4 py-3 text-sm text-slate-600">{user.role}</td>
-                <td className="px-4 py-3 text-center">
-                  {user.active ? (
-                    <CheckSquare className="w-5 h-5 text-green-500 mx-auto" />
-                  ) : (
-                    <Square className="w-5 h-5 text-slate-300 mx-auto" />
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <button
-                      onClick={() => handleOpenModal(user)}
-                      className="p-1.5 text-yellow-600 hover:bg-yellow-50 rounded transition-colors"
-                      title="Edit"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(user)}
-                      className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
-                      title="Hapus"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
+          <table className="w-full">
+            <thead>
+              <tr className="bg-slate-800 text-white text-sm">
+                <th className="px-3 sm:px-4 py-3 text-left font-semibold">Username</th>
+                <th className="hidden sm:table-cell px-4 py-3 text-left font-semibold">Alias</th>
+                <th className="px-3 sm:px-4 py-3 text-left font-semibold">Level</th>
+                <th className="px-3 sm:px-4 py-3 text-center font-semibold">Aktif</th>
+                <th className="px-3 sm:px-4 py-3 text-center font-semibold">Aksi</th>
               </tr>
-            ))}
-            {paginatedUsers.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-500 text-sm">
-                  Tidak ada data
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {pagination.pageItems.map((user) => (
+                <tr key={user.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                  <td className="px-3 sm:px-4 py-3 text-sm text-slate-800 font-medium">
+                    <span className="break-all">{user.username}</span>
+                    {user.id === me.id && (
+                      <span className="ml-2 whitespace-nowrap text-xs font-normal text-slate-500">(Anda)</span>
+                    )}
+                  </td>
+                  <td className="hidden sm:table-cell px-4 py-3 text-sm text-slate-600">{user.alias}</td>
+                  <td className="px-3 sm:px-4 py-3 text-sm text-slate-600">
+                    {isRole(user.role) ? ROLE_LABELS[user.role] : `${user.role} (tidak dikenal)`}
+                  </td>
+                  <td className="px-3 sm:px-4 py-3 text-center">
+                    {user.active ? (
+                      <CheckSquare className="w-5 h-5 text-green-600 mx-auto" aria-label="Aktif" />
+                    ) : (
+                      <Square className="w-5 h-5 text-slate-400 mx-auto" aria-label="Nonaktif" />
+                    )}
+                  </td>
+                  <td className="px-3 sm:px-4 py-3">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => openForm(user)}
+                        className="p-1.5 text-yellow-700 hover:bg-yellow-50 rounded transition-colors"
+                        aria-label={`Edit user ${user.username}`}
+                        title="Edit"
+                      >
+                        <Pencil className="w-4 h-4" aria-hidden />
+                      </button>
+                      {user.id !== me.id && (
+                        <button
+                          type="button"
+                          onClick={() => openDelete(user)}
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                          aria-label={`Hapus user ${user.username}`}
+                          title="Hapus"
+                        >
+                          <Trash2 className="w-4 h-4" aria-hidden />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {pagination.pageItems.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-slate-600 text-sm">
+                    Tidak ada user yang cocok.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         )}
       </div>
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-blue-600">
-          Showing {filteredUsers.length > 0 ? (page - 1) * showEntries + 1 : 0} to{" "}
-          {Math.min(page * showEntries, filteredUsers.length)} of {filteredUsers.length} entries
-        </p>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="px-3 py-1 text-sm text-slate-500 hover:text-slate-700 disabled:opacity-50 transition-colors"
-          >
-            Previous
-          </button>
-          {[...Array(totalPages)].map((_, i) => (
+      <Pagination pagination={pagination} />
+
+      <Modal
+        open={formOpen}
+        title={editing ? "Edit User" : "Tambah User"}
+        onClose={() => setFormOpen(false)}
+        onSubmit={handleSave}
+        busy={isSubmitting}
+        footer={
+          <>
             <button
-              key={i}
-              onClick={() => setPage(i + 1)}
-              className={`w-8 h-8 rounded text-sm font-medium transition-colors ${
-                page === i + 1 ? "bg-blue-600 text-white" : "text-slate-500 hover:bg-slate-100"
-              }`}
+              type="button"
+              onClick={() => setFormOpen(false)}
+              disabled={isSubmitting}
+              className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
             >
-              {i + 1}
+              Batal
             </button>
-          ))}
-          <button
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="px-3 py-1 text-sm text-slate-500 hover:text-slate-700 disabled:opacity-50 transition-colors"
-          >
-            Next
-          </button>
-        </div>
-      </div>
-
-      {/* Add/Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h2 className="text-lg font-bold text-slate-800">
-                {currentEditing ? "Edit User" : "Tambah User"}
-              </h2>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
-                disabled={isSubmitting}
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              {formError && <div className="p-3 bg-red-100 text-red-600 rounded-lg text-sm">{formError}</div>}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">User Name</label>
-                <input
-                  type="text"
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Password {currentEditing && "(Kosongkan jika tidak ingin mengubah)"}</label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                  placeholder="******"
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Alias User</label>
-                <input
-                  type="text"
-                  value={formData.alias}
-                  onChange={(e) => setFormData({ ...formData, alias: e.target.value })}
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Level</label>
-                <select
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
-                  disabled={isSubmitting}
-                >
-                  <option value="owner">Owner</option>
-                  <option value="admin">Admin</option>
-                  <option value="Superuser">Superuser</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Status Aktif</label>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={formData.active}
-                    onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-                    disabled={isSubmitting}
-                  />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
-              </div>
-            </div>
-
-            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 rounded-b-2xl">
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors"
-                disabled={isSubmitting}
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isSubmitting}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm shadow-blue-600/20 transition-colors"
-              >
-                {isSubmitting ? 'Menyimpan...' : 'Simpan'}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+            >
+              {isSubmitting ? "Menyimpan..." : "Simpan"}
+            </button>
+          </>
+        }
+      >
+        {errorBox}
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="user-username" className="block text-sm font-medium text-slate-700 mb-1">
+              Username
+            </label>
+            <input
+              id="user-username"
+              type="text"
+              value={form.username}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
+              className={inputClass}
+              disabled={isSubmitting}
+              required
+              minLength={3}
+              maxLength={50}
+              autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              aria-describedby="user-username-hint"
+            />
+            <p id="user-username-hint" className="mt-1 text-xs text-slate-500">
+              3 sampai 50 karakter: huruf kecil, angka, titik, garis bawah, atau tanda hubung.
+            </p>
           </div>
-        </div>
-      )}
 
-      {/* Delete Confirmation Modal */}
-      {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="w-8 h-8" />
-              </div>
-              <h2 className="text-xl font-bold text-slate-800 mb-2">Hapus User?</h2>
-              <p className="text-sm text-slate-600 mb-6">
-                Apakah Anda yakin ingin menghapus user <span className="font-semibold text-slate-800">{currentEditing?.username}</span>? Tindakan ini tidak dapat dibatalkan.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setIsDeleteModalOpen(false)}
-                  disabled={isSubmitting}
-                  className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={handleDeleteConfirm}
-                  disabled={isSubmitting}
-                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm shadow-red-600/20 transition-colors"
-                >
-                  {isSubmitting ? 'Menghapus...' : 'Hapus'}
-                </button>
-              </div>
-            </div>
+          <div>
+            <label htmlFor="user-password" className="block text-sm font-medium text-slate-700 mb-1">
+              Password
+            </label>
+            <input
+              id="user-password"
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              className={inputClass}
+              disabled={isSubmitting}
+              required={!editing}
+              minLength={12}
+              autoComplete="new-password"
+              aria-describedby="user-password-hint"
+            />
+            <p id="user-password-hint" className="mt-1 text-xs text-slate-500">
+              {editing
+                ? "Kosongkan kalau tidak ingin mengganti. Password baru minimal 12 karakter, dan user ini akan keluar dari semua perangkat."
+                : "Minimal 12 karakter."}
+            </p>
           </div>
+
+          <div>
+            <label htmlFor="user-alias" className="block text-sm font-medium text-slate-700 mb-1">
+              Alias
+            </label>
+            <input
+              id="user-alias"
+              type="text"
+              value={form.alias}
+              onChange={(e) => setForm({ ...form, alias: e.target.value })}
+              className={inputClass}
+              disabled={isSubmitting}
+              maxLength={100}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="user-role" className="block text-sm font-medium text-slate-700 mb-1">
+              Level
+            </label>
+            <select
+              id="user-role"
+              value={form.role}
+              onChange={(e) => setForm({ ...form, role: e.target.value as Role })}
+              className={`${inputClass} bg-white`}
+              disabled={isSubmitting || editingSelf}
+            >
+              {ROLES.map((role) => (
+                <option key={role} value={role}>
+                  {ROLE_LABELS[role]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              id="user-active"
+              type="checkbox"
+              checked={form.active}
+              onChange={(e) => setForm({ ...form, active: e.target.checked })}
+              disabled={isSubmitting || editingSelf}
+              className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="user-active" className="text-sm font-medium text-slate-700">
+              Akun aktif (bisa login)
+            </label>
+          </div>
+          {editingSelf && (
+            <p className="text-xs text-slate-500">Anda tidak bisa mengubah level atau menonaktifkan akun sendiri.</p>
+          )}
         </div>
-      )}
+      </Modal>
+
+      <Modal
+        open={!!deleteTarget}
+        title="Hapus user?"
+        onClose={() => setDeleteTarget(null)}
+        busy={isSubmitting}
+        size="sm"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(null)}
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+            >
+              {isSubmitting ? "Menghapus..." : "Hapus permanen"}
+            </button>
+          </>
+        }
+      >
+        {errorBox}
+        <p className="text-sm text-slate-700">
+          User <span className="font-semibold text-slate-900">{deleteTarget?.username}</span> akan dihapus permanen dan
+          langsung keluar dari semua perangkat. Data user ini tidak bisa dikembalikan. Kalau hanya ingin memutus akses
+          sementara, batalkan lalu nonaktifkan lewat tombol Edit.
+        </p>
+      </Modal>
     </div>
   );
 }

@@ -1,78 +1,76 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
-import { z } from 'zod';
-import { requireRole } from '@/lib/auth';
 import bcrypt from 'bcrypt';
+import { z } from 'zod';
+import prisma from '@/lib/prisma';
+import { HttpError, apiError, handleRouteError, parseId, readJson } from '@/lib/api';
+import { requireAccess, setSessionCookie, signSession, userFields, userSelect } from '@/lib/auth';
 
-const updateSchema = z.object({
-  username: z.string().min(1).optional(),
-  password: z.string().min(6).optional().or(z.literal('')), // Optional on update
-  alias: z.string().nullable().optional(),
-  role: z.string().optional(),
-  active: z.boolean().optional(),
-});
+const updateSchema = z.object(userFields).partial();
+const SERIALIZABLE = { isolationLevel: Prisma.TransactionIsolationLevel.Serializable };
+const MESSAGES = { P2002: 'Username sudah dipakai akun lain.', P2025: 'User tidak ditemukan.' };
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { authorized, response } = await requireRole(['owner']);
-  if (!authorized) return response;
+type Params = { params: Promise<{ id: string }> };
 
-  try {
-    const json = await req.json();
-    const parsed = updateSchema.safeParse(json);
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid data', details: parsed.error.issues }, { status: 400 });
-    }
-
-    const { password, ...rest } = parsed.data;
-    const updateData: typeof rest & { passwordHash?: string } = { ...rest };
-
-    if (password && password.trim() !== '') {
-      updateData.passwordHash = await bcrypt.hash(password, 10);
-    }
-
-    const { id } = await params;
-    const data = await prisma.user.update({
-      where: { id: Number(id) },
-      data: updateData,
-      select: {
-        id: true,
-        username: true,
-        alias: true,
-        role: true,
-        active: true,
-      }
-    });
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error('Error updating user:', error);
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === 'P2025') {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 });
-      }
-      if (error.code === 'P2002') {
-        return NextResponse.json({ error: 'Username already exists' }, { status: 400 });
-      }
-    }
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+async function ensureActiveOwnerLeft(tx: Prisma.TransactionClient) {
+  if ((await tx.user.count({ where: { role: 'owner', active: true } })) === 0) {
+    throw new HttpError(409, 'Harus ada minimal satu owner aktif. Tambahkan owner lain lebih dulu.');
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { authorized, response } = await requireRole(['owner']);
-  if (!authorized) return response;
-
+export async function PUT(req: Request, { params }: Params) {
   try {
-    const { id } = await params;
-    await prisma.user.delete({
-      where: { id: Number(id) },
-    });
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting user:', error);
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    const auth = await requireAccess('users', 'write');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, 'ID user tidak valid.');
+
+    const { password, ...data } = updateSchema.parse(await readJson(req));
+    const self = id === auth.user.id;
+    if (self && ((data.role && data.role !== auth.user.role) || data.active === false)) {
+      return apiError(403, 'Anda tidak bisa menurunkan level atau menonaktifkan akun sendiri.');
     }
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const passwordHash = password === undefined ? undefined : await bcrypt.hash(password, 10);
+
+    const user = await prisma.$transaction(async (tx) => {
+      const current = await tx.user.findUnique({ where: { id }, select: { role: true, active: true } });
+      if (!current) throw new HttpError(404, 'User tidak ditemukan.');
+      const revoke =
+        passwordHash !== undefined ||
+        (data.role !== undefined && data.role !== current.role) ||
+        (data.active !== undefined && data.active !== current.active);
+      const updated = await tx.user.update({
+        where: { id },
+        data: { ...data, passwordHash, ...(revoke && { tokenVersion: { increment: 1 } }) },
+        select: { ...userSelect, tokenVersion: true },
+      });
+      if (current.role === 'owner' && current.active) await ensureActiveOwnerLeft(tx);
+      return updated;
+    }, SERIALIZABLE);
+
+    const { tokenVersion, ...body } = user;
+    const res = NextResponse.json(body);
+    // Ganti password sendiri memutus sesi lain, sesi yang sedang dipakai diberi token baru.
+    return self && passwordHash ? setSessionCookie(res, await signSession({ id, role: user.role, tokenVersion })) : res;
+  } catch (error) {
+    return handleRouteError(error, MESSAGES);
+  }
+}
+
+export async function DELETE(_req: Request, { params }: Params) {
+  try {
+    const auth = await requireAccess('users', 'write');
+    if (!auth.authorized) return auth.response;
+    const id = parseId((await params).id);
+    if (!id) return apiError(400, 'ID user tidak valid.');
+    if (id === auth.user.id) return apiError(403, 'Anda tidak bisa menghapus akun sendiri.');
+
+    await prisma.$transaction(async (tx) => {
+      await tx.user.delete({ where: { id } });
+      await ensureActiveOwnerLeft(tx);
+    }, SERIALIZABLE);
+    return NextResponse.json({ message: 'User dihapus.' });
+  } catch (error) {
+    return handleRouteError(error, MESSAGES);
   }
 }

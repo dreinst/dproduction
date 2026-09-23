@@ -1,98 +1,11 @@
-"use client";
+import type { Metadata } from "next";
+import AdminShell from "@/components/management/AdminShell";
 
-import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import Sidebar from "@/components/management/Sidebar";
-import AdminHeader from "@/components/management/Header";
+export const metadata: Metadata = {
+  title: "Dashboard Admin",
+  robots: { index: false, follow: false },
+};
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const [user, setUser] = useState<{ username: string; alias: string; role: string; level: string } | null>(null);
-  const [checking, setChecking] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const isLoginPage = pathname === "/management/login";
-
-  useEffect(() => {
-    if (isLoginPage) {
-      queueMicrotask(() => setChecking(false));
-      return;
-    }
-
-    const checkAuth = async () => {
-      try {
-        const res = await fetch('/api/auth/me');
-        if (res.ok) {
-          const data = await res.json();
-          setUser({ ...data.user, alias: data.user.username, level: data.user.role });
-        } else {
-          router.replace("/management/login");
-        }
-      } catch (err) {
-        router.replace("/management/login");
-      } finally {
-        setChecking(false);
-      }
-    };
-
-    checkAuth();
-  }, [isLoginPage, router]);
-
-  // Login page renders without sidebar/header
-  if (isLoginPage) {
-    return <>{children}</>;
-  }
-
-  // Show loading state while checking auth
-  if (checking) {
-    return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
-
-  return (
-    <div className="min-h-screen bg-slate-100">
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <div
-        className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <Sidebar onClose={() => setSidebarOpen(false)} role={user.role} />
-      </div>
-
-      {/* Main content area */}
-      <div className="lg:pl-64">
-        <AdminHeader
-          user={user}
-          onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
-        />
-        <main className="p-6 lg:p-8">{children}</main>
-
-        {/* Footer */}
-        <footer className="px-6 lg:px-8 py-4 text-center text-slate-400 text-xs border-t border-slate-200">
-          Copyright &copy; {new Date().getFullYear()} D&apos;Production. All rights reserved.
-        </footer>
-      </div>
-    </div>
-  );
+export default function ManagementLayout({ children }: { children: React.ReactNode }) {
+  return <AdminShell>{children}</AdminShell>;
 }

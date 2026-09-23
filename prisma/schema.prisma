@@ -13,6 +13,9 @@ model User {
   alias        String?
   role         String   @default("admin")
   active       Boolean  @default(true)
+  tokenVersion Int      @default(0)
+  failedLogins Int      @default(0)
+  lockedUntil  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

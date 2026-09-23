@@ -12,10 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Dashboard yang diparkir beserta komponen dan hook yang hanya dipakainya. Cabut tiga baris ini saat dashboard diaktifkan lagi.
+    // Halaman lama yang masih diparkir.
     "src/app/_parked/**",
-    "src/components/management/**",
-    "src/hooks/useCrud.ts",
   ]),
 ]);
 
