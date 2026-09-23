@@ -1,9 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { AUTH_COOKIE, clearSessionCookie, verifySession } from '@/lib/auth';
+import { AUTH_COOKIE, clearSessionCookie, verifySession } from '@/lib/session';
 import { canAccessPath, safeNextPath } from '@/lib/rbac';
 
 const LOGIN_PATH = '/management/login';
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+const MAX_BODY_BYTES = 1_000_000;
 
 function guardApi(request: NextRequest) {
   if (!MUTATING.has(request.method)) return NextResponse.next();
@@ -19,7 +20,11 @@ function guardApi(request: NextRequest) {
     }
   }
 
-  const hasBody = Number(request.headers.get('content-length') ?? 0) > 0 || request.headers.has('transfer-encoding');
+  const length = Number(request.headers.get('content-length') ?? 0);
+  if (length > MAX_BODY_BYTES) {
+    return NextResponse.json({ message: 'Data yang dikirim terlalu besar.' }, { status: 413 });
+  }
+  const hasBody = length > 0 || request.headers.has('transfer-encoding');
   const type = request.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
   if (hasBody && type !== 'application/json') {
     return NextResponse.json({ message: 'Format data harus JSON.' }, { status: 415 });

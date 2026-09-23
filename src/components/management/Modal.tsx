@@ -29,10 +29,29 @@ function ModalDialog({ title, onClose, children, footer, onSubmit, busy = false,
   useEffect(() => {
     const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const dialog = dialogRef.current;
-    const first =
-      dialog?.querySelector<HTMLElement>(`[data-modal-body] :is(${FOCUSABLE}), [data-modal-footer] :is(${FOCUSABLE})`) ?? dialog;
+    // Fokus awal hanya ke isian di body; modal tanpa isian (detail, konfirmasi) memfokuskan dialog, bukan tombol Hapus.
+    const first = dialog?.querySelector<HTMLElement>(`[data-modal-body] :is(${FOCUSABLE})`) ?? dialog;
     first?.focus();
-    return () => trigger?.focus();
+    return () => {
+      if (trigger?.isConnected) trigger.focus();
+    };
+  }, []);
+
+  // Pesan error dari halaman dirender di atas body yang bisa digulir; tarik ke layar saat muncul.
+  useEffect(() => {
+    const body = dialogRef.current?.querySelector("[data-modal-body]");
+    if (!body) return;
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (!(node instanceof HTMLElement)) continue;
+          const alert = node.matches('[role="alert"]') ? node : node.querySelector('[role="alert"]');
+          if (alert) return alert.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
+      }
+    });
+    observer.observe(body, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, []);
 
   // Dipasang di document karena fokus bisa lepas ke body saat tombol yang sedang difokus menjadi disabled.

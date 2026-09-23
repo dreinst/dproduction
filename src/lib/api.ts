@@ -53,21 +53,45 @@ export function handleRouteError(error: unknown, messages: PrismaMessages = {}) 
   return apiError(500, 'Terjadi kesalahan di server. Coba lagi nanti.');
 }
 
+// Postgres menolak karakter NUL di kolom teks, jadi ditolak di sini supaya tidak jadi error 500.
+const NO_NUL = /^[^\u0000]*$/;
+
 export const zName = (label = 'Nama') =>
   z
     .string({ error: `${label} wajib diisi.` })
     .trim()
     .min(1, `${label} wajib diisi.`)
-    .max(200, `${label} maksimal 200 karakter.`);
+    .max(200, `${label} maksimal 200 karakter.`)
+    .regex(NO_NUL, `${label} berisi karakter yang tidak valid.`);
 
 export const zText = (max: number, label = 'Teks') =>
-  z.string({ error: `${label} harus berupa teks.` }).trim().max(max, `${label} maksimal ${max} karakter.`);
+  z
+    .string({ error: `${label} harus berupa teks.` })
+    .trim()
+    .max(max, `${label} maksimal ${max} karakter.`)
+    .regex(NO_NUL, `${label} berisi karakter yang tidak valid.`);
+
+// Kolom harga dan tarif di DB masih teks, jadi format lama seperti "Rp 1.500.000" tetap diterima.
+export const zAmount = (label: string) =>
+  zText(30, label).regex(
+    /^(rp\.?\s*)?\d[\d.,]*$/i,
+    `${label} harus berupa angka rupiah yang tidak negatif, misalnya 1500000 atau Rp 1.500.000.`,
+  );
 
 function isSafeUrl(value: string) {
   if (/\s|\\/.test(value)) return false;
-  if (value.startsWith('/')) return !value.startsWith('//');
+  if (value.startsWith('/')) {
+    if (value.startsWith('//')) return false;
+    try {
+      decodeURI(value);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  if (!value.startsWith('https://')) return false;
   try {
-    return new URL(value).protocol === 'https:';
+    return new URL(value).hostname.includes('.');
   } catch {
     return false;
   }

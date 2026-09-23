@@ -21,7 +21,7 @@ type FormState = { username: string; password: string; alias: string; role: Role
 
 const EMPTY_FORM: FormState = { username: "", password: "", alias: "", role: "staff", active: true };
 const inputClass =
-  "w-full px-4 py-2 border border-slate-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100";
+  "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100";
 
 export default function SettingLoginPage() {
   const { user: me } = useAdminUser();
@@ -105,7 +105,7 @@ export default function SettingLoginPage() {
             id="user-status"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as "aktif" | "semua")}
-            className="px-4 py-2 border border-slate-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white min-w-[200px]"
+            className="px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white min-w-[200px]"
           >
             <option value="aktif">Hanya yang aktif</option>
             <option value="semua">Semua</option>
@@ -133,7 +133,7 @@ export default function SettingLoginPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari username atau alias"
-            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden />
         </div>

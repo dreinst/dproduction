@@ -8,6 +8,8 @@ const toCount = (n: number) => Math.max(1, Math.floor(n) || 1);
 export function usePagination<T>(items: readonly T[], resetKey: string | number = '', initialPageSize = 10) {
   const [pageSize, setPageSizeState] = useState(() => toCount(initialPageSize));
   const [state, setState] = useState({ page: 1, key: resetKey });
+  // Disimpan saat render supaya filter yang dikembalikan ke nilai lama tetap mulai dari halaman 1.
+  if (state.key !== resetKey) setState({ page: 1, key: resetKey });
 
   const total = items.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));

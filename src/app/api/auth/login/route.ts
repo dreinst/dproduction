@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { apiError, handleRouteError, readJson } from '@/lib/api';
-import { setSessionCookie, signSession } from '@/lib/auth';
+import { setSessionCookie, signSession } from '@/lib/session';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { isRole } from '@/lib/rbac';
 
@@ -30,30 +30,40 @@ export async function POST(req: Request) {
     const { username, password } = loginSchema.parse(await readJson(req));
     const user = await prisma.user.findUnique({ where: { username } });
 
-    if (user?.lockedUntil && user.lockedUntil > new Date()) return apiError(429, LOCKED_MESSAGE);
+    // Username yang tidak ada diperlakukan sama: 401 empat kali lalu 429, supaya keberadaan akun tidak bisa ditebak.
+    if (!user) {
+      await bcrypt.compare(password, DUMMY_HASH);
+      return rateLimit(`login-fail:${username}`, MAX_FAILED - 1, LOCK_MS)
+        ? apiError(401, FAILED_MESSAGE)
+        : apiError(429, LOCKED_MESSAGE);
+    }
 
-    const usable = !!user && user.active && isRole(user.role);
-    const match = await bcrypt.compare(password, usable ? user.passwordHash : DUMMY_HASH);
-
-    if (!user) return apiError(401, FAILED_MESSAGE);
-
-    if (!usable || !match) {
-      const { failedLogins } = await prisma.user.update({
-        where: { id: user.id },
-        data: { failedLogins: { increment: 1 } },
-        select: { failedLogins: true },
-      });
-      if (failedLogins < MAX_FAILED) return apiError(401, FAILED_MESSAGE);
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { failedLogins: 0, lockedUntil: new Date(Date.now() + LOCK_MS) },
-      });
+    // Jatah percobaan dipesan secara atomik sebelum bcrypt, sehingga request paralel tidak bisa melewati MAX_FAILED.
+    const reserved = await prisma.user.updateMany({
+      where: {
+        id: user.id,
+        failedLogins: { lt: MAX_FAILED },
+        OR: [{ lockedUntil: null }, { lockedUntil: { lte: new Date() } }],
+      },
+      data: { failedLogins: { increment: 1 } },
+    });
+    if (reserved.count === 0) {
+      await bcrypt.compare(password, DUMMY_HASH);
       return apiError(429, LOCKED_MESSAGE);
     }
 
-    if (user.failedLogins || user.lockedUntil) {
-      await prisma.user.update({ where: { id: user.id }, data: { failedLogins: 0, lockedUntil: null } });
+    const usable = user.active && isRole(user.role);
+    const match = await bcrypt.compare(password, usable ? user.passwordHash : DUMMY_HASH);
+
+    if (!usable || !match) {
+      const locked = await prisma.user.updateMany({
+        where: { id: user.id, failedLogins: { gte: MAX_FAILED } },
+        data: { failedLogins: 0, lockedUntil: new Date(Date.now() + LOCK_MS) },
+      });
+      return locked.count ? apiError(429, LOCKED_MESSAGE) : apiError(401, FAILED_MESSAGE);
     }
+
+    await prisma.user.update({ where: { id: user.id }, data: { failedLogins: 0, lockedUntil: null } });
 
     const token = await signSession(user);
     const res = NextResponse.json({ user: { id: user.id, username: user.username, role: user.role } });

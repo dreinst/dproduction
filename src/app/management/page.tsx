@@ -84,7 +84,7 @@ export default function AdminDashboard() {
             onChange={(e) => onYearChange(e.target.value)}
             aria-invalid={!!yearError}
             aria-describedby="dashboard-year-hint"
-            className="w-24 px-3 py-2 border border-slate-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            className="w-24 px-3 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
           />
           <p id="dashboard-year-hint" className={`text-sm ${yearError ? "text-red-700" : "text-slate-600"}`} aria-live="polite">
             {yearError ?? (loading ? `Memuat data tahun ${year}...` : `Menampilkan data tahun ${year}.`)}

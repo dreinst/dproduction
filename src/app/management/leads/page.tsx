@@ -31,7 +31,7 @@ function waLink(whatsapp: string) {
 }
 
 const controlClass =
-  "border border-slate-300 rounded-lg text-base sm:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30";
+  "border border-slate-300 rounded-lg text-base pointer-fine:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30";
 const iconButton = "inline-flex p-1.5 rounded transition-colors";
 
 export default function LeadsPage() {

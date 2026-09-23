@@ -29,7 +29,11 @@ const legacyRedirects: [string, string][] = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // Respons API memuat data pribadi (lead, user), jangan disimpan cache browser atau proxy.
+      { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
+    ];
   },
   async redirects() {
     return legacyRedirects.map(([source, destination]) => ({ source, destination, permanent: true }));

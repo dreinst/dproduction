@@ -4,7 +4,8 @@ import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { HttpError, apiError, handleRouteError, parseId, readJson } from '@/lib/api';
-import { requireAccess, setSessionCookie, signSession, userFields, userSelect } from '@/lib/auth';
+import { requireAccess, userFields, userSelect } from '@/lib/auth';
+import { setSessionCookie, signSession } from '@/lib/session';
 
 const updateSchema = z.object(userFields).partial();
 const SERIALIZABLE = { isolationLevel: Prisma.TransactionIsolationLevel.Serializable };

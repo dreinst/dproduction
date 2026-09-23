@@ -123,7 +123,7 @@ export function canAccessPath(role: unknown, pathname: string): boolean {
 }
 
 export function safeNextPath(raw: string | null | undefined): string | null {
-  if (!raw || !/^\/management(?:[/?#]|$)/.test(raw) || /[\\\s]|\/\//.test(raw)) return null;
+  if (!raw || !/^\/management(?:[/?#]|$)/.test(raw) || /[\\\s]|\/\/|\/\.\.?(?:[/?#]|$)/.test(raw)) return null;
   return /^\/management\/login(?:[/?#]|$)/.test(raw) ? null : raw;
 }
 

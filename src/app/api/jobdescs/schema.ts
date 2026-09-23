@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { zName } from '@/lib/api';
-import { zAmount } from '../rentals/schema';
+import { zAmount } from '@/lib/api';
 
 export const createSchema = z.object({
   name: zName('Nama jobdesc'),

@@ -1,12 +1,5 @@
 import { z } from 'zod';
-import { zName, zText, zUrl } from '@/lib/api';
-
-// Kolom harga dan tarif di DB masih teks, jadi format lama seperti "Rp 1.500.000" tetap diterima.
-export const zAmount = (label: string) =>
-  zText(30, label).regex(
-    /^(rp\.?\s*)?\d[\d.,]*$/i,
-    `${label} harus berupa angka rupiah yang tidak negatif, misalnya 1500000 atau Rp 1.500.000.`,
-  );
+import { zAmount, zName, zText, zUrl } from '@/lib/api';
 
 const fields = {
   name: zName('Nama rental'),

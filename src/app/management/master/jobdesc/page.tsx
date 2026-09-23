@@ -20,7 +20,7 @@ const LEVELS = ["levelA", "levelB", "levelC"] as const;
 const levelLabel = (key: (typeof LEVELS)[number]) => `Level ${key.slice(-1)}`;
 const EMPTY_FORM = { name: "", levelA: "", levelB: "", levelC: "" };
 const inputClass =
-  "w-full px-4 py-2 border border-slate-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100";
+  "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100";
 const th = "px-3 py-3 text-left font-semibold";
 const td = "px-3 py-3 align-top";
 const stickyTh = "sticky right-0 bg-slate-800 px-3 py-3 text-center font-semibold";
@@ -114,7 +114,7 @@ export default function MasterJobDescPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari nama jobdesc"
-            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden />
         </div>

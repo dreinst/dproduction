@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import { handleRouteError } from '@/lib/api';
-import { AUTH_COOKIE, clearSessionCookie, verifySession } from '@/lib/auth';
+import { AUTH_COOKIE, clearSessionCookie, verifySession } from '@/lib/session';
 
 export async function POST() {
   let res: NextResponse;
