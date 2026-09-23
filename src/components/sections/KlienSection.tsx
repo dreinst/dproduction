@@ -48,7 +48,7 @@ export default function KlienSection() {
         <div className="w-full bg-white py-10 mb-20 rounded-[2.5rem] shadow-xl border border-slate-100">
           <div className="flex flex-wrap justify-center gap-x-16 gap-y-6">
             {clients.map((client) => (
-              <div key={client} className="text-2xl font-black text-slate-300 uppercase tracking-widest px-4">
+              <div key={client} className="text-2xl font-black text-slate-500 uppercase tracking-widest px-4">
                 {client}
               </div>
             ))}
@@ -76,7 +76,7 @@ export default function KlienSection() {
                   {item.name.charAt(0)}
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-900">{item.name}</h4>
+                  <h3 className="font-bold text-slate-900">{item.name}</h3>
                   <p className="text-sm text-blue-600 font-medium">{item.role}</p>
                 </div>
               </div>

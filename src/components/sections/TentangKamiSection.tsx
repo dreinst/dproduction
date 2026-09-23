@@ -13,23 +13,23 @@ export default function TentangKamiSection() {
           {/* Images Section */}
           <motion.div 
             initial={{ opacity: 0, x: -50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, margin: "-100px" }} transition={{ duration: 0.8 }}
-            className="relative"
+            className="relative max-lg:transform-none!"
           >
             <div className="grid grid-cols-2 gap-6 relative z-10">
               <div className="space-y-6 pt-12">
                 <div className="rounded-3xl overflow-hidden aspect-[4/5] shadow-xl bg-slate-200 relative">
-                  <Image src="/assets/portfolio/tentang-kami-tim-bandara.jpg" fill alt="Tim D'Production mendokumentasikan kedatangan peserta" className="object-cover" />
+                  <Image src="/assets/portfolio/tentang-kami-tim-bandara.jpg" fill sizes="(min-width: 1024px) 22vw, 50vw" alt="Tim D'Production mendokumentasikan kedatangan peserta" className="object-cover" />
                 </div>
                 <div className="rounded-3xl overflow-hidden aspect-square shadow-xl bg-slate-200 relative">
-                  <Image src="/assets/portfolio/tentang-kami-dekorasi-ustegra.jpg" fill alt="Dekorasi acara peresmian PT. Ustegra" className="object-cover" />
+                  <Image src="/assets/portfolio/tentang-kami-dekorasi-ustegra.jpg" fill sizes="(min-width: 1024px) 22vw, 50vw" alt="Dekorasi acara peresmian PT. Ustegra" className="object-cover" />
                 </div>
               </div>
               <div className="space-y-6">
                 <div className="rounded-3xl overflow-hidden aspect-square shadow-xl bg-slate-200 relative">
-                  <Image src="/assets/portfolio/tentang-kami-santai-magelang.jpg" fill alt="Momen santai peserta Temu Responden BI Magelang" className="object-cover" />
+                  <Image src="/assets/portfolio/tentang-kami-santai-magelang.jpg" fill sizes="(min-width: 1024px) 22vw, 50vw" alt="Momen santai peserta Temu Responden BI Magelang" className="object-cover" />
                 </div>
                 <div className="rounded-3xl overflow-hidden aspect-[4/5] shadow-xl bg-slate-200 relative">
-                  <Image src="/assets/portfolio/tentang-kami-kunjungan-sekolah.jpg" fill alt="Kunjungan lapangan program Hebitren BI Bandung" className="object-cover" />
+                  <Image src="/assets/portfolio/tentang-kami-kunjungan-sekolah.jpg" fill sizes="(min-width: 1024px) 22vw, 50vw" alt="Kunjungan lapangan program Hebitren BI Bandung" className="object-cover" />
                 </div>
               </div>
             </div>
@@ -40,6 +40,7 @@ export default function TentangKamiSection() {
           {/* Content Section */}
           <motion.div 
             initial={{ opacity: 0, x: 50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, margin: "-100px" }} transition={{ duration: 0.8, delay: 0.2 }}
+            className="max-lg:transform-none!"
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-700 font-medium text-sm mb-6">
               Tentang Kami
