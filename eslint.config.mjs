@@ -12,8 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Route yang diparkir sementara (lihat src/app/_parked/README.md):
+    // Dashboard yang diparkir beserta komponen dan hook yang hanya dipakainya. Cabut tiga baris ini saat dashboard diaktifkan lagi.
     "src/app/_parked/**",
+    "src/components/management/**",
+    "src/hooks/useCrud.ts",
   ]),
 ]);
 
