@@ -58,6 +58,7 @@ export default function LeadsPage() {
         (/\d{4}/.test(waQuery) && normalizeWhatsapp(lead.whatsapp).includes(waQuery))),
   );
   const pagination = usePagination(filtered, `${eventFilter}|${q}`);
+  const targetGone = !!deleteTarget && !loading && !data.some((lead) => lead.id === deleteTarget.id);
 
   const openDelete = (lead: Lead) => {
     clearSaveError();
@@ -154,22 +155,22 @@ export default function LeadsPage() {
                 <th className="px-3 sm:px-4 py-3 text-left font-semibold">Nama</th>
                 <th className="hidden md:table-cell px-4 py-3 text-left font-semibold">Jenis Acara</th>
                 <th className="hidden lg:table-cell px-4 py-3 text-left font-semibold">Pesan</th>
-                <th className="hidden sm:table-cell px-4 py-3 text-left font-semibold">Masuk</th>
+                <th className="hidden sm:table-cell px-4 py-3 text-left font-semibold">Waktu masuk</th>
                 <th className="px-3 sm:px-4 py-3 text-center font-semibold">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {pagination.pageItems.map((lead) => (
                 <tr key={lead.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors align-top">
-                  <td className="px-3 sm:px-4 py-3 text-sm">
-                    <p className="font-medium text-slate-800 break-words">{lead.name}</p>
+                  <td className="sm:min-w-40 px-3 sm:px-4 py-3 text-sm">
+                    <p className="font-medium text-slate-800 wrap-anywhere">{lead.name}</p>
                     <p className="text-slate-600 break-all">{lead.whatsapp}</p>
                     <p className="md:hidden mt-1 text-xs text-slate-500">{eventLabel(lead.eventType)}</p>
                     <p className="sm:hidden text-xs text-slate-500">{formatDate(lead.createdAt)}</p>
                   </td>
                   <td className="hidden md:table-cell px-4 py-3 text-sm text-slate-600">{eventLabel(lead.eventType)}</td>
                   <td className="hidden lg:table-cell px-4 py-3 text-sm text-slate-600 max-w-md">
-                    <p className="line-clamp-2 break-words">{lead.message}</p>
+                    <p className="line-clamp-2 wrap-anywhere">{lead.message}</p>
                   </td>
                   <td className="hidden sm:table-cell px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
                     {formatDate(lead.createdAt)}
@@ -248,7 +249,7 @@ export default function LeadsPage() {
           <dl className="grid gap-4 sm:grid-cols-2 text-sm">
             <div>
               <dt className="text-slate-500">Nama</dt>
-              <dd className="font-medium text-slate-800 break-words">{detail.name}</dd>
+              <dd className="font-medium text-slate-800 wrap-anywhere">{detail.name}</dd>
             </div>
             <div>
               <dt className="text-slate-500">WhatsApp</dt>
@@ -264,12 +265,12 @@ export default function LeadsPage() {
               <dd className="font-medium text-slate-800">{eventLabel(detail.eventType)}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Masuk</dt>
+              <dt className="text-slate-500">Waktu masuk</dt>
               <dd className="font-medium text-slate-800">{formatDate(detail.createdAt)}</dd>
             </div>
             <div className="sm:col-span-2">
               <dt className="text-slate-500">Pesan</dt>
-              <dd className="mt-1 rounded-lg bg-slate-50 p-3 text-slate-800 whitespace-pre-wrap break-words">
+              <dd className="mt-1 rounded-lg bg-slate-50 p-3 text-slate-800 whitespace-pre-wrap wrap-anywhere">
                 {detail.message}
               </dd>
             </div>
@@ -296,7 +297,7 @@ export default function LeadsPage() {
             <button
               type="button"
               onClick={handleDelete}
-              disabled={isDeleting}
+              disabled={isDeleting || targetGone}
               className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
             >
               {isDeleting ? "Menghapus..." : "Hapus"}
@@ -309,7 +310,7 @@ export default function LeadsPage() {
             {saveError}
           </div>
         )}
-        <p className="text-sm text-slate-700">
+        <p className="text-sm text-slate-700 wrap-anywhere">
           Lead dari <span className="font-semibold text-slate-900">{deleteTarget?.name}</span> akan dihapus dari daftar.
           Pastikan lead ini memang tidak perlu ditindaklanjuti.
         </p>
