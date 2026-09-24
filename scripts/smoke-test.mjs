@@ -20,6 +20,12 @@ const checks = [
     const res = await fetch(`${BASE_URL}/`);
     return res.status === 200 && /<h1[\s>]/.test(await res.text());
   }],
+  // Host selain www.dpro.events (localhost, sslip.io, vercel.app) tidak boleh diindeks.
+  ["GET / di localhost membawa X-Robots-Tag noindex", async () => {
+    const res = await fetch(`${BASE_URL}/`);
+    await res.arrayBuffer();
+    return res.headers.get("x-robots-tag") === "noindex";
+  }],
   ["GET /robots.txt 200", async () => {
     const res = await fetch(`${BASE_URL}/robots.txt`);
     return res.status === 200 && (await res.text()).includes("Sitemap:");
