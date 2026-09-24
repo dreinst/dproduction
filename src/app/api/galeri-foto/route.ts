@@ -1,14 +1,26 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { handleRouteError, readJson } from '@/lib/api';
+import { apiError, handleRouteError, parseId, readJson } from '@/lib/api';
 import { requireAccess } from '@/lib/auth';
-import { createSchema } from './schema';
+import { audit } from '@/lib/audit';
+import { revalidateLanding } from '@/lib/revalidate';
+import { MESSAGES, assertAlbumExists, createSchema, includeAlbum } from './schema';
 
-export async function GET() {
+// ?albumId=... membatasi daftar ke satu album.
+export async function GET(req: Request) {
   try {
     const auth = await requireAccess('galeriFoto', 'read');
     if (!auth.authorized) return auth.response;
-    return NextResponse.json(await prisma.galeriFoto.findMany({ orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] }));
+    const rawAlbumId = new URL(req.url).searchParams.get('albumId');
+    const albumId = rawAlbumId === null ? undefined : parseId(rawAlbumId);
+    if (albumId === null) return apiError(400, 'ID album tidak valid.');
+    return NextResponse.json(
+      await prisma.galeriFoto.findMany({
+        where: { albumId },
+        include: includeAlbum,
+        orderBy: [{ sortIndex: 'asc' }, { id: 'asc' }],
+      }),
+    );
   } catch (error) {
     return handleRouteError(error);
   }
@@ -19,8 +31,12 @@ export async function POST(req: Request) {
     const auth = await requireAccess('galeriFoto', 'write');
     if (!auth.authorized) return auth.response;
     const data = createSchema.parse(await readJson(req));
-    return NextResponse.json(await prisma.galeriFoto.create({ data }), { status: 201 });
+    await assertAlbumExists(data.albumId);
+    const foto = await prisma.galeriFoto.create({ data, include: includeAlbum });
+    await audit(auth.user, 'tambah', 'GaleriFoto', foto.id, `album: ${foto.album.name}`);
+    revalidateLanding();
+    return NextResponse.json(foto, { status: 201 });
   } catch (error) {
-    return handleRouteError(error);
+    return handleRouteError(error, MESSAGES);
   }
 }

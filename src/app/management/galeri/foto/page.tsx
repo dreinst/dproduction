@@ -1,75 +1,224 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Search, CheckSquare, Square, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { useCrud } from "@/hooks/useCrud";
 import { usePagination } from "@/hooks/usePagination";
 import Modal from "@/components/management/Modal";
 import Pagination, { PageSizeSelect } from "@/components/management/Pagination";
 import AdminThumb from "@/components/management/AdminThumb";
+import ImageField from "@/components/management/ImageField";
+import { useAdminUser } from "@/components/management/AdminShell";
 
 interface Album {
   id: number;
-  album: string;
-  keterangan: string | null;
-  tanggal: string | null;
-  image: string | null;
+  name: string;
+  description: string | null;
   active: boolean;
   sortIndex: number;
 }
 
-type FormState = { album: string; keterangan: string; tanggal: string; image: string; active: boolean };
+interface Foto {
+  id: number;
+  albumId: number;
+  image: string;
+  caption: string | null;
+  active: boolean;
+  sortIndex: number;
+  album: { id: number; name: string };
+}
 
-const ALBUMS = ["Event Organizer", "Wedding"];
-const EMPTY_FORM: FormState = { album: ALBUMS[0], keterangan: "", tanggal: "", image: "", active: true };
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+type Crud<T extends { id: number }> = ReturnType<typeof useCrud<T>>;
+
+const EMPTY_ALBUM = { name: "", description: "", sortIndex: "0", active: true };
+const EMPTY_FOTO = { albumId: "", image: "", caption: "", sortIndex: "0", active: true };
+const SORT_HINT = "Angka kecil tampil lebih dulu.";
 const inputClass =
   "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100";
 const filterClass =
   "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white";
-const moveClass =
-  "w-8 h-8 rounded flex items-center justify-center text-white transition-colors disabled:cursor-not-allowed disabled:bg-slate-300";
+const addClass =
+  "inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors";
+const th = "px-3 py-3 text-left font-semibold";
+const td = "px-3 py-3 align-top text-sm";
+// Kolom pelengkap disembunyikan di layar sempit; keterangan pindah ke bawah nama.
+const smCell = "hidden sm:table-cell";
+const mdCell = "hidden md:table-cell";
+const hintClass = "mt-1 text-xs text-slate-600";
+const labelClass = "block text-sm font-medium text-slate-700 mb-1";
 
-function isIsoDate(value: string) {
-  const time = Date.parse(`${value}T00:00:00Z`);
-  return ISO_DATE.test(value) && !isNaN(time) && new Date(time).toISOString().startsWith(value);
+const toSortIndex = (value: string) => (value === "" ? 0 : Number(value));
+
+function ErrorBox({ message }: { message: string | null }) {
+  return message ? (
+    <div role="alert" className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+      {message}
+    </div>
+  ) : null;
 }
 
-// Tanggal disimpan TTTT-BB-HH tanpa jam, jadi ditampilkan dalam UTC supaya tidak bergeser sehari di zona waktu lain.
-function formatTanggal(value: string | null) {
-  if (!value || !isIsoDate(value)) return value ?? "";
-  return new Date(`${value}T00:00:00Z`).toLocaleDateString("id-ID", {
-    timeZone: "UTC",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+function Status({ active }: { active: boolean }) {
+  return active ? (
+    <span className="font-medium text-green-700">Tampil</span>
+  ) : (
+    <span className="text-slate-600">Tidak tampil</span>
+  );
+}
+
+function RowActions({ label, onEdit, onDelete }: { label: string; onEdit: () => void; onDelete: () => void }) {
+  return (
+    <div className="flex items-center justify-center gap-1">
+      <button
+        type="button"
+        onClick={onEdit}
+        className="p-2 text-yellow-700 hover:bg-yellow-50 rounded transition-colors"
+        aria-label={`Edit ${label}`}
+        title="Edit"
+      >
+        <Pencil className="w-4 h-4" aria-hidden />
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+        aria-label={`Hapus ${label}`}
+        title="Hapus"
+      >
+        <Trash2 className="w-4 h-4" aria-hidden />
+      </button>
+    </div>
+  );
+}
+
+// Tanpa onDelete tombol utama menjadi submit form (Simpan); dengan onDelete menjadi tombol Hapus permanen.
+function ModalFooter({ onCancel, onDelete, busy }: { onCancel: () => void; onDelete?: () => void; busy: boolean }) {
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onCancel}
+        disabled={busy}
+        className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors"
+      >
+        Batal
+      </button>
+      {onDelete ? (
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={busy}
+          className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+        >
+          {busy ? "Menghapus..." : "Hapus permanen"}
+        </button>
+      ) : (
+        <button
+          type="submit"
+          disabled={busy}
+          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+        >
+          {busy ? "Menyimpan..." : "Simpan"}
+        </button>
+      )}
+    </>
+  );
+}
+
+function SortField({
+  id,
+  value,
+  onChange,
+  disabled,
+}: {
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className={labelClass}>
+        Urutan
+      </label>
+      <input
+        id={id}
+        type="number"
+        inputMode="numeric"
+        min={0}
+        max={2147483647}
+        step={1}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={inputClass}
+        disabled={disabled}
+        aria-describedby={`${id}-hint`}
+      />
+      <p id={`${id}-hint`} className={hintClass}>
+        {SORT_HINT}
+      </p>
+    </div>
+  );
+}
+
+function ActiveField({
+  id,
+  checked,
+  onChange,
+  disabled,
+}: {
+  id: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        disabled={disabled}
+        className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+      />
+      <label htmlFor={id} className="text-sm font-medium text-slate-700">
+        Tampil di website
+      </label>
+    </div>
+  );
 }
 
 export default function GaleriFotoPage() {
-  const { data, loading, error, saveError, clearSaveError, createItem, updateItem, deleteItem } = useCrud<Album>({
-    endpoint: "/api/galeri-foto-albums",
-  });
-  const [albumFilter, setAlbumFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"aktif" | "semua">("aktif");
-  const [searchQuery, setSearchQuery] = useState("");
+  const canWrite = useAdminUser().can("galeriFoto", "write");
+  const albums = useCrud<Album>({ endpoint: "/api/galeri-albums" });
+  const photos = useCrud<Foto>({ endpoint: "/api/galeri-foto" });
+
+  return (
+    <div className="space-y-10">
+      <h1 className="text-2xl font-bold text-slate-800">Galeri Foto</h1>
+      <AlbumSection albums={albums} photos={photos.data} canWrite={canWrite} onSaved={photos.fetchAll} />
+      <FotoSection photos={photos} albums={albums.data} canWrite={canWrite} />
+    </div>
+  );
+}
+
+function AlbumSection({
+  albums,
+  photos,
+  canWrite,
+  onSaved,
+}: {
+  albums: Crud<Album>;
+  photos: Foto[];
+  canWrite: boolean;
+  onSaved: () => Promise<void>;
+}) {
+  const { data, loading, error, saveError, clearSaveError, createItem, updateItem, deleteItem } = albums;
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Album | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Album | null>(null);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [form, setForm] = useState(EMPTY_ALBUM);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [moving, setMoving] = useState(false);
-
-  const albums = [...new Set([...ALBUMS, ...data.map((item) => item.album)])];
-  const q = searchQuery.trim().toLowerCase();
-  const filtered = data.filter(
-    (item) =>
-      (!albumFilter || item.album === albumFilter) &&
-      (statusFilter === "semua" || item.active) &&
-      (!q || item.album.toLowerCase().includes(q) || (item.keterangan ?? "").toLowerCase().includes(q)),
-  );
-  const pagination = usePagination(filtered, `${albumFilter}|${statusFilter}|${q}`);
-  const legacyTanggal = editing?.tanggal && !isIsoDate(editing.tanggal) ? editing.tanggal : null;
 
   const openForm = (item?: Album) => {
     clearSaveError();
@@ -77,35 +226,27 @@ export default function GaleriFotoPage() {
     setForm(
       item
         ? {
-            album: item.album,
-            keterangan: item.keterangan ?? "",
-            tanggal: item.tanggal && isIsoDate(item.tanggal) ? item.tanggal : "",
-            image: item.image ?? "",
+            name: item.name,
+            description: item.description ?? "",
+            sortIndex: String(item.sortIndex),
             active: item.active,
           }
-        : EMPTY_FORM,
+        : EMPTY_ALBUM,
     );
     setFormOpen(true);
-  };
-
-  const closeModals = () => {
-    setFormOpen(false);
-    setDeleteTarget(null);
-    clearSaveError();
   };
 
   const handleSave = async () => {
     setIsSubmitting(true);
     const payload = {
-      album: form.album,
-      keterangan: form.keterangan.trim() || null,
-      image: form.image.trim() || null,
+      name: form.name.trim(),
+      description: form.description.trim() || null,
+      sortIndex: toSortIndex(form.sortIndex),
       active: form.active,
-      // Tanggal lama yang tidak dikenali tidak dikirim ulang, jadi tetap tersimpan kalau field dibiarkan kosong.
-      ...(form.tanggal || !legacyTanggal ? { tanggal: form.tanggal || null } : {}),
     };
-    // sortIndex album baru ditentukan server (urutan terakhir + 1).
-    const ok = editing ? await updateItem(editing.id, payload) : await createItem(payload as Album);
+    const ok = editing ? await updateItem(editing.id, payload) : await createItem(payload);
+    // Nama album ikut tampil di daftar foto, jadi daftar foto dimuat ulang setelah album diubah.
+    if (ok && editing) await onSaved();
     setIsSubmitting(false);
     if (ok) setFormOpen(false);
   };
@@ -123,58 +264,262 @@ export default function GaleriFotoPage() {
     if (ok) setDeleteTarget(null);
   };
 
-  const move = async (index: number, to: number) => {
-    setMoving(true);
-    await updateItem(filtered[index].id, { sortIndex: filtered[to].sortIndex });
-    setMoving(false);
+  return (
+    <section aria-labelledby="album-heading" className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h2 id="album-heading" className="text-xl font-semibold text-slate-800">
+          Album
+        </h2>
+        {canWrite && (
+          <button type="button" onClick={() => openForm()} className={addClass}>
+            <Plus className="w-4 h-4" aria-hidden />
+            Tambah Album
+          </button>
+        )}
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
+        {loading && !data.length ? (
+          <div className="p-8 text-center text-slate-600">Memuat album...</div>
+        ) : error ? (
+          <div role="alert" className="p-8 text-center text-red-600">
+            {error}
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="bg-slate-800 text-white text-sm">
+                <th className={`${th} ${smCell} w-12`}>No</th>
+                <th className={`${th} md:min-w-40`}>Nama album</th>
+                <th className={`${th} ${mdCell} min-w-56`}>Keterangan</th>
+                <th className={`${th} ${smCell} text-center`}>Jumlah foto</th>
+                <th className={`${th} text-center`}>Urutan</th>
+                <th className={th}>Status</th>
+                {canWrite && <th className={`${th} text-center`}>Aksi</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((item, i) => (
+                <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                  <td className={`${td} ${smCell} text-slate-600`}>{i + 1}.</td>
+                  <td className={`${td} break-words`}>
+                    <span className="font-medium text-slate-800">{item.name}</span>
+                    <span className="md:hidden block text-xs text-slate-600">{item.description}</span>
+                  </td>
+                  <td className={`${td} ${mdCell} text-slate-600 break-words`}>{item.description}</td>
+                  <td className={`${td} ${smCell} text-center text-slate-700`}>
+                    {photos.filter((foto) => foto.albumId === item.id).length}
+                  </td>
+                  <td className={`${td} text-center text-slate-700`}>{item.sortIndex}</td>
+                  <td className={td}>
+                    <Status active={item.active} />
+                  </td>
+                  {canWrite && (
+                    <td className="px-2 py-2 align-top">
+                      <RowActions
+                        label={`album ${item.name}`}
+                        onEdit={() => openForm(item)}
+                        onDelete={() => openDelete(item)}
+                      />
+                    </td>
+                  )}
+                </tr>
+              ))}
+              {data.length === 0 && (
+                <tr>
+                  <td colSpan={canWrite ? 7 : 6} className="px-4 py-8 text-center text-slate-600 text-sm">
+                    Belum ada album.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <Modal
+        open={formOpen}
+        title={editing ? "Edit Album" : "Tambah Album"}
+        onClose={() => setFormOpen(false)}
+        onSubmit={handleSave}
+        busy={isSubmitting}
+        footer={<ModalFooter onCancel={() => setFormOpen(false)} busy={isSubmitting} />}
+      >
+        <ErrorBox message={saveError} />
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="album-name" className={labelClass}>
+              Nama album
+            </label>
+            <input
+              id="album-name"
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              className={inputClass}
+              disabled={isSubmitting}
+              required
+              maxLength={200}
+              placeholder="Contoh: Hebitren BI Bandung"
+            />
+          </div>
+          <div>
+            <label htmlFor="album-description" className={labelClass}>
+              Keterangan (opsional)
+            </label>
+            <textarea
+              id="album-description"
+              rows={3}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className={inputClass}
+              disabled={isSubmitting}
+              maxLength={500}
+            />
+          </div>
+          <SortField
+            id="album-sort"
+            value={form.sortIndex}
+            onChange={(sortIndex) => setForm({ ...form, sortIndex })}
+            disabled={isSubmitting}
+          />
+          <ActiveField
+            id="album-active"
+            checked={form.active}
+            onChange={(active) => setForm({ ...form, active })}
+            disabled={isSubmitting}
+          />
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!deleteTarget}
+        title="Hapus album?"
+        onClose={() => setDeleteTarget(null)}
+        busy={isSubmitting}
+        size="sm"
+        footer={<ModalFooter onCancel={() => setDeleteTarget(null)} onDelete={handleDelete} busy={isSubmitting} />}
+      >
+        <ErrorBox message={saveError} />
+        <p className="text-sm text-slate-700">
+          Album <span className="font-semibold text-slate-900 break-words">{deleteTarget?.name}</span> dihapus permanen
+          dan tidak tampil lagi di website. Album yang masih berisi foto tidak bisa dihapus.
+        </p>
+      </Modal>
+    </section>
+  );
+}
+
+function FotoSection({ photos, albums, canWrite }: { photos: Crud<Foto>; albums: Album[]; canWrite: boolean }) {
+  const { data, loading, error, saveError, clearSaveError, createItem, updateItem, deleteItem } = photos;
+  const [albumFilter, setAlbumFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"aktif" | "semua">("semua");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Foto | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Foto | null>(null);
+  const [form, setForm] = useState(EMPTY_FOTO);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const q = searchQuery.trim().toLowerCase();
+  const filtered = data.filter(
+    (foto) =>
+      (!albumFilter || foto.albumId === Number(albumFilter)) &&
+      (statusFilter === "semua" || foto.active) &&
+      (!q || `${foto.album.name} ${foto.caption ?? ""}`.toLowerCase().includes(q)),
+  );
+  const pagination = usePagination(filtered, `${albumFilter}|${statusFilter}|${q}`);
+
+  const openForm = (item?: Foto) => {
+    clearSaveError();
+    setEditing(item ?? null);
+    setForm(
+      item
+        ? {
+            albumId: String(item.albumId),
+            image: item.image,
+            caption: item.caption ?? "",
+            sortIndex: String(item.sortIndex),
+            active: item.active,
+          }
+        : { ...EMPTY_FOTO, albumId: albumFilter },
+    );
+    setFormOpen(true);
   };
 
-  const errorBox = saveError && (
-    <div role="alert" className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-      {saveError}
-    </div>
-  );
+  const handleSave = async () => {
+    setIsSubmitting(true);
+    const payload = {
+      albumId: Number(form.albumId),
+      image: form.image.trim(),
+      caption: form.caption.trim() || null,
+      sortIndex: toSortIndex(form.sortIndex),
+      active: form.active,
+    };
+    const ok = editing ? await updateItem(editing.id, payload) : await createItem(payload as Omit<Foto, "id">);
+    setIsSubmitting(false);
+    if (ok) setFormOpen(false);
+  };
+
+  const openDelete = (item: Foto) => {
+    clearSaveError();
+    setDeleteTarget(item);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsSubmitting(true);
+    const ok = await deleteItem(deleteTarget.id);
+    setIsSubmitting(false);
+    if (ok) setDeleteTarget(null);
+  };
 
   return (
-    <div className="space-y-6">
+    <section aria-labelledby="foto-heading" className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-slate-800">Galeri Foto</h1>
-        <button
-          type="button"
-          onClick={() => openForm()}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
-        >
-          <Plus className="w-4 h-4" aria-hidden />
-          Tambah Foto
-        </button>
+        <h2 id="foto-heading" className="text-xl font-semibold text-slate-800">
+          Foto
+        </h2>
+        {canWrite && (
+          <button type="button" onClick={() => openForm()} disabled={!albums.length} className={addClass}>
+            <Plus className="w-4 h-4" aria-hidden />
+            Tambah Foto
+          </button>
+        )}
       </div>
+      {canWrite && !albums.length && <p className="text-sm text-slate-600">Buat album dulu sebelum menambah foto.</p>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label htmlFor="album-filter" className="block text-sm text-slate-600 mb-1">
+          <label htmlFor="foto-album-filter" className="block text-sm text-slate-600 mb-1">
             Album
           </label>
-          <select id="album-filter" value={albumFilter} onChange={(e) => setAlbumFilter(e.target.value)} className={filterClass}>
-            <option value="">Semua</option>
-            {albums.map((name) => (
-              <option key={name} value={name}>
-                {name}
+          <select
+            id="foto-album-filter"
+            value={albumFilter}
+            onChange={(e) => setAlbumFilter(e.target.value)}
+            className={filterClass}
+          >
+            <option value="">Semua album</option>
+            {albums.map((album) => (
+              <option key={album.id} value={album.id}>
+                {album.name}
               </option>
             ))}
           </select>
         </div>
         <div>
-          <label htmlFor="album-status" className="block text-sm text-slate-600 mb-1">
+          <label htmlFor="foto-status-filter" className="block text-sm text-slate-600 mb-1">
             Status
           </label>
           <select
-            id="album-status"
+            id="foto-status-filter"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as "aktif" | "semua")}
             className={filterClass}
           >
-            <option value="aktif">Hanya yang aktif</option>
             <option value="semua">Semua</option>
+            <option value="aktif">Hanya yang tampil</option>
           </select>
         </div>
       </div>
@@ -182,11 +527,11 @@ export default function GaleriFotoPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <PageSizeSelect pagination={pagination} />
         <div className="relative w-full sm:w-72">
-          <label htmlFor="album-search" className="sr-only">
-            Cari album atau keterangan
+          <label htmlFor="foto-search" className="sr-only">
+            Cari album atau keterangan foto
           </label>
           <input
-            id="album-search"
+            id="foto-search"
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -197,11 +542,9 @@ export default function GaleriFotoPage() {
         </div>
       </div>
 
-      {!formOpen && !deleteTarget && errorBox}
-
       <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
         {loading && !data.length ? (
-          <div className="p-8 text-center text-slate-600">Memuat galeri foto...</div>
+          <div className="p-8 text-center text-slate-600">Memuat foto...</div>
         ) : error ? (
           <div role="alert" className="p-8 text-center text-red-600">
             {error}
@@ -210,97 +553,49 @@ export default function GaleriFotoPage() {
           <table className="w-full">
             <thead>
               <tr className="bg-slate-800 text-white text-sm">
-                <th className="hidden sm:table-cell px-4 py-3 text-left font-semibold w-12">No</th>
-                <th className="px-3 sm:px-4 py-3 text-left font-semibold">Album</th>
-                <th className="px-3 sm:px-4 py-3 text-left font-semibold">Foto</th>
-                <th className="hidden md:table-cell px-4 py-3 text-left font-semibold">Keterangan</th>
-                <th className="hidden md:table-cell px-4 py-3 text-left font-semibold">Tanggal</th>
-                <th className="px-3 sm:px-4 py-3 text-center font-semibold">Urutan</th>
-                <th className="hidden sm:table-cell px-4 py-3 text-center font-semibold">Aktif</th>
-                <th className="px-3 sm:px-4 py-3 text-center font-semibold">Aksi</th>
+                <th className={`${th} ${smCell} w-12`}>No</th>
+                <th className={th}>Pratinjau</th>
+                <th className={`${th} md:min-w-40`}>Album</th>
+                <th className={`${th} ${mdCell} min-w-56`}>Keterangan</th>
+                <th className={`${th} ${smCell} text-center`}>Urutan</th>
+                <th className={th}>Status</th>
+                {canWrite && <th className={`${th} text-center`}>Aksi</th>}
               </tr>
             </thead>
             <tbody>
               {pagination.pageItems.map((item, i) => {
                 const no = pagination.from + i;
-                const index = no - 1;
-                const name = item.keterangan || item.album;
+                const name = item.caption || item.album.name;
                 return (
                   <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td className="hidden sm:table-cell px-4 py-3 text-sm text-slate-600">{no}</td>
-                    <td className="px-3 sm:px-4 py-3 text-sm">
-                      <span className="font-medium text-slate-800">{item.album}</span>
-                      <span className="md:hidden block text-xs text-slate-600 break-words">{item.keterangan}</span>
-                      {!item.active && <span className="sm:hidden block text-xs text-slate-500">Nonaktif</span>}
-                    </td>
-                    <td className="px-3 sm:px-4 py-3">
+                    <td className={`${td} ${smCell} text-slate-600`}>{no}.</td>
+                    <td className={td}>
                       <AdminThumb src={item.image} alt={name} />
                     </td>
-                    <td className="hidden md:table-cell px-4 py-3 text-sm text-slate-600 max-w-[240px] break-words">
-                      {item.keterangan}
+                    <td className={`${td} break-words`}>
+                      <span className="font-medium text-slate-800">{item.album.name}</span>
+                      <span className="md:hidden block text-xs text-slate-600">{item.caption}</span>
                     </td>
-                    <td className="hidden md:table-cell px-4 py-3 text-sm text-slate-600 whitespace-nowrap">
-                      {formatTanggal(item.tanggal)}
+                    <td className={`${td} ${mdCell} text-slate-600 break-words`}>{item.caption}</td>
+                    <td className={`${td} ${smCell} text-center text-slate-700`}>{item.sortIndex}</td>
+                    <td className={td}>
+                      <Status active={item.active} />
                     </td>
-                    <td className="px-3 sm:px-4 py-3">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => move(index, index - 1)}
-                          disabled={moving || index === 0}
-                          className={`${moveClass} bg-green-600 hover:bg-green-700`}
-                          aria-label={`Naikkan urutan foto ${no}, ${name}`}
-                          title="Naikkan"
-                        >
-                          <ArrowUp className="w-4 h-4" aria-hidden />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => move(index, index + 1)}
-                          disabled={moving || index === filtered.length - 1}
-                          className={`${moveClass} bg-red-600 hover:bg-red-700`}
-                          aria-label={`Turunkan urutan foto ${no}, ${name}`}
-                          title="Turunkan"
-                        >
-                          <ArrowDown className="w-4 h-4" aria-hidden />
-                        </button>
-                      </div>
-                    </td>
-                    <td className="hidden sm:table-cell px-4 py-3 text-center">
-                      {item.active ? (
-                        <CheckSquare className="w-5 h-5 text-green-600 mx-auto" aria-label="Aktif" />
-                      ) : (
-                        <Square className="w-5 h-5 text-slate-400 mx-auto" aria-label="Nonaktif" />
-                      )}
-                    </td>
-                    <td className="px-3 sm:px-4 py-3">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => openForm(item)}
-                          className="p-1.5 text-yellow-700 hover:bg-yellow-50 rounded transition-colors"
-                          aria-label={`Edit foto ${no}, ${name}`}
-                          title="Edit"
-                        >
-                          <Pencil className="w-4 h-4" aria-hidden />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openDelete(item)}
-                          className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                          aria-label={`Hapus foto ${no}, ${name}`}
-                          title="Hapus"
-                        >
-                          <Trash2 className="w-4 h-4" aria-hidden />
-                        </button>
-                      </div>
-                    </td>
+                    {canWrite && (
+                      <td className="px-2 py-2 align-top">
+                        <RowActions
+                          label={`foto ${no}, ${name}`}
+                          onEdit={() => openForm(item)}
+                          onDelete={() => openDelete(item)}
+                        />
+                      </td>
+                    )}
                   </tr>
                 );
               })}
               {pagination.pageItems.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-slate-600 text-sm">
+                  <td colSpan={canWrite ? 7 : 6} className="px-4 py-8 text-center text-slate-600 text-sm">
                     {data.length ? "Tidak ada foto yang cocok dengan filter." : "Belum ada foto di galeri."}
                   </td>
                 </tr>
@@ -314,160 +609,89 @@ export default function GaleriFotoPage() {
 
       <Modal
         open={formOpen}
-        title={editing ? "Edit Foto Galeri" : "Tambah Foto Galeri"}
-        onClose={closeModals}
+        title={editing ? "Edit Foto" : "Tambah Foto"}
+        onClose={() => setFormOpen(false)}
         onSubmit={handleSave}
         busy={isSubmitting}
-        footer={
-          <>
-            <button
-              type="button"
-              onClick={closeModals}
-              disabled={isSubmitting}
-              className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
-            >
-              {isSubmitting ? "Menyimpan..." : "Simpan"}
-            </button>
-          </>
-        }
+        size="lg"
+        footer={<ModalFooter onCancel={() => setFormOpen(false)} busy={isSubmitting} />}
       >
-        {errorBox}
+        <ErrorBox message={saveError} />
         <div className="space-y-4">
           <div>
-            <label htmlFor="album-name" className="block text-sm font-medium text-slate-700 mb-1">
+            <label htmlFor="foto-album" className={labelClass}>
               Album
             </label>
             <select
-              id="album-name"
-              value={form.album}
-              onChange={(e) => setForm({ ...form, album: e.target.value })}
+              id="foto-album"
+              value={form.albumId}
+              onChange={(e) => setForm({ ...form, albumId: e.target.value })}
               className={`${inputClass} bg-white`}
               disabled={isSubmitting}
+              required
             >
-              {[...new Set([...albums, form.album])].map((name) => (
-                <option key={name} value={name}>
-                  {name}
+              <option value="">Pilih album</option>
+              {albums.map((album) => (
+                <option key={album.id} value={album.id}>
+                  {album.name}
                 </option>
               ))}
             </select>
           </div>
+          <ImageField
+            id="foto-image"
+            label="Gambar"
+            value={form.image}
+            onChange={(image) => setForm((f) => ({ ...f, image }))}
+            disabled={isSubmitting}
+            required
+          />
           <div>
-            <label htmlFor="album-keterangan" className="block text-sm font-medium text-slate-700 mb-1">
-              Keterangan
+            <label htmlFor="foto-caption" className={labelClass}>
+              Keterangan foto (opsional)
             </label>
             <input
-              id="album-keterangan"
+              id="foto-caption"
               type="text"
-              value={form.keterangan}
-              onChange={(e) => setForm({ ...form, keterangan: e.target.value })}
+              value={form.caption}
+              onChange={(e) => setForm({ ...form, caption: e.target.value })}
               className={inputClass}
               disabled={isSubmitting}
-              maxLength={500}
-              placeholder="Contoh: Gala dinner Bank Indonesia"
+              maxLength={200}
             />
           </div>
-          <div>
-            <label htmlFor="album-tanggal" className="block text-sm font-medium text-slate-700 mb-1">
-              Tanggal
-            </label>
-            <input
-              id="album-tanggal"
-              type="date"
-              value={form.tanggal}
-              onChange={(e) => setForm({ ...form, tanggal: e.target.value })}
-              className={inputClass}
-              disabled={isSubmitting}
-              aria-describedby={legacyTanggal ? "album-tanggal-hint" : undefined}
-            />
-            {legacyTanggal && (
-              <p id="album-tanggal-hint" className="mt-1 text-xs text-amber-800">
-                Tanggal tersimpan &quot;{legacyTanggal}&quot; tidak dikenali. Pilih tanggal baru, atau biarkan kosong
-                supaya tanggal lama tetap tersimpan.
-              </p>
-            )}
-          </div>
-          <div>
-            <label htmlFor="album-image" className="block text-sm font-medium text-slate-700 mb-1">
-              URL foto (opsional)
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                id="album-image"
-                type="text"
-                inputMode="url"
-                value={form.image}
-                onChange={(e) => setForm({ ...form, image: e.target.value })}
-                className={inputClass}
-                disabled={isSubmitting}
-                maxLength={2000}
-                placeholder="/assets/portfolio/temres-magelang-gala-malam.jpg"
-                aria-describedby="album-image-hint"
-              />
-              <AdminThumb src={form.image} alt="Pratinjau foto" />
-            </div>
-            <p id="album-image-hint" className="mt-1 text-xs text-slate-500">
-              Path file di situs ini (diawali /, spasi ditulis %20) atau alamat lengkap yang diawali https://.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <input
-              id="album-active"
-              type="checkbox"
-              checked={form.active}
-              onChange={(e) => setForm({ ...form, active: e.target.checked })}
-              disabled={isSubmitting}
-              className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="album-active" className="text-sm font-medium text-slate-700">
-              Aktif
-            </label>
-          </div>
+          <SortField
+            id="foto-sort"
+            value={form.sortIndex}
+            onChange={(sortIndex) => setForm({ ...form, sortIndex })}
+            disabled={isSubmitting}
+          />
+          <ActiveField
+            id="foto-active"
+            checked={form.active}
+            onChange={(active) => setForm({ ...form, active })}
+            disabled={isSubmitting}
+          />
         </div>
       </Modal>
 
       <Modal
         open={!!deleteTarget}
-        title="Hapus foto galeri?"
-        onClose={closeModals}
+        title="Hapus foto?"
+        onClose={() => setDeleteTarget(null)}
         busy={isSubmitting}
         size="sm"
-        footer={
-          <>
-            <button
-              type="button"
-              onClick={closeModals}
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
-            >
-              {isSubmitting ? "Menghapus..." : "Hapus permanen"}
-            </button>
-          </>
-        }
+        footer={<ModalFooter onCancel={() => setDeleteTarget(null)} onDelete={handleDelete} busy={isSubmitting} />}
       >
-        {errorBox}
+        <ErrorBox message={saveError} />
         <p className="text-sm text-slate-700">
+          Foto{" "}
           <span className="font-semibold text-slate-900 break-words">
-            {deleteTarget?.keterangan || deleteTarget?.album}
+            {deleteTarget && (deleteTarget.caption || deleteTarget.album.name)}
           </span>{" "}
-          akan dihapus permanen dari galeri dan tidak bisa dikembalikan. Kalau hanya ingin menyembunyikannya, batalkan
-          lalu hapus centang Aktif lewat tombol Edit.
+          dihapus permanen dan tidak tampil lagi di website.
         </p>
       </Modal>
-    </div>
+    </section>
   );
 }

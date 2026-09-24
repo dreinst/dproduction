@@ -6,19 +6,23 @@ import { useCrud } from "@/hooks/useCrud";
 import { usePagination } from "@/hooks/usePagination";
 import Modal from "@/components/management/Modal";
 import Pagination, { PageSizeSelect } from "@/components/management/Pagination";
+import { useAdminUser } from "@/components/management/AdminShell";
 
 interface Video {
   id: number;
   url: string;
+  title: string | null;
   active: boolean;
+  sortIndex: number;
 }
 
-const EMPTY_FORM = { url: "", active: true };
-const SAFE_HREF = /^(https?:\/\/|\/(?!\/))/i;
+const EMPTY_FORM = { url: "", title: "", sortIndex: "0", active: true };
+const SAFE_HREF = /^https:\/\//i;
 const inputClass =
   "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100";
 
 export default function GaleriVideoPage() {
+  const canWrite = useAdminUser().can("galeriVideo", "write");
   const { data, loading, error, saveError, clearSaveError, createItem, updateItem, deleteItem } = useCrud<Video>({
     endpoint: "/api/galeri-video",
   });
@@ -32,20 +36,31 @@ export default function GaleriVideoPage() {
 
   const q = searchQuery.trim().toLowerCase();
   const filtered = data.filter(
-    (video) => (statusFilter === "semua" || video.active) && (!q || video.url.toLowerCase().includes(q)),
+    (video) =>
+      (statusFilter === "semua" || video.active) &&
+      (!q || `${video.title ?? ""} ${video.url}`.toLowerCase().includes(q)),
   );
   const pagination = usePagination(filtered, `${statusFilter}|${q}`);
 
   const openForm = (video?: Video) => {
     clearSaveError();
     setEditing(video ?? null);
-    setForm(video ? { url: video.url, active: video.active } : EMPTY_FORM);
+    setForm(
+      video
+        ? { url: video.url, title: video.title ?? "", sortIndex: String(video.sortIndex), active: video.active }
+        : EMPTY_FORM,
+    );
     setFormOpen(true);
   };
 
   const handleSave = async () => {
     setIsSubmitting(true);
-    const payload = { url: form.url.trim(), active: form.active };
+    const payload = {
+      url: form.url.trim(),
+      title: form.title.trim() || null,
+      sortIndex: form.sortIndex === "" ? 0 : Number(form.sortIndex),
+      active: form.active,
+    };
     const ok = editing ? await updateItem(editing.id, payload) : await createItem(payload);
     setIsSubmitting(false);
     if (ok) setFormOpen(false);
@@ -85,32 +100,34 @@ export default function GaleriVideoPage() {
             onChange={(e) => setStatusFilter(e.target.value as "aktif" | "semua")}
             className="px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white min-w-[200px]"
           >
-            <option value="aktif">Hanya yang aktif</option>
+            <option value="aktif">Hanya yang tampil</option>
             <option value="semua">Semua</option>
           </select>
         </div>
-        <button
-          type="button"
-          onClick={() => openForm()}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
-        >
-          <Plus className="w-4 h-4" aria-hidden />
-          Tambah Video
-        </button>
+        {canWrite && (
+          <button
+            type="button"
+            onClick={() => openForm()}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+          >
+            <Plus className="w-4 h-4" aria-hidden />
+            Tambah Video
+          </button>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <PageSizeSelect pagination={pagination} />
         <div className="relative w-full sm:w-72">
           <label htmlFor="video-search" className="sr-only">
-            Cari URL video
+            Cari judul atau link video
           </label>
           <input
             id="video-search"
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari URL video"
+            placeholder="Cari judul atau link video"
             className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden />
@@ -129,58 +146,77 @@ export default function GaleriVideoPage() {
             <thead>
               <tr className="bg-slate-800 text-white text-sm">
                 <th className="hidden sm:table-cell px-4 py-3 text-left font-semibold w-12">No</th>
-                <th className="px-3 sm:px-4 py-3 text-left font-semibold">Video</th>
-                <th className="px-3 sm:px-4 py-3 text-center font-semibold">Aktif</th>
-                <th className="px-3 sm:px-4 py-3 text-center font-semibold">Aksi</th>
+                <th className="px-3 sm:px-4 py-3 text-left font-semibold">Judul video</th>
+                <th className="px-3 sm:px-4 py-3 text-left font-semibold">Link</th>
+                <th className="hidden sm:table-cell px-4 py-3 text-center font-semibold">Urutan</th>
+                <th className="px-3 sm:px-4 py-3 text-center font-semibold">Tampil</th>
+                {canWrite && <th className="px-3 sm:px-4 py-3 text-center font-semibold">Aksi</th>}
               </tr>
             </thead>
             <tbody>
-              {pagination.pageItems.map((video, i) => (
-                <tr key={video.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                  <td className="hidden sm:table-cell px-4 py-3 text-sm text-slate-600">{pagination.from + i}</td>
-                  <td className="px-3 sm:px-4 py-3 text-sm break-all">
-                    {SAFE_HREF.test(video.url) ? (
-                      <a href={video.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                        {video.url}
-                      </a>
-                    ) : (
-                      <span className="text-slate-600">{video.url}</span>
+              {pagination.pageItems.map((video, i) => {
+                const name = video.title || `video ${pagination.from + i}`;
+                return (
+                  <tr key={video.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <td className="hidden sm:table-cell px-4 py-3 text-sm text-slate-600">{pagination.from + i}</td>
+                    <td
+                      className={`px-3 sm:px-4 py-3 text-sm ${video.title ? "text-slate-800" : "text-slate-600 italic"}`}
+                    >
+                      {video.title || "Belum diisi"}
+                    </td>
+                    <td className="px-3 sm:px-4 py-3 text-sm break-all">
+                      {SAFE_HREF.test(video.url) ? (
+                        <a
+                          href={video.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-700 hover:underline"
+                          aria-label={`Buka ${name} di tab baru`}
+                        >
+                          {video.url}
+                        </a>
+                      ) : (
+                        <span className="text-slate-600">{video.url}</span>
+                      )}
+                    </td>
+                    <td className="hidden sm:table-cell px-4 py-3 text-sm text-center text-slate-700">{video.sortIndex}</td>
+                    <td className="px-3 sm:px-4 py-3 text-center">
+                      {video.active ? (
+                        <CheckSquare className="w-5 h-5 text-green-600 mx-auto" aria-label="Tampil di website" />
+                      ) : (
+                        <Square className="w-5 h-5 text-slate-400 mx-auto" aria-label="Tidak tampil" />
+                      )}
+                    </td>
+                    {canWrite && (
+                      <td className="px-3 sm:px-4 py-3">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => openForm(video)}
+                            className="p-1.5 text-yellow-700 hover:bg-yellow-50 rounded transition-colors"
+                            aria-label={`Edit ${name}`}
+                            title="Edit"
+                          >
+                            <Pencil className="w-4 h-4" aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openDelete(video)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            aria-label={`Hapus ${name}`}
+                            title="Hapus"
+                          >
+                            <Trash2 className="w-4 h-4" aria-hidden />
+                          </button>
+                        </div>
+                      </td>
                     )}
-                  </td>
-                  <td className="px-3 sm:px-4 py-3 text-center">
-                    {video.active ? (
-                      <CheckSquare className="w-5 h-5 text-green-600 mx-auto" aria-label="Aktif" />
-                    ) : (
-                      <Square className="w-5 h-5 text-slate-400 mx-auto" aria-label="Nonaktif" />
-                    )}
-                  </td>
-                  <td className="px-3 sm:px-4 py-3">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => openForm(video)}
-                        className="p-1.5 text-yellow-700 hover:bg-yellow-50 rounded transition-colors"
-                        aria-label={`Edit video ${pagination.from + i}`}
-                        title="Edit"
-                      >
-                        <Pencil className="w-4 h-4" aria-hidden />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openDelete(video)}
-                        className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                        aria-label={`Hapus video ${pagination.from + i}`}
-                        title="Hapus"
-                      >
-                        <Trash2 className="w-4 h-4" aria-hidden />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
               {pagination.pageItems.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-slate-600 text-sm">
+                  <td colSpan={canWrite ? 6 : 5} className="px-4 py-8 text-center text-slate-600 text-sm">
                     {data.length ? "Tidak ada video yang cocok dengan filter." : "Belum ada video."}
                   </td>
                 </tr>
@@ -222,7 +258,7 @@ export default function GaleriVideoPage() {
         <div className="space-y-4">
           <div>
             <label htmlFor="video-url" className="block text-sm font-medium text-slate-700 mb-1">
-              URL video
+              Link YouTube
             </label>
             <input
               id="video-url"
@@ -234,8 +270,55 @@ export default function GaleriVideoPage() {
               disabled={isSubmitting}
               required
               maxLength={2000}
-              placeholder="https://www.youtube.com/watch?v=kodevideo"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="https://www.youtube.com/watch?v=xxxxxxxxxxx"
+              aria-describedby="video-url-hint"
             />
+            <p id="video-url-hint" className="mt-1 text-xs text-slate-600">
+              Link video YouTube, misalnya https://youtu.be/xxxxxxxxxxx atau
+              https://www.youtube.com/watch?v=xxxxxxxxxxx.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="video-title" className="block text-sm font-medium text-slate-700 mb-1">
+              Judul video (opsional)
+            </label>
+            <input
+              id="video-title"
+              type="text"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              className={inputClass}
+              disabled={isSubmitting}
+              maxLength={200}
+              aria-describedby="video-title-hint"
+            />
+            <p id="video-title-hint" className="mt-1 text-xs text-slate-600">
+              Dipakai sebagai judul pemutar untuk pembaca layar.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="video-sort" className="block text-sm font-medium text-slate-700 mb-1">
+              Urutan
+            </label>
+            <input
+              id="video-sort"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={2147483647}
+              step={1}
+              value={form.sortIndex}
+              onChange={(e) => setForm({ ...form, sortIndex: e.target.value })}
+              className={inputClass}
+              disabled={isSubmitting}
+              aria-describedby="video-sort-hint"
+            />
+            <p id="video-sort-hint" className="mt-1 text-xs text-slate-600">
+              Angka kecil tampil lebih dulu.
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <input
@@ -247,7 +330,7 @@ export default function GaleriVideoPage() {
               className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             />
             <label htmlFor="video-active" className="text-sm font-medium text-slate-700">
-              Aktif
+              Tampil di website
             </label>
           </div>
         </div>
@@ -282,9 +365,10 @@ export default function GaleriVideoPage() {
       >
         {errorBox}
         <p className="text-sm text-slate-700">
-          Video <span className="font-semibold text-slate-900 break-all">{deleteTarget?.url}</span> akan dihapus permanen
-          dan tidak bisa dikembalikan. Kalau hanya ingin menyembunyikannya, batalkan lalu hapus centang Aktif lewat tombol
-          Edit.
+          Video{" "}
+          <span className="font-semibold text-slate-900 break-all">{deleteTarget?.title || deleteTarget?.url}</span>{" "}
+          dihapus permanen dan tidak tampil lagi di website. Kalau hanya ingin menyembunyikannya, batalkan lalu hapus
+          centang Tampil di website lewat tombol Edit.
         </p>
       </Modal>
     </div>
