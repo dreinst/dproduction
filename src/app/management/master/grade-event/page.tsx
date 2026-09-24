@@ -243,7 +243,8 @@ export default function MasterGradeEventPage() {
         {errorBox}
         <p className="text-sm text-slate-700">
           Grade <span className="font-semibold text-slate-900">{deleteTarget?.grade}</span> akan dihapus permanen dan
-          tidak bisa dikembalikan.
+          tidak bisa dikembalikan. Tarif untuk grade ini di Master Tarif ikut terhapus permanen. Grade yang masih dipakai
+          Workspace Event tidak bisa dihapus.
         </p>
       </Modal>
     </div>

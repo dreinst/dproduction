@@ -2,19 +2,31 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle, Clock } from "lucide-react";
+import { CheckCircle, Clock, PauseCircle, XCircle, type LucideIcon } from "lucide-react";
 import { WORKSPACE_EVENT_STATUS_LABELS as LABELS, type WorkspaceEventStatus } from "@/lib/rbac";
 
-type Counts = Record<WorkspaceEventStatus, number>;
-type Dashboard = { year: number; totals: Counts; monthly: ({ month: string } & Counts)[] };
+type ChartStatus = "selesai" | "berjalan";
+type Dashboard = {
+  year: number;
+  totals: Record<WorkspaceEventStatus, number>;
+  monthly: ({ month: string } & Record<ChartStatus, number>)[];
+};
 type Result = { year: number; data?: Dashboard; error?: string };
 
 const MIN_YEAR = 2000;
 const MAX_YEAR = 2100;
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
-const SERIES: { key: WorkspaceEventStatus; bar: string }[] = [
+const EMPTY_TOTALS: Record<WorkspaceEventStatus, number> = { berjalan: 0, selesai: 0, batal: 0, ditunda: 0 };
+// Batal dan Ditunda hanya tampil di kartu total, tidak masuk grafik bulanan.
+const SERIES: { key: ChartStatus; bar: string }[] = [
   { key: "selesai", bar: "bg-blue-600" },
-  { key: "running", bar: "bg-amber-500" },
+  { key: "berjalan", bar: "bg-amber-500" },
+];
+const CARDS: { key: WorkspaceEventStatus; card: string; icon: LucideIcon; iconClass: string }[] = [
+  { key: "berjalan", card: "from-amber-500 to-amber-600 text-amber-950 shadow-amber-500/20", icon: Clock, iconClass: "text-amber-900/30" },
+  { key: "selesai", card: "from-blue-600 to-blue-700 text-white shadow-blue-600/20", icon: CheckCircle, iconClass: "text-blue-300/50" },
+  { key: "batal", card: "from-red-600 to-red-700 text-white shadow-red-600/20", icon: XCircle, iconClass: "text-red-300/50" },
+  { key: "ditunda", card: "from-slate-600 to-slate-700 text-white shadow-slate-600/20", icon: PauseCircle, iconClass: "text-slate-300/50" },
 ];
 
 const isValidYear = (value: string) => /^\d{4}$/.test(value) && +value >= MIN_YEAR && +value <= MAX_YEAR;
@@ -61,9 +73,9 @@ export default function AdminDashboard() {
 
   const loading = result?.year !== year;
   const data = result?.data;
-  const totals = data?.totals ?? { running: 0, selesai: 0 };
+  const totals = data?.totals ?? EMPTY_TOTALS;
   const monthly = data?.monthly ?? [];
-  const maxChartValue = Math.max(1, ...monthly.map((m) => Math.max(m.selesai, m.running)));
+  const maxChartValue = Math.max(1, ...monthly.map((m) => Math.max(m.selesai, m.berjalan)));
   const yearError = input.length === 4 && !isValidYear(input) ? `Tahun harus antara ${MIN_YEAR} dan ${MAX_YEAR}.` : null;
 
   return (
@@ -98,25 +110,18 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6" aria-busy={loading}>
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-6 text-white shadow-lg shadow-blue-600/20">
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-white text-sm font-medium uppercase tracking-wider">Event {LABELS.selesai}</p>
-              <p className="text-5xl font-extrabold mt-2">{totals.selesai}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6" aria-busy={loading}>
+        {CARDS.map(({ key, card, icon: Icon, iconClass }) => (
+          <div key={key} className={`bg-gradient-to-r ${card} rounded-2xl p-6 shadow-lg`}>
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm font-medium uppercase tracking-wider">Event {LABELS[key]}</p>
+                <p className="text-5xl font-extrabold mt-2">{totals[key]}</p>
+              </div>
+              <Icon className={`w-12 h-12 shrink-0 ${iconClass}`} aria-hidden />
             </div>
-            <CheckCircle className="w-12 h-12 shrink-0 text-blue-300/50" aria-hidden />
           </div>
-        </div>
-        <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl p-6 text-amber-950 shadow-lg shadow-amber-500/20">
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-sm font-medium uppercase tracking-wider">Event {LABELS.running}</p>
-              <p className="text-5xl font-extrabold mt-2">{totals.running}</p>
-            </div>
-            <Clock className="w-12 h-12 shrink-0 text-amber-900/30" aria-hidden />
-          </div>
-        </div>
+        ))}
       </div>
 
       <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-slate-100">
@@ -131,8 +136,8 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {!loading && data && totals.selesai + totals.running === 0 && (
-          <p className="mb-4 text-sm text-slate-600">Belum ada event di tahun {year}.</p>
+        {!loading && data && totals.selesai + totals.berjalan === 0 && (
+          <p className="mb-4 text-sm text-slate-600">Belum ada event berjalan atau selesai di tahun {year}.</p>
         )}
 
         <div className="overflow-x-auto">
