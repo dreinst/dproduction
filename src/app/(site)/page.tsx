@@ -7,6 +7,10 @@ import KlienSection from "@/components/sections/KlienSection";
 import GaleriSection from "@/components/sections/GaleriSection";
 import FaqSection from "@/components/sections/FaqSection";
 import KontakSection from "@/components/sections/KontakSection";
+import { getLandingContent, getLandingKantor } from "@/lib/landing-content";
+
+// Konten dari database di-render ulang paling lama tiap 5 menit, atau segera setelah admin menyimpan (revalidateLanding).
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: { absolute: "D'Production | Event Organizer & Wedding Planner Malang" },
@@ -23,17 +27,26 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Home() {
+export default async function Home() {
+  const [content, kantor] = await Promise.all([getLandingContent(), getLandingKantor()]);
+  const { whatsapp } = kantor;
+
   return (
     <>
-      <HeroSection />
-      <TentangKamiSection />
-      <LayananSection />
-      <MasterpieceSection />
+      <HeroSection whatsapp={whatsapp} description={kantor.description} stats={kantor.stats} hero={content.hero} />
+      <TentangKamiSection aboutUs={kantor.aboutUs} stats={kantor.stats} />
+      <LayananSection whatsapp={whatsapp} wedding={content.wedding} rentals={content.rentals} />
+      <MasterpieceSection items={content.masterpieces} />
       <KlienSection />
-      <GaleriSection />
+      <GaleriSection photos={content.photos} videos={content.videos} />
       <FaqSection />
-      <KontakSection />
+      <KontakSection
+        address={kantor.address}
+        whatsapp={whatsapp}
+        whatsappDisplay={kantor.whatsappDisplay}
+        email={kantor.email}
+        googleMapsUrl={kantor.googleMapsUrl}
+      />
     </>
   );
 }

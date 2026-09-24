@@ -13,12 +13,14 @@ import {
   trackWhatsAppClick,
   trackFormConversion,
 } from "@/lib/site";
+import type { LandingKantor } from "@/lib/landing-content";
 
 const EMPTY_FORM = { name: "", whatsapp: "", eventType: "", message: "", website: "" };
 const SEND_FAILED = "Pesan belum terkirim karena gangguan koneksi atau server.";
-const MAP_QUERY = "D'Production Event & Wedding Planner, Jl. Raya Pandanlandung No.16, Bandulan, Wagir, Malang";
 
-export default function KontakSection() {
+type Props = Pick<LandingKantor, "address" | "whatsapp" | "whatsappDisplay" | "email" | "googleMapsUrl">;
+
+export default function KontakSection({ address, whatsapp, whatsappDisplay, email, googleMapsUrl }: Props) {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error" | "failed">("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -105,7 +107,7 @@ export default function KontakSection() {
               <div>
                 <h3 className="font-bold text-xl text-slate-900 mb-2">Alamat Kantor</h3>
                 <p className="text-slate-600 leading-relaxed">
-                  Jl. Raya Pandanlandung No. 16 Bandulan, Wagir, Kab. Malang, Jawa Timur
+                  {address}
                 </p>
               </div>
             </div>
@@ -116,8 +118,8 @@ export default function KontakSection() {
               </div>
               <div>
                 <h3 className="font-bold text-xl text-slate-900 mb-2">Telepon / WA</h3>
-                <a href={whatsappUrl()} target="_blank" rel="noopener noreferrer" onClick={trackWhatsAppClick} className="text-slate-600 hover:text-blue-600 transition-colors font-medium">
-                  +62 819-3893-8800
+                <a href={whatsappUrl(undefined, whatsapp)} target="_blank" rel="noopener noreferrer" onClick={trackWhatsAppClick} className="text-slate-600 hover:text-blue-600 transition-colors font-medium">
+                  {whatsappDisplay}
                 </a>
               </div>
             </div>
@@ -128,8 +130,8 @@ export default function KontakSection() {
               </div>
               <div className="min-w-0">
                 <h3 className="font-bold text-xl text-slate-900 mb-2">Email</h3>
-                <a href="mailto:dproductionorganizer@gmail.com" className="break-all text-slate-600 hover:text-blue-600 transition-colors font-medium">
-                  dproductionorganizer@gmail.com
+                <a href={`mailto:${email}`} className="break-all text-slate-600 hover:text-blue-600 transition-colors font-medium">
+                  {email}
                 </a>
               </div>
             </div>
@@ -163,7 +165,7 @@ export default function KontakSection() {
                     {status === "failed" && (
                       <>
                         <p className="mt-1 text-slate-600">Isian Anda masih tersimpan. Anda bisa langsung mengirimnya lewat WhatsApp.</p>
-                        <a href={whatsappUrl(whatsappFallbackText)} target="_blank" rel="noopener noreferrer" onClick={trackWhatsAppClick} className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-700 text-white font-bold hover:bg-green-800 transition-colors">
+                        <a href={whatsappUrl(whatsappFallbackText, whatsapp)} target="_blank" rel="noopener noreferrer" onClick={trackWhatsAppClick} className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-700 text-white font-bold hover:bg-green-800 transition-colors">
                           <MessageCircle className="w-4 h-4" /> Kirim lewat WhatsApp
                         </a>
                       </>
@@ -221,7 +223,7 @@ export default function KontakSection() {
             <div className="w-full h-64 bg-slate-200 rounded-2xl overflow-hidden relative">
               <iframe 
                 title="Peta lokasi kantor D'Production di Wagir, Malang"
-                src={`https://www.google.com/maps?q=${encodeURIComponent(MAP_QUERY)}&output=embed`}
+                src={googleMapsUrl}
                 className="absolute inset-0 w-full h-full border-0" 
                 allowFullScreen={false} 
                 loading="lazy" 

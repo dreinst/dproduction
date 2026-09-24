@@ -1,37 +1,38 @@
 "use client";
 
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { CalendarDays, Heart, Speaker, Box, CheckCircle2, ArrowRight } from "lucide-react";
+import LandingImage from "@/components/LandingImage";
 import { whatsappUrl, trackWhatsAppClick } from "@/lib/site";
+import type { LandingContent } from "@/lib/landing-content";
 
-const services = [
-  {
-    id: "event",
-    title: "Event Organizer",
-    icon: CalendarDays,
-    color: "blue",
-    description: "Punya acara penting tapi bingung mau mulai dari mana? Serahkan saja pada D'Production, event organizer di Malang yang siap mengubah ide dan konsepmu menjadi acara yang berkesan, rapi, dan berjalan lancar dari awal sampai akhir.",
-    features: ["Corporate Gathering", "Product Launching", "Seminar & Workshop", "Gala Dinner"],
-  },
-  {
-    id: "wedding",
-    title: "Wedding Planner",
-    icon: Heart,
-    color: "pink",
-    description: "Hari pernikahan hanya datang sekali. Sebagai wedding organizer di Malang, kami hadir untuk membantu mewujudkan pernikahan impianmu, mulai dari konsep, dekorasi, venue, hingga rundown acara. Semua kami rancang dengan teliti agar kamu bisa menikmati hari bahagiamu tanpa rasa khawatir.",
-    features: ["Konsep & Tema", "Dekorasi Premium", "Manajemen Vendor", "Koordinasi Hari-H"],
-  }
-];
+type Props = { whatsapp: string; wedding: LandingContent["wedding"]; rentals: LandingContent["rentals"] };
 
-const rentals = [
-  { name: "Tenda Premium", price: "Mulai Rp 200.000/hari", icon: Box },
-  { name: "Sound System Pro", price: "Mulai Rp 1.000.000/hari", icon: Speaker },
-  { name: "Lighting Stage", price: "Mulai Rp 500.000/hari", icon: Box },
-  { name: "Kursi & Meja", price: "Hubungi Kami", icon: Box },
-];
+// Pemisah ribuan titik tanpa Intl supaya hasil server dan browser selalu sama.
+const rupiah = (value: number) => String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 
-export default function LayananSection() {
+export default function LayananSection({ whatsapp, wedding, rentals }: Props) {
+  const services = [
+    {
+      id: "event",
+      title: "Event Organizer",
+      icon: CalendarDays,
+      color: "blue",
+      description: "Punya acara penting tapi bingung mau mulai dari mana? Serahkan saja pada D'Production, event organizer di Malang yang siap mengubah ide dan konsepmu menjadi acara yang berkesan, rapi, dan berjalan lancar dari awal sampai akhir.",
+      features: ["Corporate Gathering", "Product Launching", "Seminar & Workshop", "Gala Dinner"],
+      photo: { src: "/assets/portfolio/ustegra-peresmian-aerial.jpg", alt: "Event Organizer" },
+    },
+    {
+      id: "wedding",
+      title: "Wedding Planner",
+      icon: Heart,
+      color: "pink",
+      description: "Hari pernikahan hanya datang sekali. Sebagai wedding organizer di Malang, kami hadir untuk membantu mewujudkan pernikahan impianmu, mulai dari konsep, dekorasi, venue, hingga rundown acara. Semua kami rancang dengan teliti agar kamu bisa menikmati hari bahagiamu tanpa rasa khawatir.",
+      features: wedding.points,
+      photo: wedding.photo,
+    },
+  ];
+
   return (
     <section id="layanan" className="py-20 lg:py-32 bg-slate-50 overflow-x-clip">
       <div className="container mx-auto px-4 lg:px-8">
@@ -87,7 +88,7 @@ export default function LayananSection() {
                       </li>
                     ))}
                   </ul>
-                  <a href={whatsappUrl()} target="_blank" rel="noopener noreferrer" onClick={trackWhatsAppClick} className="inline-flex items-center gap-2 text-blue-600 font-bold hover:text-blue-700 transition-colors group">
+                  <a href={whatsappUrl(undefined, whatsapp)} target="_blank" rel="noopener noreferrer" onClick={trackWhatsAppClick} className="inline-flex items-center gap-2 text-blue-600 font-bold hover:text-blue-700 transition-colors group">
                     Konsultasi Detail <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </a>
                 </motion.div>
@@ -98,7 +99,7 @@ export default function LayananSection() {
                   className={`relative ${isEven ? 'lg:order-first' : ''}`}
                 >
                   <div className="relative rounded-3xl overflow-hidden aspect-[4/3] shadow-2xl bg-slate-200">
-                    <Image src={index === 0 ? "/assets/portfolio/ustegra-peresmian-aerial.jpg" : "/assets/hero img 6.jpg"} fill sizes="(min-width: 1024px) 45vw, 100vw" alt={service.title} className="object-cover" />
+                    <LandingImage src={service.photo.src} sizes="(min-width: 1024px) 45vw, 100vw" alt={service.photo.alt} className="object-cover" />
                     <div className="absolute inset-0 bg-slate-900/10"></div>
                   </div>
                   {/* Decoration block */}
@@ -127,21 +128,23 @@ export default function LayananSection() {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {rentals.map((item, index) => {
-                const Icon = item.icon;
+                const Icon = /sound/i.test(item.name) ? Speaker : Box;
                 return (
                   <div key={index} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:bg-slate-800 transition-colors rounded-2xl p-6 group">
                     <div className="w-12 h-12 bg-slate-700 group-hover:bg-blue-600 transition-colors rounded-xl flex items-center justify-center mb-6">
                       <Icon className="w-6 h-6 text-white" />
                     </div>
                     <h4 className="font-bold text-lg mb-2">{item.name}</h4>
-                    <p className="text-sm text-slate-400 font-medium">{item.price}</p>
+                    <p className="text-sm text-slate-400 font-medium">
+                      {item.price ? `Mulai Rp ${rupiah(item.price)}${item.unit ? `/${item.unit}` : ""}` : "Hubungi Kami"}
+                    </p>
                   </div>
                 );
               })}
             </div>
             
             <div className="mt-12 text-center">
-              <a href={whatsappUrl()} target="_blank" rel="noopener noreferrer" onClick={trackWhatsAppClick} className="inline-block px-8 py-4 bg-white text-slate-900 rounded-full font-bold hover:bg-slate-100 transition-colors">
+              <a href={whatsappUrl(undefined, whatsapp)} target="_blank" rel="noopener noreferrer" onClick={trackWhatsAppClick} className="inline-block px-8 py-4 bg-white text-slate-900 rounded-full font-bold hover:bg-slate-100 transition-colors">
                 Tanya Ketersediaan via WhatsApp
               </a>
             </div>
