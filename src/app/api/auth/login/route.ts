@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { apiError, handleRouteError, readJson } from '@/lib/api';
 import { setSessionCookie, signSession } from '@/lib/session';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { isRole } from '@/lib/rbac';
+import { DUMMY_PASSWORD_HASH, verifyPassword } from '@/lib/password';
 
 const loginSchema = z.object({
   username: z.string({ error: 'Username wajib diisi.' }).trim().toLowerCase().min(1, 'Username wajib diisi.').max(100),
-  password: z.string({ error: 'Password wajib diisi.' }).min(1, 'Password wajib diisi.').max(200),
+  // Di-trim sama dengan Produksia, karena password juga di-trim saat di-hash.
+  password: z.string({ error: 'Password wajib diisi.' }).trim().min(1, 'Password wajib diisi.').max(200),
 });
 
 const MAX_FAILED = 5;
@@ -18,8 +19,6 @@ const IP_LIMIT = 20;
 const IP_WINDOW_MS = 15 * 60 * 1000;
 const FAILED_MESSAGE = 'Username atau password salah.';
 const LOCKED_MESSAGE = 'Akun dikunci sementara karena terlalu banyak percobaan gagal. Coba lagi dalam 15 menit.';
-// Hash bcrypt (cost 10) dari string acak, dipakai saat user tidak ada supaya waktu respons tetap setara.
-const DUMMY_HASH = '$2b$10$si907M1wzpEuH1H8NAF6r.zq/OwVCiu3LBddqZuNhEboOaORQutai';
 
 export async function POST(req: Request) {
   try {
@@ -34,13 +33,13 @@ export async function POST(req: Request) {
 
     // Username yang tidak ada diperlakukan sama: 401 empat kali lalu 429, supaya keberadaan akun tidak bisa ditebak.
     if (!user) {
-      await bcrypt.compare(password, DUMMY_HASH);
+      await verifyPassword(password, DUMMY_PASSWORD_HASH);
       return rateLimit(`login-fail:${username}`, MAX_FAILED - 1, LOCK_MS)
         ? apiError(401, FAILED_MESSAGE)
         : apiError(429, LOCKED_MESSAGE);
     }
 
-    // Jatah percobaan dipesan secara atomik sebelum bcrypt, sehingga request paralel tidak bisa melewati MAX_FAILED.
+    // Jatah percobaan dipesan secara atomik sebelum password dicek, sehingga request paralel tidak bisa melewati MAX_FAILED.
     const reserved = await prisma.user.updateMany({
       where: {
         id: user.id,
@@ -50,12 +49,12 @@ export async function POST(req: Request) {
       data: { failedLogins: { increment: 1 } },
     });
     if (reserved.count === 0) {
-      await bcrypt.compare(password, DUMMY_HASH);
+      await verifyPassword(password, DUMMY_PASSWORD_HASH);
       return apiError(429, LOCKED_MESSAGE);
     }
 
     const usable = user.active && isRole(user.role);
-    const match = await bcrypt.compare(password, usable ? user.passwordHash : DUMMY_HASH);
+    const match = await verifyPassword(password, usable ? user.passwordHash : DUMMY_PASSWORD_HASH);
 
     if (!usable || !match) {
       const locked = await prisma.user.updateMany({

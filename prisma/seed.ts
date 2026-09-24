@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
-import bcrypt from 'bcrypt'
 import prisma from '../src/lib/prisma'
+import { checkPasswordStrength, hashPassword } from '../src/lib/password'
 import { assertLocalDatabase } from '../scripts/assert-local-db'
 
 const USERS = [
@@ -25,11 +25,15 @@ async function main() {
   if (!toCreate.length) return
 
   const generated = !process.env.SEED_PASSWORD
-  const password = process.env.SEED_PASSWORD || randomBytes(18).toString('base64url')
-  if (password.trim().length < 12) {
-    throw new Error('SEED_PASSWORD minimal 12 karakter, sama dengan aturan password di dashboard.')
+  // Password acak diberi akhiran huruf dan angka supaya selalu lolos aturan password.
+  const password = process.env.SEED_PASSWORD || `${randomBytes(18).toString('base64url')}a1`
+  const weak = checkPasswordStrength(password)
+  if (weak) {
+    console.error(`SEED_PASSWORD ditolak: ${weak} Aturannya sama dengan password di dashboard.`)
+    process.exitCode = 1
+    return
   }
-  const passwordHash = await bcrypt.hash(password, 10)
+  const passwordHash = await hashPassword(password)
 
   await prisma.user.createMany({
     data: toCreate.map((u) => ({ ...u, passwordHash })),

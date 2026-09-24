@@ -125,14 +125,14 @@ export default function SettingLoginPage() {
         <PageSizeSelect pagination={pagination} />
         <div className="relative w-full sm:w-72">
           <label htmlFor="user-search" className="sr-only">
-            Cari username atau alias
+            Cari username atau nama lengkap
           </label>
           <input
             id="user-search"
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari username atau alias"
+            placeholder="Cari username atau nama lengkap"
             className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden />
@@ -151,7 +151,7 @@ export default function SettingLoginPage() {
             <thead>
               <tr className="bg-slate-800 text-white text-sm">
                 <th className="px-3 sm:px-4 py-3 text-left font-semibold">Username</th>
-                <th className="hidden sm:table-cell px-4 py-3 text-left font-semibold">Alias</th>
+                <th className="hidden sm:table-cell px-4 py-3 text-left font-semibold">Nama lengkap</th>
                 <th className="px-3 sm:px-4 py-3 text-left font-semibold">Level</th>
                 <th className="px-3 sm:px-4 py-3 text-center font-semibold">Aktif</th>
                 <th className="px-3 sm:px-4 py-3 text-center font-semibold">Aksi</th>
@@ -259,7 +259,7 @@ export default function SettingLoginPage() {
               disabled={isSubmitting}
               required
               minLength={3}
-              maxLength={50}
+              maxLength={32}
               autoComplete="off"
               autoCapitalize="none"
               autoCorrect="off"
@@ -267,7 +267,7 @@ export default function SettingLoginPage() {
               aria-describedby="user-username-hint"
             />
             <p id="user-username-hint" className="mt-1 text-xs text-slate-500">
-              3 sampai 50 karakter: huruf kecil, angka, titik, garis bawah, atau tanda hubung.
+              3 sampai 32 karakter: huruf kecil, angka, titik, garis bawah, atau strip, diawali huruf atau angka.
             </p>
           </div>
 
@@ -283,20 +283,20 @@ export default function SettingLoginPage() {
               className={inputClass}
               disabled={isSubmitting}
               required={!editing}
-              minLength={12}
+              minLength={8}
               autoComplete="new-password"
               aria-describedby="user-password-hint"
             />
             <p id="user-password-hint" className="mt-1 text-xs text-slate-500">
               {editing
-                ? "Kosongkan kalau tidak ingin mengganti. Password baru minimal 12 karakter, dan user ini akan keluar dari semua perangkat."
-                : "Minimal 12 karakter."}
+                ? "Kosongkan kalau tidak ingin mengganti. Password baru minimal 8 karakter dan memuat huruf dan angka, dan user ini akan keluar dari semua perangkat."
+                : "Minimal 8 karakter dan memuat huruf dan angka."}
             </p>
           </div>
 
           <div>
             <label htmlFor="user-alias" className="block text-sm font-medium text-slate-700 mb-1">
-              Alias
+              Nama lengkap
             </label>
             <input
               id="user-alias"
@@ -350,14 +350,16 @@ export default function SettingLoginPage() {
             </label>
           </div>
           {editingSelf && (
-            <p className="text-xs text-slate-500">Anda tidak bisa mengubah level atau menonaktifkan akun sendiri.</p>
+            <p className="text-xs text-slate-500">
+              Anda tidak bisa mengubah level atau menonaktifkan akun sendiri. Minta Pemilik atau Super Admin lain.
+            </p>
           )}
         </div>
       </Modal>
 
       <Modal
         open={!!deleteTarget}
-        title="Hapus user?"
+        title="Hapus akun?"
         onClose={() => setDeleteTarget(null)}
         busy={isSubmitting}
         size="sm"
@@ -384,9 +386,9 @@ export default function SettingLoginPage() {
       >
         {errorBox}
         <p className="text-sm text-slate-700">
-          User <span className="font-semibold text-slate-900">{deleteTarget?.username}</span> akan dihapus permanen dan
-          langsung keluar dari semua perangkat. Data user ini tidak bisa dikembalikan. Kalau hanya ingin memutus akses
-          sementara, batalkan lalu nonaktifkan lewat tombol Edit.
+          Akun <span className="font-semibold text-slate-900">{deleteTarget?.username}</span> akan dihapus permanen dan
+          langsung keluar dari semua perangkat. Akun yang sudah dihapus tidak bisa dikembalikan. Kalau hanya ingin
+          memutus akses sementara, batalkan lalu nonaktifkan lewat tombol Edit.
         </p>
       </Modal>
     </div>
