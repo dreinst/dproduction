@@ -1,8 +1,10 @@
 import { z } from 'zod';
-import { zUrl } from '@/lib/api';
+import { zText, zUrl } from '@/lib/api';
 
 const fields = {
   image: zUrl('URL gambar'),
+  title: zText(100, 'Judul kartu').nullable().optional(),
+  caption: zText(300, 'Keterangan kartu').nullable().optional(),
   active: z.boolean({ error: 'Status aktif harus ya atau tidak.' }),
 };
 

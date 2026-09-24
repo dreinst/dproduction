@@ -9,7 +9,7 @@ interface DatabaseItem {
   id: number;
   table: string;
   name: string;
-  href: string;
+  href: string | null;
   records: number;
   lastUpdated: string | null;
 }
@@ -74,14 +74,18 @@ export default function DatabasePage() {
                     {entry.lastUpdated ? formatWib(entry.lastUpdated) : "Belum ada data"}
                   </td>
                   <td className="px-3 sm:px-4 py-3 text-center">
-                    <Link
-                      href={entry.href}
-                      className="inline-flex items-center gap-1 p-1.5 text-sm font-medium text-blue-700 hover:bg-blue-50 rounded transition-colors"
-                      aria-label={`Buka halaman ${entry.name}`}
-                    >
-                      <span className="hidden sm:inline">Buka</span>
-                      <ArrowUpRight className="w-4 h-4" aria-hidden />
-                    </Link>
+                    {entry.href ? (
+                      <Link
+                        href={entry.href}
+                        className="inline-flex items-center gap-1 p-1.5 text-sm font-medium text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                        aria-label={`Buka halaman ${entry.name}`}
+                      >
+                        <span className="hidden sm:inline">Buka</span>
+                        <ArrowUpRight className="w-4 h-4" aria-hidden />
+                      </Link>
+                    ) : (
+                      <span className="text-xs text-slate-600">Tanpa halaman</span>
+                    )}
                   </td>
                 </tr>
               ))}
