@@ -1,345 +1,373 @@
 "use client";
 
-import { useState } from "react";
-import { Pencil, Plus, Search, Trash2 } from "lucide-react";
-import { useCrud } from "@/hooks/useCrud";
-import { usePagination } from "@/hooks/usePagination";
+import { useCallback, useEffect, useState } from "react";
+import { jsonInit, useApiRequest } from "@/hooks/useCrud";
 import Modal from "@/components/management/Modal";
-import Pagination, { PageSizeSelect } from "@/components/management/Pagination";
+import {
+  currentWibMonth,
+  errorMessage,
+  formatWib,
+  formatWibDate,
+  hintClass,
+  inputClass,
+  labelClass,
+  primaryButton,
+  rupiah,
+  secondaryButton,
+  useAction,
+} from "../shared";
 
-interface SalaryEntry {
+type Named = { id: number; name: string };
+
+interface SalaryAssignment {
   id: number;
-  waktu: string;
-  klien: string;
-  event: string;
-  deskripsi: string | null;
-  active: boolean;
+  honor: number;
+  paid: boolean;
+  paidAt: string | null;
+  crew: Named;
+  jobDesc: Named;
+  workspaceEvent: { id: number; name: string; startAt: string };
 }
 
-type FormState = Omit<SalaryEntry, "id" | "deskripsi"> & { deskripsi: string };
+interface Recap {
+  crewId: number;
+  crewName: string;
+  count: number;
+  total: number;
+  paidTotal: number;
+  unpaidTotal: number;
+}
 
-const EMPTY_FORM: FormState = { waktu: "", klien: "", event: "", deskripsi: "", active: true };
-const inputClass =
-  "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100";
-const labelClass = "block text-sm font-medium text-slate-700 mb-1";
+type SalaryData = { month: string; assignments: SalaryAssignment[]; recap: Recap[] };
+
+const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+const LOAD_FALLBACK = "Data salary gagal dimuat. Coba muat ulang halaman.";
+const th = "px-3 py-3 text-left font-semibold";
+const thRight = "px-3 py-3 text-right font-semibold";
+const td = "px-3 py-3 align-top text-sm";
+const tdRight = "px-3 py-3 align-top text-sm text-right whitespace-nowrap";
 
 export default function WorkspaceSalaryPage() {
-  const { data, loading, error, saveError, clearSaveError, createItem, updateItem, deleteItem } = useCrud<SalaryEntry>({
-    endpoint: "/api/workspace-salary",
-  });
-  const [statusFilter, setStatusFilter] = useState<"aktif" | "semua">("aktif");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<SalaryEntry | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<SalaryEntry | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const request = useApiRequest();
+  const [month, setMonth] = useState(currentWibMonth);
+  const [monthInput, setMonthInput] = useState(month);
+  const [result, setResult] = useState<{ month: string; data?: SalaryData; error?: string } | null>(null);
+  const [honorTarget, setHonorTarget] = useState<SalaryAssignment | null>(null);
+  const [honorInput, setHonorInput] = useState("");
+  const [payTarget, setPayTarget] = useState<Recap | null>(null);
 
-  const q = searchQuery.trim().toLowerCase();
-  const filtered = data.filter(
-    (s) =>
-      (statusFilter === "semua" || s.active) &&
-      (!q || [s.klien, s.event, s.deskripsi].some((v) => (v ?? "").toLowerCase().includes(q))),
+  const fetchMonth = useCallback(
+    (m: string) =>
+      request(`/api/salary?month=${m}`, LOAD_FALLBACK).then(
+        (data: SalaryData) => ({ month: m, data }),
+        (err) => ({ month: m, error: errorMessage(err, LOAD_FALLBACK) }),
+      ),
+    [request],
   );
-  const pagination = usePagination(filtered, `${statusFilter}|${q}`);
 
-  const openForm = (entry?: SalaryEntry) => {
-    clearSaveError();
-    setEditing(entry ?? null);
-    setForm(entry ? { ...entry, deskripsi: entry.deskripsi ?? "" } : EMPTY_FORM);
-    setFormOpen(true);
-  };
-
-  const closeForm = () => {
-    setFormOpen(false);
-    clearSaveError();
-  };
-
-  const handleSave = async () => {
-    setIsSubmitting(true);
-    const payload = {
-      waktu: form.waktu,
-      klien: form.klien,
-      event: form.event,
-      deskripsi: form.deskripsi.trim() || null,
-      active: form.active,
+  useEffect(() => {
+    let cancelled = false;
+    fetchMonth(month).then((r) => !cancelled && setResult(r));
+    return () => {
+      cancelled = true;
     };
-    const ok = editing ? await updateItem(editing.id, payload) : await createItem(payload);
-    setIsSubmitting(false);
-    if (ok) setFormOpen(false);
+  }, [month, fetchMonth]);
+
+  // Aksi menunggu data baru sebelum tombol aktif lagi. Input bulan dikunci selama aksi, jadi month tetap bulan yang tampil.
+  const action = useAction(async () => setResult(await fetchMonth(month)));
+
+  const loading = result?.month !== month;
+  const data = loading ? undefined : result?.data;
+  const monthError = monthInput && !MONTH_PATTERN.test(monthInput) ? "Isi bulan dengan format TTTT-BB, misalnya 2026-09." : null;
+
+  const onMonthChange = (value: string) => {
+    setMonthInput(value);
+    if (MONTH_PATTERN.test(value)) setMonth(value);
   };
 
-  const openDelete = (entry: SalaryEntry) => {
-    clearSaveError();
-    setDeleteTarget(entry);
+  const openHonor = (item: SalaryAssignment) => {
+    action.clearError();
+    setHonorInput(String(item.honor));
+    setHonorTarget(item);
   };
 
-  const closeDelete = () => {
-    setDeleteTarget(null);
-    clearSaveError();
+  const saveHonor = async () => {
+    if (!honorTarget) return;
+    const ok = await action.run(
+      `/api/salary/${honorTarget.id}`,
+      jsonInit("PATCH", { honor: Number(honorInput) }),
+      "Gagal menyimpan honor.",
+    );
+    if (ok) setHonorTarget(null);
   };
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    setIsSubmitting(true);
-    const ok = await deleteItem(deleteTarget.id);
-    setIsSubmitting(false);
-    if (ok) setDeleteTarget(null);
+  const togglePaid = (item: SalaryAssignment) =>
+    action.run(`/api/salary/${item.id}`, jsonInit("PATCH", { paid: !item.paid }), "Gagal mengubah status bayar.");
+
+  const openPay = (row: Recap) => {
+    action.clearError();
+    setPayTarget(row);
   };
 
-  const errorBox = saveError && (
-    <div role="alert" className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-      {saveError}
+  const payAll = async () => {
+    if (!payTarget) return;
+    const ok = await action.run(
+      "/api/salary/pay",
+      jsonInit("POST", { crewId: payTarget.crewId, month }),
+      "Gagal menandai semua penugasan dibayar.",
+    );
+    if (ok) setPayTarget(null);
+  };
+
+  const errorBox = action.error && (
+    <div role="alert" className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+      {action.error}
     </div>
   );
 
+  const [year, monthNumber] = month.split("-").map(Number);
+  const monthLabel = new Date(Date.UTC(year, monthNumber - 1, 1)).toLocaleDateString("id-ID", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-800">Salary</h1>
-
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <label htmlFor="salary-status" className="block text-sm text-slate-600 mb-1">
-            Status
-          </label>
-          <select
-            id="salary-status"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as "aktif" | "semua")}
-            className="px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white min-w-[200px]"
-          >
-            <option value="aktif">Hanya yang aktif</option>
-            <option value="semua">Semua</option>
-          </select>
-        </div>
-        <button
-          type="button"
-          onClick={() => openForm()}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
-        >
-          <Plus className="w-4 h-4" aria-hidden />
-          Tambah Salary
-        </button>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <PageSizeSelect pagination={pagination} />
-        <div className="relative w-full sm:w-72">
-          <label htmlFor="salary-search" className="sr-only">
-            Cari klien, event, atau deskripsi
+      <div>
+        <h1 className="text-2xl font-bold text-slate-800">Salary</h1>
+        <div className="mt-3 max-w-xs">
+          <label htmlFor="salary-month" className={labelClass}>
+            Bulan (menurut tanggal mulai event)
           </label>
           <input
-            id="salary-search"
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari klien, event, atau deskripsi"
-            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            id="salary-month"
+            type="month"
+            value={monthInput}
+            onChange={(e) => onMonthChange(e.target.value)}
+            className={inputClass}
+            disabled={action.busy}
+            aria-invalid={!!monthError}
+            aria-describedby="salary-month-hint"
           />
-          <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden />
+          <p id="salary-month-hint" className={`${hintClass} ${monthError ? "text-red-700" : ""}`} aria-live="polite">
+            {monthError ?? (loading ? `Memuat data ${monthLabel}...` : `Menampilkan data ${monthLabel}.`)}
+          </p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
-        {loading && !data.length ? (
-          <div className="p-8 text-center text-slate-600">Memuat data salary...</div>
-        ) : error ? (
-          <div role="alert" className="p-8 text-center text-red-600">
-            {error}
-          </div>
-        ) : (
-          <table className="w-full min-w-[760px]">
-            <thead>
-              <tr className="bg-slate-800 text-white text-sm">
-                <th className="px-4 py-3 text-left font-semibold w-12">No</th>
-                <th className="px-4 py-3 text-left font-semibold w-48">Waktu</th>
-                <th className="px-4 py-3 text-left font-semibold">Klien</th>
-                <th className="px-4 py-3 text-left font-semibold">Event</th>
-                <th className="px-4 py-3 text-left font-semibold">Deskripsi</th>
-                <th className="px-4 py-3 text-center font-semibold w-24">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pagination.pageItems.map((entry, idx) => (
-                <tr key={entry.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 text-sm text-slate-600">{pagination.from + idx}.</td>
-                  <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">{entry.waktu}</td>
-                  <td className="px-4 py-3 text-sm text-slate-800 font-medium">{entry.klien}</td>
-                  <td className="px-4 py-3 text-sm text-slate-700">{entry.event}</td>
-                  <td className="px-4 py-3 text-sm text-slate-700">{entry.deskripsi}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => openForm(entry)}
-                        className="p-1.5 text-yellow-700 hover:bg-yellow-50 rounded transition-colors"
-                        aria-label={`Edit salary ${entry.event}`}
-                        title="Edit"
-                      >
-                        <Pencil className="w-4 h-4" aria-hidden />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openDelete(entry)}
-                        className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                        aria-label={`Hapus salary ${entry.event}`}
-                        title="Hapus"
-                      >
-                        <Trash2 className="w-4 h-4" aria-hidden />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {pagination.pageItems.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-slate-600 text-sm">
-                    {q ? "Tidak ada data salary yang cocok dengan pencarian." : "Belum ada data salary."}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {!honorTarget && !payTarget && errorBox}
 
-      <Pagination pagination={pagination} />
+      {!loading && result?.error ? (
+        <div role="alert" className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+          {result.error}
+        </div>
+      ) : (
+        <>
+          <section aria-labelledby="salary-recap" aria-busy={loading} className="space-y-3">
+            <h2 id="salary-recap" className="text-lg font-bold text-slate-800">
+              Rekap per Crew
+            </h2>
+            <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
+              <table className="w-full min-w-[720px]">
+                <thead>
+                  <tr className="bg-slate-800 text-white text-sm">
+                    <th className={th}>Crew</th>
+                    <th className={thRight}>Jumlah Tugas</th>
+                    <th className={thRight}>Total Honor</th>
+                    <th className={thRight}>Sudah Dibayar</th>
+                    <th className={thRight}>Belum Dibayar</th>
+                    <th className={`${th} text-center`}>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data?.recap.map((row) => (
+                    <tr key={row.crewId} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className={`${td} font-medium text-slate-800`}>{row.crewName}</td>
+                      <td className={`${tdRight} text-slate-700`}>{row.count}</td>
+                      <td className={`${tdRight} text-slate-800`}>{rupiah(row.total)}</td>
+                      <td className={`${tdRight} text-slate-700`}>{rupiah(row.paidTotal)}</td>
+                      <td className={`${tdRight} text-slate-700`}>{rupiah(row.unpaidTotal)}</td>
+                      <td className={`${td} text-center`}>
+                        {data.assignments.some((a) => a.crew.id === row.crewId && !a.paid) ? (
+                          <button
+                            type="button"
+                            onClick={() => openPay(row)}
+                            disabled={action.busy}
+                            className="px-2.5 py-1.5 text-xs font-medium text-green-800 hover:bg-green-50 rounded transition-colors disabled:opacity-50"
+                            aria-label={`Tandai semua dibayar: ${row.crewName}, ${monthLabel}`}
+                          >
+                            Tandai semua dibayar
+                          </button>
+                        ) : (
+                          <span className="text-xs text-slate-600">Semua sudah dibayar</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {data && data.recap.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-slate-600 text-sm">
+                        Belum ada penugasan crew di {monthLabel}.
+                      </td>
+                    </tr>
+                  )}
+                  {loading && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-slate-600 text-sm">
+                        Memuat data salary...
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section aria-labelledby="salary-list" aria-busy={loading} className="space-y-3">
+            <h2 id="salary-list" className="text-lg font-bold text-slate-800">
+              Daftar Penugasan
+            </h2>
+            <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
+              <table className="w-full min-w-[960px]">
+                <thead>
+                  <tr className="bg-slate-800 text-white text-sm">
+                    <th className={th}>Tanggal</th>
+                    <th className={th}>Acara</th>
+                    <th className={th}>Crew</th>
+                    <th className={th}>JobDesc</th>
+                    <th className={thRight}>Honor</th>
+                    <th className={th}>Status</th>
+                    <th className={`${th} text-center`}>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data?.assignments.map((item) => (
+                    <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className={`${td} text-slate-700 whitespace-nowrap`}>{formatWib(item.workspaceEvent.startAt)}</td>
+                      <td className={`${td} font-medium text-slate-800 wrap-anywhere`}>{item.workspaceEvent.name}</td>
+                      <td className={`${td} text-slate-700`}>{item.crew.name}</td>
+                      <td className={`${td} text-slate-700`}>{item.jobDesc.name}</td>
+                      <td className={`${tdRight} text-slate-800`}>{rupiah(item.honor)}</td>
+                      <td className={`${td} whitespace-nowrap ${item.paid ? "text-green-800" : "text-slate-700"}`}>
+                        {item.paid && item.paidAt ? `Sudah dibayar ${formatWibDate(item.paidAt)}` : "Belum dibayar"}
+                      </td>
+                      <td className={td}>
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openHonor(item)}
+                            disabled={action.busy}
+                            className="px-2.5 py-1.5 text-xs font-medium text-yellow-800 hover:bg-yellow-50 rounded transition-colors disabled:opacity-50 whitespace-nowrap"
+                            aria-label={`Ubah honor ${item.crew.name} di ${item.workspaceEvent.name}`}
+                          >
+                            Ubah honor
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => togglePaid(item)}
+                            disabled={action.busy}
+                            className={`px-2.5 py-1.5 text-xs font-medium rounded transition-colors disabled:opacity-50 whitespace-nowrap ${
+                              item.paid ? "text-slate-700 hover:bg-slate-100" : "text-green-800 hover:bg-green-50"
+                            }`}
+                            aria-label={`${item.paid ? "Batalkan tanda bayar" : "Tandai dibayar"} ${item.crew.name} di ${item.workspaceEvent.name}`}
+                          >
+                            {item.paid ? "Batalkan tanda bayar" : "Tandai dibayar"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {data && data.assignments.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-slate-600 text-sm">
+                        Belum ada penugasan crew di {monthLabel}.
+                      </td>
+                    </tr>
+                  )}
+                  {loading && (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-slate-600 text-sm">
+                        Memuat data salary...
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )}
 
       <Modal
-        open={formOpen}
-        title={editing ? "Edit Salary" : "Tambah Salary"}
-        onClose={closeForm}
-        onSubmit={handleSave}
-        busy={isSubmitting}
+        open={!!honorTarget}
+        title="Ubah Honor"
+        onClose={() => setHonorTarget(null)}
+        onSubmit={saveHonor}
+        busy={action.busy}
+        size="sm"
         footer={
           <>
-            <button
-              type="button"
-              onClick={closeForm}
-              disabled={isSubmitting}
-              className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
-            >
+            <button type="button" onClick={() => setHonorTarget(null)} disabled={action.busy} className={secondaryButton}>
               Batal
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
-            >
-              {isSubmitting ? "Menyimpan..." : "Simpan"}
+            <button type="submit" disabled={action.busy} className={primaryButton}>
+              {action.busy ? "Menyimpan..." : "Simpan"}
             </button>
           </>
         }
       >
-        {errorBox}
         <div className="space-y-4">
+          {errorBox}
+          <p className="text-sm text-slate-700">
+            <span className="font-semibold text-slate-900">{honorTarget?.crew.name}</span> sebagai{" "}
+            {honorTarget?.jobDesc.name} di {honorTarget?.workspaceEvent.name}
+          </p>
           <div>
-            <label htmlFor="salary-waktu" className={labelClass}>
-              Waktu
+            <label htmlFor="salary-honor" className={labelClass}>
+              Honor (Rp)
             </label>
             <input
-              id="salary-waktu"
-              type="text"
-              value={form.waktu}
-              onChange={(e) => setForm({ ...form, waktu: e.target.value })}
+              id="salary-honor"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={2000000000}
+              step={1}
+              value={honorInput}
+              onChange={(e) => setHonorInput(e.target.value)}
               className={inputClass}
-              placeholder="Contoh: 30 Agt 2025 17:00"
-              disabled={isSubmitting}
+              disabled={action.busy}
               required
-              maxLength={200}
             />
-          </div>
-          <div>
-            <label htmlFor="salary-klien" className={labelClass}>
-              Klien
-            </label>
-            <input
-              id="salary-klien"
-              type="text"
-              value={form.klien}
-              onChange={(e) => setForm({ ...form, klien: e.target.value })}
-              className={inputClass}
-              disabled={isSubmitting}
-              required
-              maxLength={200}
-            />
-          </div>
-          <div>
-            <label htmlFor="salary-event" className={labelClass}>
-              Event
-            </label>
-            <input
-              id="salary-event"
-              type="text"
-              value={form.event}
-              onChange={(e) => setForm({ ...form, event: e.target.value })}
-              className={inputClass}
-              disabled={isSubmitting}
-              required
-              maxLength={200}
-            />
-          </div>
-          <div>
-            <label htmlFor="salary-desc" className={labelClass}>
-              Deskripsi (opsional)
-            </label>
-            <textarea
-              id="salary-desc"
-              value={form.deskripsi}
-              onChange={(e) => setForm({ ...form, deskripsi: e.target.value })}
-              className={`${inputClass} min-h-[80px]`}
-              disabled={isSubmitting}
-              maxLength={2000}
-            />
-          </div>
-          <div className="flex items-center gap-3">
-            <input
-              id="salary-active"
-              type="checkbox"
-              checked={form.active}
-              onChange={(e) => setForm({ ...form, active: e.target.checked })}
-              disabled={isSubmitting}
-              className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="salary-active" className="text-sm font-medium text-slate-700">
-              Aktif
-            </label>
           </div>
         </div>
       </Modal>
 
       <Modal
-        open={!!deleteTarget}
-        title="Hapus data salary?"
-        onClose={closeDelete}
-        busy={isSubmitting}
+        open={!!payTarget}
+        title="Tandai semua dibayar?"
+        onClose={() => setPayTarget(null)}
+        busy={action.busy}
         size="sm"
         footer={
           <>
-            <button
-              type="button"
-              onClick={closeDelete}
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors"
-            >
+            <button type="button" onClick={() => setPayTarget(null)} disabled={action.busy} className={secondaryButton}>
               Batal
             </button>
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
-            >
-              {isSubmitting ? "Menghapus..." : "Hapus"}
+            <button type="button" onClick={payAll} disabled={action.busy} className={primaryButton}>
+              {action.busy ? "Menyimpan..." : "Tandai semua dibayar"}
             </button>
           </>
         }
       >
-        {errorBox}
-        <p className="text-sm text-slate-700">
-          Data salary <span className="font-semibold text-slate-900">{deleteTarget?.event}</span> akan dihapus dari
-          daftar dan tidak bisa dikembalikan lewat dashboard.
-        </p>
+        <div className="space-y-4">
+          {errorBox}
+          <p className="text-sm text-slate-700">
+            Semua penugasan <span className="font-semibold text-slate-900">{payTarget?.crewName}</span> di {monthLabel} yang
+            belum dibayar ({payTarget && rupiah(payTarget.unpaidTotal)}) akan ditandai sudah dibayar hari ini.
+          </p>
+        </div>
       </Modal>
     </div>
   );

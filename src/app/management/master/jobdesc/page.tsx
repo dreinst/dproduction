@@ -11,14 +11,8 @@ import { useAdminUser } from "@/components/management/AdminShell";
 interface JobDescItem {
   id: number;
   name: string;
-  levelA: string | null;
-  levelB: string | null;
-  levelC: string | null;
 }
 
-const LEVELS = ["levelA", "levelB", "levelC"] as const;
-const levelLabel = (key: (typeof LEVELS)[number]) => `Level ${key.slice(-1)}`;
-const EMPTY_FORM = { name: "", levelA: "", levelB: "", levelC: "" };
 const inputClass =
   "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100";
 const th = "px-3 py-3 text-left font-semibold";
@@ -36,7 +30,7 @@ export default function MasterJobDescPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<JobDescItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<JobDescItem | null>(null);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [name, setName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const q = searchQuery.trim().toLowerCase();
@@ -46,22 +40,13 @@ export default function MasterJobDescPage() {
   const openForm = (item?: JobDescItem) => {
     clearSaveError();
     setEditing(item ?? null);
-    setForm(
-      item
-        ? { name: item.name, levelA: item.levelA ?? "", levelB: item.levelB ?? "", levelC: item.levelC ?? "" }
-        : EMPTY_FORM,
-    );
+    setName(item?.name ?? "");
     setFormOpen(true);
   };
 
   const handleSave = async () => {
     setIsSubmitting(true);
-    const payload = {
-      name: form.name.trim(),
-      levelA: form.levelA.trim() || null,
-      levelB: form.levelB.trim() || null,
-      levelC: form.levelC.trim() || null,
-    };
+    const payload = { name: name.trim() };
     const ok = editing ? await updateItem(editing.id, payload) : await createItem(payload);
     setIsSubmitting(false);
     if (ok) setFormOpen(false);
@@ -133,60 +118,43 @@ export default function MasterJobDescPage() {
               <tr className="bg-slate-800 text-white">
                 <th className={th}>No</th>
                 <th className={th}>Nama</th>
-                <th className={th}>Tarif per level</th>
                 {canWrite && <th className={stickyTh}>Aksi</th>}
               </tr>
             </thead>
             <tbody>
-              {pagination.pageItems.map((item, idx) => {
-                const rates = LEVELS.filter((key) => item[key]);
-                return (
-                  <tr key={item.id} className="group border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td className={`${td} text-slate-600`}>{pagination.from + idx}.</td>
-                    <td className={`${td} font-medium text-slate-800`}>{item.name}</td>
-                    <td className={`${td} text-slate-700`}>
-                      {rates.length ? (
-                        <ul className="space-y-1">
-                          {rates.map((key) => (
-                            <li key={key} className="whitespace-nowrap">
-                              {levelLabel(key)}: {item[key]}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <span className="italic text-slate-500">Belum diisi</span>
-                      )}
+              {pagination.pageItems.map((item, idx) => (
+                <tr key={item.id} className="group border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                  <td className={`${td} w-16 text-slate-600`}>{pagination.from + idx}.</td>
+                  <td className={`${td} font-medium text-slate-800 wrap-anywhere`}>{item.name}</td>
+                  {canWrite && (
+                    <td className={stickyTd}>
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openForm(item)}
+                          className="p-2 text-yellow-700 hover:bg-yellow-50 rounded transition-colors"
+                          aria-label={`Edit jobdesc ${item.name}`}
+                          title="Edit"
+                        >
+                          <Pencil className="w-4 h-4" aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openDelete(item)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                          aria-label={`Hapus jobdesc ${item.name}`}
+                          title="Hapus"
+                        >
+                          <Trash2 className="w-4 h-4" aria-hidden />
+                        </button>
+                      </div>
                     </td>
-                    {canWrite && (
-                      <td className={stickyTd}>
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openForm(item)}
-                            className="p-2 text-yellow-700 hover:bg-yellow-50 rounded transition-colors"
-                            aria-label={`Edit jobdesc ${item.name}`}
-                            title="Edit"
-                          >
-                            <Pencil className="w-4 h-4" aria-hidden />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openDelete(item)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
-                            aria-label={`Hapus jobdesc ${item.name}`}
-                            title="Hapus"
-                          >
-                            <Trash2 className="w-4 h-4" aria-hidden />
-                          </button>
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
+                  )}
+                </tr>
+              ))}
               {pagination.pageItems.length === 0 && (
                 <tr>
-                  <td colSpan={canWrite ? 4 : 3} className="px-4 py-8 text-center text-slate-600">
+                  <td colSpan={canWrite ? 3 : 2} className="px-4 py-8 text-center text-slate-600">
                     Tidak ada jobdesc yang cocok.
                   </td>
                 </tr>
@@ -204,6 +172,7 @@ export default function MasterJobDescPage() {
         onClose={() => setFormOpen(false)}
         onSubmit={handleSave}
         busy={isSubmitting}
+        size="sm"
         footer={
           <>
             <button
@@ -225,44 +194,23 @@ export default function MasterJobDescPage() {
         }
       >
         {errorBox}
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="jobdesc-name" className="block text-sm font-medium text-slate-700 mb-1">
-              Nama jobdesc
-            </label>
-            <input
-              id="jobdesc-name"
-              type="text"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className={inputClass}
-              disabled={isSubmitting}
-              required
-              maxLength={200}
-            />
-          </div>
-          {LEVELS.map((key) => (
-            <div key={key}>
-              <label htmlFor={`jobdesc-${key}`} className="block text-sm font-medium text-slate-700 mb-1">
-                Tarif {levelLabel(key)} (opsional)
-              </label>
-              <input
-                id={`jobdesc-${key}`}
-                type="text"
-                inputMode="numeric"
-                value={form[key]}
-                onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                className={inputClass}
-                disabled={isSubmitting}
-                maxLength={30}
-                aria-describedby="jobdesc-rate-hint"
-              />
-            </div>
-          ))}
-          <p id="jobdesc-rate-hint" className="text-xs text-slate-500">
-            Tarif berupa angka rupiah, misalnya 500000 atau Rp 500.000.
-          </p>
-        </div>
+        <label htmlFor="jobdesc-name" className="block text-sm font-medium text-slate-700 mb-1">
+          Nama JobDesc
+        </label>
+        <input
+          id="jobdesc-name"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className={inputClass}
+          disabled={isSubmitting}
+          required
+          maxLength={200}
+          aria-describedby="jobdesc-name-hint"
+        />
+        <p id="jobdesc-name-hint" className="mt-1 text-xs text-slate-600">
+          Misalnya Kameramen. Nama JobDesc tidak boleh sama dengan JobDesc lain.
+        </p>
       </Modal>
 
       <Modal
@@ -295,7 +243,8 @@ export default function MasterJobDescPage() {
         {errorBox}
         <p className="text-sm text-slate-700">
           JobDesc <span className="font-semibold text-slate-900">{deleteTarget?.name}</span> akan dihapus permanen dan
-          tidak bisa dikembalikan.
+          tidak bisa dikembalikan. Tarif JobDesc ini di Master Tarif ikut terhapus permanen. JobDesc yang masih dipakai di
+          penugasan crew tidak bisa dihapus.
         </p>
       </Modal>
     </div>
