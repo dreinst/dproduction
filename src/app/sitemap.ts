@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://dproduction-iota.vercel.app";
+import { SITE_URL } from "@/lib/site";
 
 // Situs ini masih satu halaman (section pakai anchor: #tentang-kami, #layanan, dst).
 // Tambahkan baris baru di sini kalau nanti ada halaman terpisah (mis. /layanan, /masterpiece).

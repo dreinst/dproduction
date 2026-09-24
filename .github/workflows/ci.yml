@@ -27,11 +27,10 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
-    # Semua nilai di sini dummy khusus CI, bukan rahasia.
+    # Semua nilai di workflow ini dummy khusus CI, bukan rahasia.
+    # Level job hanya berisi env build, sama dengan build Coolify. DATABASE_URL, JWT_SECRET,
+    # dan SEED_PASSWORD dipasang per langkah supaya npm run build terbukti jalan tanpa env runtime.
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dproduction_ci?schema=public
-      JWT_SECRET: ci-dummy-jwt-secret-minimal-32-karakter
-      SEED_PASSWORD: ci-dummy-password
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
       NEXT_TELEMETRY_DISABLED: "1"
 
@@ -48,10 +47,19 @@ jobs:
       - run: npx prisma generate
       - run: npx tsc --noEmit
       - run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dproduction_ci?schema=public
       - run: npx prisma db seed
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dproduction_ci?schema=public
+          SEED_PASSWORD: ci-dummy-password-1
       - run: npm run build
 
       - name: Smoke test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dproduction_ci?schema=public
+          JWT_SECRET: ci-dummy-jwt-secret-minimal-32-karakter
+          SEED_PASSWORD: ci-dummy-password-1
         run: |
           npm start > server.log 2>&1 &
           timeout 60 bash -c 'until curl -s -o /dev/null http://localhost:3000/; do sleep 1; done' || { cat server.log; exit 1; }
