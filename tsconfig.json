@@ -37,7 +37,6 @@
     "**/*.mts"
   ],
   "exclude": [
-    "node_modules",
-    "src/app/_parked"
+    "node_modules"
   ]
 }
