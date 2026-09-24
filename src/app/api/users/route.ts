@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { handleRouteError, readJson } from '@/lib/api';
+import { audit } from '@/lib/audit';
 import { requireAccess, userFields, userSelect } from '@/lib/auth';
+import { hashPassword } from '@/lib/password';
 
 const createSchema = z.object({ ...userFields, active: userFields.active.default(true) });
 
@@ -23,9 +24,10 @@ export async function POST(req: Request) {
     if (!auth.authorized) return auth.response;
     const { password, ...data } = createSchema.parse(await readJson(req));
     const user = await prisma.user.create({
-      data: { ...data, passwordHash: await bcrypt.hash(password, 10) },
+      data: { ...data, passwordHash: await hashPassword(password) },
       select: userSelect,
     });
+    await audit(auth.user, 'tambah', 'User', user.id, `akun ${user.username} level ${user.role}${user.active ? '' : ', nonaktif'}`);
     return NextResponse.json(user, { status: 201 });
   } catch (error) {
     return handleRouteError(error, { P2002: 'Username sudah dipakai akun lain.' });
