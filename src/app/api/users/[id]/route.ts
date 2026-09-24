@@ -6,6 +6,7 @@ import { HttpError, apiError, handleRouteError, parseId, readJson } from '@/lib/
 import { audit } from '@/lib/audit';
 import { requireAccess, userFields, userSelect } from '@/lib/auth';
 import { hashPassword } from '@/lib/password';
+import { forgetHits, loginFailKey } from '@/lib/rate-limit';
 import { OWNERS } from '@/lib/rbac';
 import { setSessionCookie, signSession } from '@/lib/session';
 
@@ -36,20 +37,18 @@ export async function PUT(req: Request, { params }: Params) {
     }
     const passwordHash = password === undefined ? undefined : await hashPassword(password);
 
-    const { user, changes } = await prisma.$transaction(async (tx) => {
+    const { user, changes, oldUsername } = await prisma.$transaction(async (tx) => {
       const current = await tx.user.findUnique({
         where: { id },
-        select: { username: true, alias: true, role: true, active: true, lockedUntil: true },
+        select: { username: true, alias: true, role: true, active: true },
       });
       if (!current) throw new HttpError(404, 'User tidak ditemukan.');
-      const unlock = passwordHash !== undefined || data.active === true;
       const changes = [
         data.username !== undefined && data.username !== current.username && `username ${current.username} menjadi ${data.username}`,
         data.alias !== undefined && data.alias !== current.alias && 'nama lengkap diubah',
         data.role !== undefined && data.role !== current.role && `level ${current.role} menjadi ${data.role}`,
         data.active !== undefined && data.active !== current.active && (data.active ? 'diaktifkan' : 'dinonaktifkan'),
         passwordHash !== undefined && 'password diganti',
-        unlock && current.lockedUntil && current.lockedUntil > new Date() && 'kunci login dibuka',
       ].filter((change): change is string => !!change);
       const revoke =
         passwordHash !== undefined ||
@@ -61,14 +60,17 @@ export async function PUT(req: Request, { params }: Params) {
           ...data,
           passwordHash,
           ...(revoke && { tokenVersion: { increment: 1 } }),
-          // Pemilik atau Super Admin membuka kunci akun dengan mengganti password atau mengaktifkan ulang user.
-          ...(unlock && { failedLogins: 0, lockedUntil: null }),
         },
         select: { ...userSelect, tokenVersion: true },
       });
       if ((OWNERS as readonly string[]).includes(current.role) && current.active) await ensureTopAccountLeft(tx);
-      return { user: updated, changes };
+      return { user: updated, changes, oldUsername: current.username };
     }, SERIALIZABLE);
+
+    // Pemilik atau Super Admin membuka kunci login akun dengan mengganti password atau mengaktifkan ulang user.
+    if ((passwordHash !== undefined || data.active === true) && forgetHits(loginFailKey(oldUsername), true)) {
+      changes.push('hitungan gagal login direset');
+    }
 
     if (changes.length) await audit(auth.user, 'ubah', 'User', id, changes.join(', '));
     const { tokenVersion, ...body } = user;

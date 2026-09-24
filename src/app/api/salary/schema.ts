@@ -9,7 +9,8 @@ export const salarySelect = {
   paidAt: true,
   crew: { select: { id: true, name: true } },
   jobDesc: { select: { id: true, name: true } },
-  workspaceEvent: { select: { id: true, name: true, startAt: true } },
+  // Status ikut dikirim supaya honor dari event Batal atau Ditunda terlihat sebelum ditandai dibayar.
+  workspaceEvent: { select: { id: true, name: true, startAt: true, status: true } },
 } as const;
 
 export const patchSchema = z

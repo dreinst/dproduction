@@ -96,7 +96,7 @@ export default function AdminDashboard() {
             onChange={(e) => onYearChange(e.target.value)}
             aria-invalid={!!yearError}
             aria-describedby="dashboard-year-hint"
-            className="w-24 px-3 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            className="w-24 px-3 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600"
           />
           <p id="dashboard-year-hint" className={`text-sm ${yearError ? "text-red-700" : "text-slate-600"}`} aria-live="polite">
             {yearError ?? (loading ? `Memuat data tahun ${year}...` : `Menampilkan data tahun ${year}.`)}
@@ -140,27 +140,26 @@ export default function AdminDashboard() {
           <p className="mb-4 text-sm text-slate-600">Belum ada event berjalan atau selesai di tahun {year}.</p>
         )}
 
-        <div className="overflow-x-auto">
-          <div className="flex items-end gap-2 h-48 px-2 min-w-[560px]" aria-hidden>
-            {monthly.map((m) => (
-              <div key={m.month} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full flex gap-0.5 items-end justify-center h-40">
-                  {SERIES.map(
-                    (s) =>
-                      m[s.key] > 0 && (
-                        <div
-                          key={s.key}
-                          className={`w-5 rounded-t-sm transition-all ${s.bar}`}
-                          style={{ height: `${(m[s.key] / maxChartValue) * 100}%`, minHeight: "4px" }}
-                          title={`${m.month}, ${LABELS[s.key]}: ${m[s.key]}`}
-                        />
-                      ),
-                  )}
-                </div>
-                <span className="text-xs text-slate-600 mt-1">{m.month}</span>
+        {/* Lebar batang mengikuti ruang yang ada, jadi 12 bulan muat di layar HP tanpa digeser. */}
+        <div className="flex items-end gap-1 sm:gap-2 h-48 sm:px-2" aria-hidden>
+          {monthly.map((m) => (
+            <div key={m.month} className="flex-1 min-w-0 flex flex-col items-center gap-1">
+              <div className="w-full flex gap-0.5 items-end justify-center h-40">
+                {SERIES.map(
+                  (s) =>
+                    m[s.key] > 0 && (
+                      <div
+                        key={s.key}
+                        className={`flex-1 max-w-5 rounded-t-sm transition-all ${s.bar}`}
+                        style={{ height: `${(m[s.key] / maxChartValue) * 100}%`, minHeight: "4px" }}
+                        title={`${m.month}, ${LABELS[s.key]}: ${m[s.key]}`}
+                      />
+                    ),
+                )}
               </div>
-            ))}
-          </div>
+              <span className="text-[10px] sm:text-xs text-slate-600 mt-1">{m.month}</span>
+            </div>
+          ))}
         </div>
 
         {monthly.length > 0 && (

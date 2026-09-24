@@ -13,18 +13,34 @@ type Props = {
   disabled?: boolean;
   required?: boolean;
   hint?: string;
+  // Dipakai halaman untuk menonaktifkan Simpan selama unggahan berjalan, supaya URL hasil unggahan selalu ikut tersimpan.
+  onUploadingChange?: (uploading: boolean) => void;
 };
 
-const DEFAULT_HINT = "Unggah JPG, PNG, atau WebP (maksimal 5 MB), atau isi path di situs ini (diawali /) atau alamat https://.";
+export const DEFAULT_HINT = "Unggah JPG, PNG, atau WebP (maksimal 5 MB), atau isi path di situs ini (diawali /) atau alamat https://.";
 const UPLOAD_FAILED = "Gagal mengunggah gambar. Coba lagi.";
 
 // Kolom gambar: tetap menerima path atau URL https, ditambah tombol unggah yang mengisi kolom dengan URL hasil unggahan.
-export default function ImageField({ id, label, value, onChange, disabled, required, hint = DEFAULT_HINT }: Props) {
+export default function ImageField({
+  id,
+  label,
+  value,
+  onChange,
+  disabled,
+  required,
+  hint = DEFAULT_HINT,
+  onUploadingChange,
+}: Props) {
   const request = useApiRequest();
   const fileInput = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploadingState] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const busy = disabled || uploading;
+
+  const setUploading = (next: boolean) => {
+    setUploadingState(next);
+    onUploadingChange?.(next);
+  };
 
   const upload = async (file: File | undefined) => {
     if (!file) return;
@@ -65,14 +81,14 @@ export default function ImageField({ id, label, value, onChange, disabled, requi
           maxLength={2000}
           aria-describedby={`${id}-hint${error ? ` ${id}-error` : ""}`}
           aria-invalid={error ? true : undefined}
-          className="min-w-0 flex-1 px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100"
+          className="min-w-48 flex-1 px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600 disabled:bg-slate-100"
         />
         <AdminThumb src={value} alt={`Pratinjau ${label.toLowerCase()}`} />
         <button
           type="button"
           onClick={() => fileInput.current?.click()}
           disabled={busy}
-          className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 bg-white text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-50"
+          className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 bg-white text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 focus:outline-hidden focus:ring-2 focus:ring-blue-600 disabled:opacity-50"
         >
           <Upload className="h-4 w-4" aria-hidden />
           Unggah gambar

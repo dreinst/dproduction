@@ -43,6 +43,9 @@ export const metadata: Metadata = {
   },
 };
 
+const ADDRESS_LOCALITY = "Wagir, Kab. Malang";
+const ADDRESS_REGION = "Jawa Timur";
+
 const offerCatalog = {
   "@type": "OfferCatalog",
   name: "Layanan D'Production",
@@ -82,8 +85,10 @@ export default async function SiteLayout({
     email,
     address: {
       "@type": "PostalAddress",
-      streetAddress: address,
-      addressRegion: "Jawa Timur",
+      // Alamat Setting Kantor ditulis utuh; bagian kecamatan, kabupaten, dan provinsi dipisah ke kolomnya sendiri.
+      streetAddress: address.replace(`, ${ADDRESS_LOCALITY}, ${ADDRESS_REGION}`, ""),
+      addressLocality: ADDRESS_LOCALITY,
+      addressRegion: ADDRESS_REGION,
       addressCountry: "ID",
     },
     areaServed: "Malang, Jawa Timur",

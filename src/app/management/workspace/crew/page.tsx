@@ -16,6 +16,8 @@ import {
   orNull,
   primaryButton,
   secondaryButton,
+  stickyTd,
+  stickyTh,
 } from "../shared";
 
 interface Crew {
@@ -117,7 +119,7 @@ export default function WorkspaceCrewPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari nama, WhatsApp, atau catatan"
-            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600"
           />
           <Search className="w-4 h-4 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden />
         </div>
@@ -134,23 +136,34 @@ export default function WorkspaceCrewPage() {
             {error}
           </div>
         ) : (
-          <table className="w-full min-w-[640px]">
+          <table className="w-full sm:min-w-[640px]">
             <thead>
               <tr className="bg-slate-800 text-white text-sm">
                 <th className={th}>Nama</th>
                 <th className={th}>WhatsApp</th>
-                <th className={th}>Catatan</th>
-                <th className={th}>Status</th>
-                <th className={`${th} text-center`}>Aksi</th>
+                <th className={`${th} hidden sm:table-cell`}>Catatan</th>
+                <th className={`${th} hidden sm:table-cell`}>Status</th>
+                <th className={stickyTh}>Aksi</th>
               </tr>
             </thead>
             <tbody>
               {pagination.pageItems.map((item) => (
-                <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                  <td className={`${td} font-medium text-slate-800 wrap-anywhere`}>{item.name}</td>
+                <tr key={item.id} className="group border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                  <td className={`${td} font-medium text-slate-800 break-words`}>
+                    {item.name}
+                    {/* Di layar sempit catatan dan status pindah ke bawah nama, supaya tabel muat tanpa digeser. */}
+                    {item.notes && (
+                      <span className="sm:hidden mt-1 block text-xs font-normal text-slate-600 whitespace-pre-line">{item.notes}</span>
+                    )}
+                    {!item.active && (
+                      <span className="sm:hidden mt-1 inline-block rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-800">
+                        Nonaktif
+                      </span>
+                    )}
+                  </td>
                   <td className={`${td} text-slate-700`}>{waLink(item.whatsapp)}</td>
-                  <td className={`${td} text-slate-700 whitespace-pre-line wrap-anywhere`}>{item.notes}</td>
-                  <td className={td}>
+                  <td className={`${td} hidden sm:table-cell text-slate-700 whitespace-pre-line break-words`}>{item.notes}</td>
+                  <td className={`${td} hidden sm:table-cell`}>
                     <span
                       className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                         item.active ? "bg-green-100 text-green-800" : "bg-slate-200 text-slate-800"
@@ -159,7 +172,7 @@ export default function WorkspaceCrewPage() {
                       {item.active ? "Aktif" : "Nonaktif"}
                     </span>
                   </td>
-                  <td className={td}>
+                  <td className={stickyTd}>
                     <div className="flex items-center justify-center gap-1">
                       <button
                         type="button"

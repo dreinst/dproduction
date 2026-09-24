@@ -36,8 +36,6 @@ model User {
   role         String     @default("admin") // owner | superadmin | admin | staff | tester, divalidasi isRole()
   active       Boolean    @default(true)
   tokenVersion Int        @default(0)
-  failedLogins Int        @default(0)
-  lockedUntil  DateTime?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   leads        Client[]

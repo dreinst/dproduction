@@ -16,11 +16,13 @@ export async function GET(req: NextRequest) {
 
     const where: Prisma.ClientWhereInput = { status, eventType };
     if (q) {
+      // Prisma tidak meng-escape wildcard LIKE, jadi % dan _ di kata pencarian dicocokkan apa adanya lewat backslash.
+      const literal = (value: string) => value.replace(/[\\%_]/g, '\\$&');
       const waQuery = normalizeWhatsapp(q);
       where.OR = [
-        { name: { contains: q, mode: 'insensitive' } },
-        { message: { contains: q, mode: 'insensitive' } },
-        ...(/\d{4}/.test(waQuery) ? [{ whatsapp: { contains: waQuery } }] : []),
+        { name: { contains: literal(q), mode: 'insensitive' } },
+        { message: { contains: literal(q), mode: 'insensitive' } },
+        ...(/\d{4}/.test(waQuery) ? [{ whatsapp: { contains: literal(waQuery) } }] : []),
       ];
     }
 

@@ -63,7 +63,7 @@ function StatusBadge({ status }: { status: LeadStatus }) {
 }
 
 const controlClass =
-  "border border-slate-300 rounded-lg text-base pointer-fine:text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30";
+  "border border-slate-300 rounded-lg text-base pointer-fine:text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-600";
 const fieldClass = `${controlClass} w-full px-3 py-2 text-slate-800 disabled:bg-slate-100`;
 const labelClass = "block text-sm font-medium text-slate-700 mb-1";
 const iconButton = "inline-flex p-1.5 rounded transition-colors";
@@ -533,7 +533,7 @@ export default function LeadsPage() {
                     role="region"
                     aria-label="Pesan asli"
                     tabIndex={0}
-                    className="max-h-60 overflow-y-auto rounded-lg bg-slate-50 p-3 text-slate-800 whitespace-pre-wrap wrap-anywhere focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                    className="max-h-60 overflow-y-auto rounded-lg bg-slate-50 p-3 text-slate-800 whitespace-pre-wrap wrap-anywhere focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-600"
                   >
                     {detail.message}
                   </div>

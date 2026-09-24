@@ -19,9 +19,14 @@ import {
   inputClass,
   labelClass,
   orNull,
+  parseRupiah,
   primaryButton,
   rupiah,
+  rupiahInputProps,
+  rupiahPreview,
   secondaryButton,
+  stickyTd,
+  stickyTh,
   tabClass,
   toWibInput,
   useAction,
@@ -83,6 +88,17 @@ type FormState = typeof EMPTY_FORM;
 const EMPTY_ASSIGN = { crewId: "", jobDescId: "", honor: "" };
 
 const byName = <T,>(list: T[], key: (item: T) => string) => [...list].sort((a, b) => key(a).localeCompare(key(b), "id"));
+
+// Tanggal dan jam boleh pindah baris di antara keduanya, supaya tabel muat di layar laptop 1280 px.
+function Jadwal({ iso }: { iso: string }) {
+  const [date, time] = formatWib(iso).split(", ");
+  if (!time) return formatWib(iso);
+  return (
+    <>
+      <span className="whitespace-nowrap">{date},</span> <span className="whitespace-nowrap">{time}</span>
+    </>
+  );
+}
 
 export default function WorkspaceEventPage() {
   const { can } = useAdminUser();
@@ -207,7 +223,7 @@ export default function WorkspaceEventPage() {
     const payload = {
       crewId: Number(assign.crewId),
       jobDescId: Number(assign.jobDescId),
-      ...(canSetHonor && assign.honor.trim() ? { honor: Number(assign.honor) } : {}),
+      ...(canSetHonor && assign.honor ? { honor: parseRupiah(assign.honor) } : {}),
     };
     const ok = await action.run(
       `/api/workspace-events/${crewEvent.id}/assignments`,
@@ -217,8 +233,12 @@ export default function WorkspaceEventPage() {
     if (ok) setAssign(EMPTY_ASSIGN);
   };
 
-  const handleRelease = (assignment: Assignment) =>
-    action.run(`/api/assignments/${assignment.id}`, { method: "DELETE" }, "Gagal melepas crew.");
+  const handleRelease = async (assignment: Assignment) => {
+    if (action.busy) return;
+    const ok = await action.run(`/api/assignments/${assignment.id}`, { method: "DELETE" }, "Gagal melepas crew.");
+    // Baris yang dilepas hilang, jadi fokus dipindah ke tabel crew supaya tidak jatuh ke body.
+    if (ok) document.getElementById("crew-bertugas")?.focus();
+  };
 
   const errorBox = (message: string | null) =>
     message && (
@@ -300,7 +320,7 @@ export default function WorkspaceEventPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari nama acara, klien, atau lokasi"
-            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600"
           />
           <Search className="w-4 h-4 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden />
         </div>
@@ -318,7 +338,7 @@ export default function WorkspaceEventPage() {
             {error}
           </div>
         ) : (
-          <table className="w-full min-w-[1080px]">
+          <table className="w-full min-w-[900px]">
             <thead>
               <tr className="bg-slate-800 text-white text-sm">
                 <th className={th}>Nama Acara</th>
@@ -329,18 +349,22 @@ export default function WorkspaceEventPage() {
                 <th className={th}>Status</th>
                 <th className={th}>Crew</th>
                 <th className={th}>Link</th>
-                <th className={`${th} text-center`}>Aksi</th>
+                <th className={stickyTh}>Aksi</th>
               </tr>
             </thead>
             <tbody>
               {pagination.pageItems.map((item) => (
-                <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                  <td className={`${td} font-medium text-slate-800 wrap-anywhere`}>{item.name}</td>
-                  <td className={`${td} text-slate-700 wrap-anywhere`}>{item.client}</td>
-                  <td className={`${td} text-slate-700 wrap-anywhere`}>{item.location}</td>
-                  <td className={`${td} text-slate-700 whitespace-nowrap`}>
-                    {formatWib(item.startAt)}
-                    {item.endAt && <span className="block text-slate-600">sampai {formatWib(item.endAt)}</span>}
+                <tr key={item.id} className="group border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                  <td className={`${td} font-medium text-slate-800 break-words`}>{item.name}</td>
+                  <td className={`${td} text-slate-700 break-words`}>{item.client}</td>
+                  <td className={`${td} text-slate-700 break-words`}>{item.location}</td>
+                  <td className={`${td} text-slate-700`}>
+                    <Jadwal iso={item.startAt} />
+                    {item.endAt && (
+                      <span className="block text-slate-600">
+                        sampai <Jadwal iso={item.endAt} />
+                      </span>
+                    )}
                   </td>
                   <td className={`${td} text-slate-700`}>
                     {item.gradeEvent?.grade ?? <span className="text-slate-600">Belum ditentukan</span>}
@@ -365,7 +389,7 @@ export default function WorkspaceEventPage() {
                       {link(item.videoUrl, "Video", item.name)}
                     </div>
                   </td>
-                  <td className={td}>
+                  <td className={stickyTd}>
                     <div className="flex items-center justify-center gap-1">
                       <button
                         type="button"
@@ -576,11 +600,7 @@ export default function WorkspaceEventPage() {
                       </label>
                       <input
                         id="assign-honor"
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        max={2000000000}
-                        step={1}
+                        {...rupiahInputProps}
                         value={assign.honor}
                         onChange={(e) => setAssign({ ...assign, honor: e.target.value })}
                         className={inputClass}
@@ -588,7 +608,7 @@ export default function WorkspaceEventPage() {
                         aria-describedby="assign-honor-hint"
                       />
                       <p id="assign-honor-hint" className={hintClass}>
-                        Kosongkan untuk memakai tarif JobDesc sesuai level event.
+                        Kosongkan untuk memakai tarif JobDesc sesuai level event. {rupiahPreview(assign.honor)}
                       </p>
                     </div>
                   )}
@@ -600,7 +620,13 @@ export default function WorkspaceEventPage() {
                 </div>
               </form>
             )}
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
+            <div
+              id="crew-bertugas"
+              role="region"
+              aria-label="Daftar crew bertugas"
+              tabIndex={0}
+              className="overflow-x-auto rounded-lg border border-slate-200 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-600"
+            >
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-100 text-slate-700">
@@ -608,7 +634,7 @@ export default function WorkspaceEventPage() {
                     <th className={th}>JobDesc</th>
                     {canSeeHonor && <th className={`${th} text-right`}>Honor</th>}
                     {canSeeHonor && <th className={th}>Status bayar</th>}
-                    {canWrite && <th className={`${th} text-center`}>Aksi</th>}
+                    {canWrite && <th className={`${th} sticky right-0 bg-slate-100 text-center`}>Aksi</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -623,12 +649,12 @@ export default function WorkspaceEventPage() {
                         </td>
                       )}
                       {canWrite && (
-                        <td className={`${td} text-center`}>
+                        <td className={`${stickyTd} text-center`}>
                           <button
                             type="button"
                             onClick={() => handleRelease(a)}
-                            disabled={action.busy}
-                            className="px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                            aria-disabled={action.busy}
+                            className="px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50 rounded transition-colors aria-disabled:opacity-50"
                             aria-label={`Lepas ${a.crew.name} sebagai ${a.jobDesc.name}`}
                           >
                             Lepas
@@ -673,6 +699,8 @@ export default function WorkspaceEventPage() {
         <p className="text-sm text-slate-700">
           Event <span className="font-semibold text-slate-900">{deleteTarget?.name}</span> akan dihapus permanen dan tidak
           bisa dikembalikan. Event yang masih punya crew bertugas tidak bisa dihapus.
+          {!can("reports", "write") &&
+            " Event yang sudah punya status administrasi atau catatan di Report hanya bisa dihapus Pemilik atau Super Admin."}
         </p>
       </Modal>
     </div>

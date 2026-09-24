@@ -19,7 +19,7 @@ interface Video {
 const EMPTY_FORM = { url: "", title: "", sortIndex: "0", active: true };
 const SAFE_HREF = /^https:\/\//i;
 const inputClass =
-  "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100";
+  "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600 disabled:bg-slate-100";
 
 export default function GaleriVideoPage() {
   const canWrite = useAdminUser().can("galeriVideo", "write");
@@ -98,7 +98,7 @@ export default function GaleriVideoPage() {
             id="video-status"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as "aktif" | "semua")}
-            className="px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white min-w-[200px]"
+            className="px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600 bg-white min-w-[200px]"
           >
             <option value="aktif">Hanya yang tampil</option>
             <option value="semua">Semua</option>
@@ -108,7 +108,7 @@ export default function GaleriVideoPage() {
           <button
             type="button"
             onClick={() => openForm()}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
           >
             <Plus className="w-4 h-4" aria-hidden />
             Tambah Video
@@ -128,7 +128,7 @@ export default function GaleriVideoPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari judul atau link video"
-            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden />
         </div>

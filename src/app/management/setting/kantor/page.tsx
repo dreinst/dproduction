@@ -131,7 +131,7 @@ const SAVE_FAILED = "Gagal menyimpan perubahan. Coba lagi.";
 const OFFLINE = "Tidak dapat terhubung ke server. Periksa koneksi lalu coba lagi.";
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const inputClass =
-  "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100 aria-[invalid=true]:border-red-500";
+  "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600 disabled:bg-slate-100 aria-[invalid=true]:border-red-500";
 
 const empty = <span className="italic text-slate-500">Belum diisi</span>;
 
@@ -297,8 +297,8 @@ export default function SettingKantorPage() {
           ) : (
             <p className="text-sm">{empty}</p>
           )}
-          {settings.description && <p className="text-slate-600 mt-2 text-sm break-words">{settings.description}</p>}
         </div>
+        <Row label="Teks pembuka Hero">{settings.description || empty}</Row>
         <Row icon={Calendar} label="Tahun berdiri">
           {settings.foundedYear ?? empty}
         </Row>

@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { apiError, handleRouteError, parseId, readJson } from '@/lib/api';
 import { requireAccess } from '@/lib/auth';
 import { audit } from '@/lib/audit';
+import { can } from '@/lib/rbac';
 import { assertEventRange, assertGradeExists, workspaceEventUpdateSchema } from '@/lib/workspace';
 import { changedFields, eventSelect } from '../shared';
 
@@ -53,8 +54,23 @@ export async function DELETE(_req: Request, { params }: Params) {
     if (!auth.authorized) return auth.response;
     const id = parseId((await params).id);
     if (!id) return apiError(400, INVALID_ID);
-    await prisma.workspaceEvent.delete({ where: { id } });
-    await audit(auth.user, 'hapus', 'WorkspaceEvent', id);
+    const current = await prisma.workspaceEvent.findUnique({ where: { id }, select: { adminStatus: true } });
+    if (!current) return apiError(404, NOT_FOUND);
+    // Report (status administrasi dan catatannya) khusus Pemilik dan Super Admin, jadi role lain hanya bisa menghapus
+    // event yang Report-nya masih kosong. Syaratnya ikut di WHERE supaya Report yang diisi bersamaan tidak ikut terhapus.
+    const ownsReport = can(auth.user.role, 'reports', 'write');
+    const { count } = await prisma.workspaceEvent.deleteMany({
+      where: ownsReport ? { id } : { id, adminStatus: 'belum', OR: [{ adminNote: null }, { adminNote: '' }] },
+    });
+    if (!count) {
+      return ownsReport
+        ? apiError(404, NOT_FOUND)
+        : apiError(
+            403,
+            'Event ini sudah punya status administrasi atau catatan di Report, jadi hanya Pemilik atau Super Admin yang bisa menghapusnya.',
+          );
+    }
+    await audit(auth.user, 'hapus', 'WorkspaceEvent', id, `status administrasi ${current.adminStatus}`);
     return NextResponse.json({ message: 'Event dihapus permanen.' });
   } catch (error) {
     return handleRouteError(error, {

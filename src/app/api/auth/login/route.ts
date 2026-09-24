@@ -3,7 +3,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { apiError, handleRouteError, readJson } from '@/lib/api';
 import { setSessionCookie, signSession } from '@/lib/session';
-import { clientIp, rateLimit } from '@/lib/rate-limit';
+import { clientIp, forgetHits, loginFailKey, rateLimit } from '@/lib/rate-limit';
 import { isRole } from '@/lib/rbac';
 import { DUMMY_PASSWORD_HASH, verifyPassword } from '@/lib/password';
 
@@ -22,49 +22,33 @@ const LOCKED_MESSAGE = 'Akun dikunci sementara karena terlalu banyak percobaan g
 
 export async function POST(req: Request) {
   try {
-    // Tanpa IP (tidak di balik proxy) semua klien akan berbagi satu hitungan; kunci per akun tetap berlaku.
+    // Tanpa IP (tidak di balik proxy) semua klien akan berbagi satu hitungan, jadi batas IP dilewati; kunci per username
+    // tetap berlaku. Hit IP dibatalkan lagi kalau login berhasil, jadi yang dihitung hanya percobaan gagal (sama dengan Produksia).
     const ip = clientIp(req);
-    if (ip !== 'unknown' && !rateLimit(`login:${ip}`, IP_LIMIT, IP_WINDOW_MS)) {
+    const ipKey = ip === 'unknown' ? null : `login:${ip}`;
+    if (ipKey && rateLimit(ipKey, IP_LIMIT, IP_WINDOW_MS) < 0) {
       return apiError(429, 'Terlalu banyak percobaan masuk dari jaringan ini. Coba lagi dalam 15 menit.');
     }
 
     const { username, password } = loginSchema.parse(await readJson(req));
-    const user = await prisma.user.findUnique({ where: { username } });
 
-    // Username yang tidak ada diperlakukan sama: 401 empat kali lalu 429, supaya keberadaan akun tidak bisa ditebak.
-    if (!user) {
-      await verifyPassword(password, DUMMY_PASSWORD_HASH);
-      return rateLimit(`login-fail:${username}`, MAX_FAILED - 1, LOCK_MS)
-        ? apiError(401, FAILED_MESSAGE)
-        : apiError(429, LOCKED_MESSAGE);
-    }
-
-    // Jatah percobaan dipesan secara atomik sebelum password dicek, sehingga request paralel tidak bisa melewati MAX_FAILED.
-    const reserved = await prisma.user.updateMany({
-      where: {
-        id: user.id,
-        failedLogins: { lt: MAX_FAILED },
-        OR: [{ lockedUntil: null }, { lockedUntil: { lte: new Date() } }],
-      },
-      data: { failedLogins: { increment: 1 } },
-    });
-    if (reserved.count === 0) {
+    // Username yang ada dan yang tidak ada memakai hitungan yang sama (memori, 15 menit): 401 empat kali lalu 429,
+    // termasuk setelah jendela lewat atau server restart, supaya keberadaan akun tidak bisa ditebak.
+    // Jatah dipesan sebelum password dicek, sehingga request paralel tidak bisa melewati MAX_FAILED.
+    const failKey = loginFailKey(username);
+    const left = rateLimit(failKey, MAX_FAILED, LOCK_MS);
+    if (left < 0) {
       await verifyPassword(password, DUMMY_PASSWORD_HASH);
       return apiError(429, LOCKED_MESSAGE);
     }
 
-    const usable = user.active && isRole(user.role);
+    const user = await prisma.user.findUnique({ where: { username } });
+    const usable = !!user && user.active && isRole(user.role);
     const match = await verifyPassword(password, usable ? user.passwordHash : DUMMY_PASSWORD_HASH);
+    if (!usable || !match) return left === 0 ? apiError(429, LOCKED_MESSAGE) : apiError(401, FAILED_MESSAGE);
 
-    if (!usable || !match) {
-      const locked = await prisma.user.updateMany({
-        where: { id: user.id, failedLogins: { gte: MAX_FAILED } },
-        data: { failedLogins: 0, lockedUntil: new Date(Date.now() + LOCK_MS) },
-      });
-      return locked.count ? apiError(429, LOCKED_MESSAGE) : apiError(401, FAILED_MESSAGE);
-    }
-
-    await prisma.user.update({ where: { id: user.id }, data: { failedLogins: 0, lockedUntil: null } });
+    forgetHits(failKey, true);
+    if (ipKey) forgetHits(ipKey);
 
     const token = await signSession(user);
     const res = NextResponse.json({ user: { id: user.id, username: user.username, role: user.role } });

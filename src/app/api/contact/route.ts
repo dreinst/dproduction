@@ -1,14 +1,15 @@
 import { NextResponse, after } from "next/server";
 import prisma from "@/lib/prisma";
+import { NO_NUL } from "@/lib/api";
 import { notifyNewLead } from "@/lib/notify";
 import { EVENT_VALUES, WHATSAPP_PATTERN, normalizeWhatsapp } from "@/lib/site";
 import { z } from "zod";
 
 const contactSchema = z.object({
-  name: z.string().overwrite((value) => value.replace(/\s+/g, " ").trim()).min(1).max(100),
+  name: z.string().overwrite((value) => value.replace(/\s+/g, " ").trim()).min(1).max(100).regex(NO_NUL),
   whatsapp: z.string().overwrite(normalizeWhatsapp).regex(WHATSAPP_PATTERN),
   eventType: z.enum(EVENT_VALUES),
-  message: z.string().trim().min(1).max(2000),
+  message: z.string().trim().min(1).max(2000).regex(NO_NUL),
 });
 
 const WINDOW_MS = 10 * 60 * 1000;

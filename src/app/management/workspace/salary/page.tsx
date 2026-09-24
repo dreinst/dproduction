@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { jsonInit, useApiRequest } from "@/hooks/useCrud";
 import Modal from "@/components/management/Modal";
+import { WORKSPACE_EVENT_STATUS_LABELS, type WorkspaceEventStatus } from "@/lib/rbac";
 import {
   currentWibMonth,
   errorMessage,
@@ -11,9 +12,14 @@ import {
   hintClass,
   inputClass,
   labelClass,
+  parseRupiah,
   primaryButton,
   rupiah,
+  rupiahInputProps,
+  rupiahPreview,
   secondaryButton,
+  stickyTd,
+  stickyTh,
   useAction,
 } from "../shared";
 
@@ -26,7 +32,7 @@ interface SalaryAssignment {
   paidAt: string | null;
   crew: Named;
   jobDesc: Named;
-  workspaceEvent: { id: number; name: string; startAt: string };
+  workspaceEvent: { id: number; name: string; startAt: string; status: WorkspaceEventStatus };
 }
 
 interface Recap {
@@ -75,6 +81,17 @@ export default function WorkspaceSalaryPage() {
 
   // Aksi menunggu data baru sebelum tombol aktif lagi. Input bulan dikunci selama aksi, jadi month tetap bulan yang tampil.
   const action = useAction(async () => setResult(await fetchMonth(month)));
+  // Tombol tabel memakai aria-disabled, bukan disabled, supaya fokus keyboard tidak lepas ke body selama aksi berjalan.
+  const idle = (run: () => unknown) => () => {
+    if (!action.busy) run();
+  };
+  const pageErrorRef = useRef<HTMLDivElement>(null);
+  const modalOpen = !!honorTarget || !!payTarget;
+
+  // Pesan gagal dari tombol di tabel dirender di atas halaman; tarik ke layar supaya terlihat.
+  useEffect(() => {
+    if (action.error && !modalOpen) pageErrorRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [action.error, modalOpen]);
 
   const loading = result?.month !== month;
   const data = loading ? undefined : result?.data;
@@ -95,7 +112,7 @@ export default function WorkspaceSalaryPage() {
     if (!honorTarget) return;
     const ok = await action.run(
       `/api/salary/${honorTarget.id}`,
-      jsonInit("PATCH", { honor: Number(honorInput) }),
+      jsonInit("PATCH", { honor: parseRupiah(honorInput) }),
       "Gagal menyimpan honor.",
     );
     if (ok) setHonorTarget(null);
@@ -118,6 +135,12 @@ export default function WorkspaceSalaryPage() {
     );
     if (ok) setPayTarget(null);
   };
+
+  // Penugasan dari event Batal atau Ditunda tetap dihitung, tetapi ditandai supaya tidak ikut dibayar tanpa sengaja.
+  const flagged = (item: SalaryAssignment) => item.workspaceEvent.status === "batal" || item.workspaceEvent.status === "ditunda";
+  const payFlagged = payTarget
+    ? (data?.assignments ?? []).filter((a) => a.crew.id === payTarget.crewId && !a.paid && flagged(a))
+    : [];
 
   const errorBox = action.error && (
     <div role="alert" className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
@@ -156,7 +179,11 @@ export default function WorkspaceSalaryPage() {
         </div>
       </div>
 
-      {!honorTarget && !payTarget && errorBox}
+      {!modalOpen && action.error && (
+        <div ref={pageErrorRef} role="alert" className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+          {action.error}
+        </div>
+      )}
 
       {!loading && result?.error ? (
         <div role="alert" className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
@@ -177,24 +204,24 @@ export default function WorkspaceSalaryPage() {
                     <th className={thRight}>Total Honor</th>
                     <th className={thRight}>Sudah Dibayar</th>
                     <th className={thRight}>Belum Dibayar</th>
-                    <th className={`${th} text-center`}>Aksi</th>
+                    <th className={stickyTh}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data?.recap.map((row) => (
-                    <tr key={row.crewId} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <tr key={row.crewId} className="group border-b border-slate-100 hover:bg-slate-50 transition-colors">
                       <td className={`${td} font-medium text-slate-800`}>{row.crewName}</td>
                       <td className={`${tdRight} text-slate-700`}>{row.count}</td>
                       <td className={`${tdRight} text-slate-800`}>{rupiah(row.total)}</td>
                       <td className={`${tdRight} text-slate-700`}>{rupiah(row.paidTotal)}</td>
                       <td className={`${tdRight} text-slate-700`}>{rupiah(row.unpaidTotal)}</td>
-                      <td className={`${td} text-center`}>
+                      <td className={`${stickyTd} text-center`}>
                         {data.assignments.some((a) => a.crew.id === row.crewId && !a.paid) ? (
                           <button
                             type="button"
-                            onClick={() => openPay(row)}
-                            disabled={action.busy}
-                            className="px-2.5 py-1.5 text-xs font-medium text-green-800 hover:bg-green-50 rounded transition-colors disabled:opacity-50"
+                            onClick={idle(() => openPay(row))}
+                            aria-disabled={action.busy}
+                            className="px-2.5 py-1.5 text-xs font-medium text-green-800 hover:bg-green-50 rounded transition-colors aria-disabled:opacity-50"
                             aria-label={`Tandai semua dibayar: ${row.crewName}, ${monthLabel}`}
                           >
                             Tandai semua dibayar
@@ -233,41 +260,48 @@ export default function WorkspaceSalaryPage() {
                 <thead>
                   <tr className="bg-slate-800 text-white text-sm">
                     <th className={th}>Tanggal</th>
-                    <th className={th}>Acara</th>
+                    <th className={`${th} min-w-44`}>Acara</th>
                     <th className={th}>Crew</th>
                     <th className={th}>JobDesc</th>
                     <th className={thRight}>Honor</th>
                     <th className={th}>Status</th>
-                    <th className={`${th} text-center`}>Aksi</th>
+                    <th className={stickyTh}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data?.assignments.map((item) => (
-                    <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <tr key={item.id} className="group border-b border-slate-100 hover:bg-slate-50 transition-colors">
                       <td className={`${td} text-slate-700 whitespace-nowrap`}>{formatWib(item.workspaceEvent.startAt)}</td>
-                      <td className={`${td} font-medium text-slate-800 wrap-anywhere`}>{item.workspaceEvent.name}</td>
+                      <td className={`${td} font-medium text-slate-800 break-words`}>
+                        {item.workspaceEvent.name}
+                        {flagged(item) && (
+                          <span className="mt-1 block w-fit whitespace-nowrap rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800">
+                            Event {WORKSPACE_EVENT_STATUS_LABELS[item.workspaceEvent.status]}
+                          </span>
+                        )}
+                      </td>
                       <td className={`${td} text-slate-700`}>{item.crew.name}</td>
                       <td className={`${td} text-slate-700`}>{item.jobDesc.name}</td>
                       <td className={`${tdRight} text-slate-800`}>{rupiah(item.honor)}</td>
                       <td className={`${td} whitespace-nowrap ${item.paid ? "text-green-800" : "text-slate-700"}`}>
                         {item.paid && item.paidAt ? `Sudah dibayar ${formatWibDate(item.paidAt)}` : "Belum dibayar"}
                       </td>
-                      <td className={td}>
+                      <td className={stickyTd}>
                         <div className="flex items-center justify-center gap-1">
                           <button
                             type="button"
-                            onClick={() => openHonor(item)}
-                            disabled={action.busy}
-                            className="px-2.5 py-1.5 text-xs font-medium text-yellow-800 hover:bg-yellow-50 rounded transition-colors disabled:opacity-50 whitespace-nowrap"
+                            onClick={idle(() => openHonor(item))}
+                            aria-disabled={action.busy}
+                            className="px-2.5 py-1.5 text-xs font-medium text-yellow-800 hover:bg-yellow-50 rounded transition-colors aria-disabled:opacity-50 whitespace-nowrap"
                             aria-label={`Ubah honor ${item.crew.name} di ${item.workspaceEvent.name}`}
                           >
                             Ubah honor
                           </button>
                           <button
                             type="button"
-                            onClick={() => togglePaid(item)}
-                            disabled={action.busy}
-                            className={`px-2.5 py-1.5 text-xs font-medium rounded transition-colors disabled:opacity-50 whitespace-nowrap ${
+                            onClick={idle(() => togglePaid(item))}
+                            aria-disabled={action.busy}
+                            className={`px-2.5 py-1.5 text-xs font-medium rounded transition-colors aria-disabled:opacity-50 whitespace-nowrap ${
                               item.paid ? "text-slate-700 hover:bg-slate-100" : "text-green-800 hover:bg-green-50"
                             }`}
                             aria-label={`${item.paid ? "Batalkan tanda bayar" : "Tandai dibayar"} ${item.crew.name} di ${item.workspaceEvent.name}`}
@@ -329,17 +363,17 @@ export default function WorkspaceSalaryPage() {
             </label>
             <input
               id="salary-honor"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={2000000000}
-              step={1}
+              {...rupiahInputProps}
               value={honorInput}
               onChange={(e) => setHonorInput(e.target.value)}
               className={inputClass}
               disabled={action.busy}
               required
+              aria-describedby="salary-honor-hint"
             />
+            <p id="salary-honor-hint" className={hintClass}>
+              Isi angka rupiah, misalnya 500000 atau 500.000. {rupiahPreview(honorInput)}
+            </p>
           </div>
         </div>
       </Modal>
@@ -367,6 +401,13 @@ export default function WorkspaceSalaryPage() {
             Semua penugasan <span className="font-semibold text-slate-900">{payTarget?.crewName}</span> di {monthLabel} yang
             belum dibayar ({payTarget && rupiah(payTarget.unpaidTotal)}) akan ditandai sudah dibayar hari ini.
           </p>
+          {payFlagged.length > 0 && (
+            <p className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg text-sm">
+              Termasuk {payFlagged.length} penugasan dari event berstatus Batal atau Ditunda (
+              {rupiah(payFlagged.reduce((sum, a) => sum + a.honor, 0))}). Kalau honor itu tidak dibayar, batalkan lalu tandai
+              dibayar satu per satu di Daftar Penugasan.
+            </p>
+          )}
         </div>
       </Modal>
     </div>

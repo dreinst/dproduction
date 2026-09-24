@@ -8,7 +8,7 @@ Teknologi: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, framer
 
 - Landing page satu halaman di `/`. Isinya dibaca dari database lewat `src/lib/landing-content.ts`: Setting Kantor (nama, alamat, WhatsApp, email, link sosial, Google Maps, Tentang Kami, angka statistik hero, JSON-LD), Head Home (gambar dan kartu hero), Master Event (section Masterpiece), Master Wedding, Master Rental, Galeri Foto, dan Galeri Video. Section Klien dan FAQ tetap ditulis di kode.
 - Kalau tabel kosong atau database tidak bisa dijangkau, landing memakai konten cadangan `FALLBACK` di file yang sama, jadi halaman tetap tampil.
-- Beranda di-render ulang paling lama tiap 5 menit, dan pada kunjungan berikutnya setelah admin menyimpan konten landing di dashboard (`revalidateLanding()` di `src/lib/revalidate.ts`). Build tidak tersambung ke database, jadi HTML hasil build berisi konten cadangan sampai render ulang pertama setelah container baru jalan.
+- Beranda dan halaman 404 (Navbar dan Footer-nya memakai Setting Kantor) di-render ulang paling lama tiap 5 menit, dan pada kunjungan berikutnya setelah admin menyimpan konten landing di dashboard (`revalidateLanding()` di `src/lib/revalidate.ts`). Build tidak tersambung ke database, jadi HTML hasil build berisi konten cadangan sampai render ulang pertama setelah container baru jalan.
 - Form kontak mengirim ke `POST /api/contact`, menyimpan lead di tabel `Client`, dan mengirim notifikasi Telegram kalau `LEAD_TELEGRAM_*` terisi.
 - `GET /api/health` menjalankan `SELECT 1` ke database dan membalas `{"ok":true}` (200) atau `{"ok":false}` (503). Endpoint ini untuk monitor eksternal.
 - Dashboard admin ada di `/management` (login di `/management/login`) dengan API di `src/app/api/*`. Dashboard butuh `DATABASE_URL` dan `JWT_SECRET`.
@@ -47,7 +47,7 @@ Butuh Node.js 20.19, 22.12, atau 24 ke atas (syarat Prisma 7) dan PostgreSQL (CI
    ```bash
    npx tsx --env-file=.env.local scripts/seed-landing-content.ts
    ```
-   Skrip ini mengisi Setting Kantor id 1 dan tabel konten landing (HeadHome, Wedding, Rental, GaleriAlbum dan GaleriFoto, Event) dengan isi `FALLBACK`, sehingga tampilan tidak berubah dan konten tinggal diedit dari dashboard. Tabel yang sudah berisi dilewati, dan skrip mencetak ringkasan per tabel. Dengan `--awal`, baris Setting Kantor id 1 yang sudah ada juga ditimpa data resmi dan 4 event dokumentasi di Master Event dinonaktifkan. Pengaman host-nya sama dengan seed.
+   Skrip ini mengisi Setting Kantor id 1 dan tabel konten landing (HeadHome, Wedding, Rental, GaleriAlbum dan GaleriFoto, Event) dengan isi `FALLBACK`, sehingga tampilan tidak berubah dan konten tinggal diedit dari dashboard. Tabel yang sudah berisi dilewati, dan skrip mencetak ringkasan per tabel. Dengan `--awal`, baris Setting Kantor id 1 yang sudah ada juga ditimpa data resmi, dan 4 event dokumentasi di Master Event dinonaktifkan (dicocokkan lewat nama atau fotonya, lalu namanya diseragamkan ke versi tanda kurung). Skrip lalu mencetak jumlah event aktif, yang seharusnya 10. Pengaman host-nya sama dengan seed.
 7. Jalankan server pengembangan:
    ```bash
    npm run dev
@@ -95,11 +95,12 @@ Role resmi ada lima: `owner` (Pemilik), `superadmin` (Super Admin), `admin` (Adm
 
 - Halaman di bawah `/management` yang tidak ada di daftar ini ditolak dan dialihkan ke `/management`.
 - Staff dan tester hanya membaca Workspace Event. Tombol tambah, edit, dan hapus disembunyikan untuk mereka.
-- Honor dan status bayar penugasan hanya dikirim ke owner dan superadmin. Admin bisa menugaskan crew, dan honornya otomatis diambil dari Master Tarif sesuai JobDesc dan level event. Mengisi honor secara manual hanya bisa dilakukan owner dan superadmin.
+- Honor dan status bayar penugasan hanya dikirim ke owner dan superadmin. Admin bisa menugaskan crew, dan honornya otomatis diambil dari Master Tarif sesuai JobDesc dan level event. Mengisi honor secara manual hanya bisa dilakukan owner dan superadmin. Penugasan yang sudah dibayar, atau yang honornya berbeda dari tarif saat ini, hanya bisa dilepas owner dan superadmin, supaya honor yang diubah owner tidak kembali ke tarif lewat lepas lalu tugaskan ulang.
+- Report (status administrasi dan catatannya) hanya untuk owner dan superadmin. Admin hanya bisa menghapus Workspace Event yang status administrasinya masih Belum dan catatannya kosong.
 - Lead Masuk: pesan asli (nama, WhatsApp, jenis acara, pesan) tidak bisa diedit. Yang bisa diubah hanya status (baru, dihubungi, penawaran, deal, batal), catatan tindak lanjut, dan penanggung jawab. Lead bisa dijadikan Workspace Event.
 - Token login berumur 24 jam dan dicocokkan ke database di setiap request API. Logout, ganti password, ganti level, menonaktifkan, dan menghapus user langsung memutus sesi lama user itu. Logout berarti keluar dari semua perangkat yang memakai akun itu, jadi sebaiknya satu akun untuk satu orang.
-- Lima kali gagal login berturut mengunci akun selama 15 menit, juga kalau percobaannya dikirim bersamaan. Username yang tidak ada diperlakukan sama (hitungannya di memori server) supaya keberadaan akun tidak bisa ditebak. Satu IP dibatasi 20 percobaan login per 15 menit; hitungan per IP juga di memori, jadi berlaku per instance server dan dilewati kalau IP klien tidak diketahui.
-- Owner atau superadmin membuka kunci akun lain dengan mengganti password atau mengaktifkan ulang akun itu di Setting Login. Kalau semua akun teratas terkunci, tunggu 15 menit atau jalankan `scripts/set-account.ts simpan` untuk akun itu (lihat Runbook akun), yang sekaligus membuka kuncinya.
+- Lima kali gagal login dalam 15 menit mengunci username itu sampai kegagalan tertua lewat 15 menit, juga kalau percobaannya dikirim bersamaan. Username yang ada dan yang tidak ada memakai hitungan yang sama di memori server, supaya keberadaan akun tidak bisa ditebak dari pola 401 dan 429. Hitungan ini berlaku per instance server dan kosong lagi setelah container restart. Satu IP dibatasi 20 percobaan login gagal per 15 menit (login yang berhasil tidak dihitung); batas IP dilewati kalau IP klien tidak diketahui.
+- Owner atau superadmin membuka kunci akun lain dengan mengganti password atau mengaktifkan ulang akun itu di Setting Login. Kalau semua akun teratas terkunci, tunggu 15 menit atau restart container.
 - `npx tsx scripts/smoke-admin.ts` menguji matriks ini terhadap server yang sedang jalan. Skrip ini butuh `SEED_PASSWORD` dan `JWT_SECRET` yang sama dengan server, `BASE_URL` default `http://localhost:3000`, dan hanya boleh diarahkan ke localhost karena membuat lalu menghapus satu user uji.
 
 ### Aturan akun
@@ -115,14 +116,16 @@ Role resmi ada lima: `owner` (Pemilik), `superadmin` (Super Admin), `admin` (Adm
 ### Hapus data dan riwayat perubahan
 
 - Semua hapus di dashboard bersifat permanen, tidak ada tempat sampah. Tombol hapus selalu meminta konfirmasi.
-- Data yang masih dipakai data lain tidak bisa dihapus, dan API membalas 409 dengan pesan yang menyebut penyebabnya. Contohnya crew atau JobDesc yang punya penugasan, Workspace Event yang masih punya crew bertugas, Grade Event yang dipakai event, dan album galeri yang masih berisi foto. Untuk crew, nonaktifkan saja. Tarif ikut terhapus saat JobDesc atau Grade Event-nya dihapus.
+- Data yang masih dipakai data lain tidak bisa dihapus, dan API membalas 409 dengan pesan yang menyebut penyebabnya. Contohnya crew atau JobDesc yang punya penugasan, Workspace Event yang masih punya crew bertugas, Grade Event yang dipakai event, dan album galeri yang masih berisi foto. Untuk crew, nonaktifkan saja. Tarif ikut terhapus saat JobDesc atau Grade Event-nya dihapus, karena itu JobDesc atau Grade Event yang masih punya tarif hanya bisa dihapus owner dan superadmin (admin mendapat 409). Jumlah tarif yang ikut terhapus dicatat di AuditLog.
 - Setiap tambah, ubah, dan hapus dari dashboard, unggahan gambar, dan perubahan akun lewat `scripts/set-account.ts` dicatat di tabel `AuditLog`: siapa, kapan, aksi, tabel, id baris, dan ringkasan tanpa data pribadi (tanpa nomor WhatsApp, isi pesan lead, atau password). Nama user disalin, jadi catatan tetap terbaca setelah user dihapus. Belum ada halaman untuk membacanya; jumlah barisnya tampil di halaman Database, dan isinya dibaca lewat SQL, misalnya `SELECT * FROM "AuditLog" ORDER BY id DESC LIMIT 50;`.
 
 ### Unggah gambar
 
 - Kolom gambar di Master, Galeri Foto, dan Head Home punya tombol unggah (`src/components/management/ImageField.tsx`) yang mengirim ke `POST /api/uploads` (field `file`).
 - Ukuran maksimal 5 MB. Format yang diterima JPG, PNG, dan WebP, dicek dari isi file, bukan dari nama atau tipe yang dikirim browser.
-- File disimpan di `UPLOAD_DIR` dengan nama acak dan disajikan publik di `/media/<nama>` dengan cache panjang. Di produksi folder ini adalah volume persisten `/app/uploads`.
+- Gambar di-encode ulang dengan `sharp` sebelum disimpan, sehingga metadata EXIF dan XMP (koordinat GPS, model HP, waktu foto) ikut terbuang. Orientasi foto HP tetap benar. Resolusi maksimal 60 megapiksel.
+- File disimpan di `UPLOAD_DIR` dengan nama acak dan disajikan publik di `/media/<nama>` dengan cache satu hari. Di produksi folder ini adalah volume persisten `/app/uploads`.
+- Saat baris dengan kolom gambar dihapus atau gambarnya diganti, file `/media` lama ikut dihapus kalau tidak dipakai kolom gambar lain (Master Event, Wedding, Rental, Galeri Foto, Head Home). Salinan di cache browser dan cache `/_next/image` kedaluwarsa paling lama satu hari kemudian. File yang diunggah tetapi formnya tidak jadi disimpan tetap ada di folder, tetapi alamatnya acak dan tidak pernah tampil di mana pun.
 - Kolom gambar tetap menerima path di situs ini (misalnya `/assets/...` atau `/media/...`) atau URL `https://`.
 
 ## Perintah
@@ -236,7 +239,7 @@ Dijalankan sekali oleh orang yang berwenang setelah backup terbaru dipastikan ad
 ALLOW_REMOTE_SEED=1 npx tsx --env-file=.env.produksi scripts/seed-landing-content.ts --awal
 ```
 
-Baris KantorSetting produksi masih berisi placeholder (nama `DPro`, deskripsi bahasa Inggris, link Facebook yang salah, Google Maps berisi teks `Google Maps Embed`), dan `--awal` menimpanya dengan data resmi serta menonaktifkan 4 event dokumentasi. Tabel yang sudah berisi (HeadHome, Wedding, Rental, galeri, Event) dilewati, jadi baca ringkasan yang dicetak skrip dan cek landing setelahnya.
+Baris KantorSetting produksi masih berisi placeholder (nama `DPro`, deskripsi bahasa Inggris, link Facebook yang salah, Google Maps berisi teks `Google Maps Embed`), dan `--awal` menimpanya dengan data resmi serta menonaktifkan 4 event dokumentasi (id 11 sampai 14 di data produksi, yang namanya masih memakai tanda pisah panjang). Tabel yang sudah berisi (HeadHome, Wedding, Rental, galeri, Event) dilewati, jadi baca ringkasan yang dicetak skrip dan cek landing setelahnya. Ringkasan harus menyebut 4 event dokumentasi dinonaktifkan dan 10 event aktif.
 
 ### Migrasi gagal
 
@@ -254,6 +257,12 @@ Di PostgreSQL satu file migrasi dijalankan utuh atau tidak sama sekali, jadi mig
 ### Rollback
 
 Rollback berarti men-deploy ulang SHA sebelumnya dengan `ROLLBACK_SHA`. Migrasi tidak ikut mundur: SHA lama berjalan di atas skema yang sudah berubah. Kalau migrasi terakhir hanya menambah kolom atau tabel, kode lama biasanya tetap jalan. Kalau migrasi membuang atau mengubah kolom yang dipakai kode lama, rollback kode tidak cukup. Perbaiki dengan migrasi maju (commit baru di `main` yang mengembalikan kolom atau datanya), atau restore dari backup yang dibuat sebelum deploy (lihat Runbook restore).
+
+Deploy pertama versi ini tidak bisa dimundurkan dengan `ROLLBACK_SHA`. SHA `main` sebelumnya tidak punya `Dockerfile`, jadi build-nya gagal setelah build pack diganti ke Dockerfile, dan migrasi `20260924120000_workspace_konten_akun` sudah membuang kolom yang dipakai kode lama. Karena itu:
+
+1. Sebelum deploy pertama, catat pengaturan app Coolify yang sekarang: build pack, commit, perintah build dan start, port, dan daftar env. Buat juga backup manual (langkah 1 di atas).
+2. Kalau deploy pertama harus dibatalkan, restore backup itu ke database baru (Runbook restore), kembalikan build pack, commit, dan pengaturan lama di Coolify, arahkan `DATABASE_URL` ke database hasil restore, lalu Redeploy. Cara lain adalah perbaikan maju lewat commit baru di `main`.
+3. `ROLLBACK_SHA` baru bisa dipakai antar SHA yang sama-sama punya `Dockerfile`.
 
 ## Runbook migrasi DNS dan TLS
 
@@ -282,7 +291,7 @@ Domain `dpro.events` masih menunjuk ke server situs lama. Let's Encrypt membatas
 
 ## Runbook akun
 
-`scripts/set-account.ts` membuat atau mengganti akun (level, nama lengkap, password), mengaktifkannya, membuka kuncinya, dan mencabut semua sesinya. Skrip juga bisa menghapus akun. Minimal satu owner atau superadmin aktif selalu dijaga, dan setiap perubahan dicatat di AuditLog atas nama `skrip set-account`.
+`scripts/set-account.ts` membuat atau mengganti akun (level, nama lengkap, password), mengaktifkannya, dan mencabut semua sesinya. Kunci login ada di memori server, jadi skrip ini tidak membukanya; tunggu 15 menit atau restart container. Skrip juga bisa menghapus akun. Minimal satu owner atau superadmin aktif selalu dijaga, dan setiap perubahan dicatat di AuditLog atas nama `skrip set-account`.
 
 ```bash
 npx tsx --env-file=.env.local scripts/set-account.ts simpan <username> <role> "<Nama lengkap>" [--hash-stdin] [--yakin]
@@ -326,8 +335,7 @@ Kerjakan di jendela maintenance setelah backup, sebagai `dproduction`:
 ```bash
 docker exec -i dproduction-db-1 psql -v ON_ERROR_STOP=1 -U dproduction -d dproduction <<'SQL'
 BEGIN;
-CREATE ROLE dproduction_app LOGIN PASSWORD '<password acak, misalnya hasil openssl rand -hex 24>'
-  NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+CREATE ROLE dproduction_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
 ALTER SCHEMA public OWNER TO dproduction_app;
 DO $$
 DECLARE r record;
@@ -353,7 +361,13 @@ COMMIT;
 SQL
 ```
 
-Password ditulis di heredoc, jadi tidak masuk riwayat shell. Setelah itu:
+Isi heredoc ikut tersimpan di riwayat bash, jadi role di atas sengaja dibuat tanpa password. Buat password acak (misalnya `openssl rand -hex 24`) dan simpan di pengelola password, lalu pasang lewat prompt tersembunyi `\password`, yang juga tidak masuk riwayat:
+
+```bash
+docker exec -it dproduction-db-1 psql -U dproduction -d dproduction -c '\password dproduction_app'
+```
+
+Setelah itu:
 
 1. Cek hasilnya. Semua baris harus menunjuk `dproduction_app`, dan `rolsuper` harus `f`:
    ```sql

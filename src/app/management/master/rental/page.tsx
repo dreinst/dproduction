@@ -7,7 +7,7 @@ import { usePagination } from "@/hooks/usePagination";
 import Modal from "@/components/management/Modal";
 import Pagination, { PageSizeSelect } from "@/components/management/Pagination";
 import AdminThumb from "@/components/management/AdminThumb";
-import ImageField from "@/components/management/ImageField";
+import ImageField, { DEFAULT_HINT } from "@/components/management/ImageField";
 import { useAdminUser } from "@/components/management/AdminShell";
 
 interface RentalItem {
@@ -24,7 +24,7 @@ interface RentalItem {
 const EMPTY_FORM = { name: "", description: "", price: "", unit: "", waCart: "", photo: "", active: true };
 const rupiah = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 });
 const inputClass =
-  "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100";
+  "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600 disabled:bg-slate-100";
 const th = "px-3 py-3 text-left font-semibold";
 const td = "px-3 py-3 align-top";
 const stickyTh = "sticky right-0 bg-slate-800 px-3 py-3 text-center font-semibold";
@@ -43,6 +43,7 @@ export default function MasterRentalPage() {
   const [deleteTarget, setDeleteTarget] = useState<RentalItem | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const q = searchQuery.trim().toLowerCase();
   const filtered = data.filter(
@@ -119,7 +120,7 @@ export default function MasterRentalPage() {
             id="rental-status"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as "aktif" | "semua")}
-            className="px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white min-w-[200px]"
+            className="px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600 bg-white min-w-[200px]"
           >
             <option value="aktif">Hanya yang tampil</option>
             <option value="semua">Semua</option>
@@ -129,7 +130,7 @@ export default function MasterRentalPage() {
           <button
             type="button"
             onClick={() => openForm()}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
           >
             <Plus className="w-4 h-4" aria-hidden />
             Tambah Rental
@@ -149,7 +150,7 @@ export default function MasterRentalPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari nama atau deskripsi"
-            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden />
         </div>
@@ -274,7 +275,7 @@ export default function MasterRentalPage() {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || uploading}
               className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
             >
               {isSubmitting ? "Menyimpan..." : "Simpan"}
@@ -301,7 +302,7 @@ export default function MasterRentalPage() {
           </div>
           <div>
             <label htmlFor="rental-description" className="block text-sm font-medium text-slate-700 mb-1">
-              Deskripsi (opsional)
+              Deskripsi (opsional, belum tampil di website)
             </label>
             <textarea
               id="rental-description"
@@ -369,15 +370,17 @@ export default function MasterRentalPage() {
               aria-describedby="rental-wacart-hint"
             />
             <p id="rental-wacart-hint" className="mt-1 text-xs text-slate-500">
-              Diawali https://, misalnya https://wa.me/p/1234567890.
+              Diawali https://, misalnya https://wa.me/p/1234567890. Link ini belum tampil di website.
             </p>
           </div>
           <ImageField
             id="rental-photo"
             label="Foto (opsional)"
+            hint={`${DEFAULT_HINT} Foto ini belum tampil di website.`}
             value={form.photo}
             onChange={(photo) => setForm((f) => ({ ...f, photo }))}
             disabled={isSubmitting}
+            onUploadingChange={setUploading}
           />
           <div className="flex items-center gap-3">
             <input

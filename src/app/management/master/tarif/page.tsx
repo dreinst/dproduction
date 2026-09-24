@@ -9,8 +9,11 @@ import {
   hintClass,
   inputClass,
   labelClass,
+  parseRupiah,
   primaryButton,
   rupiah,
+  rupiahInputProps,
+  rupiahPreview,
   secondaryButton,
   useAction,
 } from "@/app/management/workspace/shared";
@@ -116,7 +119,7 @@ export default function MasterTarifPage() {
                 <tr key={j.id} className="border-b border-slate-100">
                   <th
                     scope="row"
-                    className="sticky left-0 bg-white px-3 py-2 text-left font-medium text-slate-800 wrap-anywhere shadow-[6px_0_6px_-6px_rgba(15,23,42,0.35)]"
+                    className="sticky left-0 bg-white px-3 py-2 text-left font-medium text-slate-800 break-words shadow-[6px_0_6px_-6px_rgba(15,23,42,0.35)]"
                   >
                     {j.name}
                   </th>
@@ -148,7 +151,7 @@ export default function MasterTarifPage() {
         open={!!target}
         title="Tarif (Rp)"
         onClose={() => setTarget(null)}
-        onSubmit={() => save(Number(amount))}
+        onSubmit={() => save(parseRupiah(amount))}
         busy={action.busy}
         size="sm"
         footer={
@@ -173,11 +176,7 @@ export default function MasterTarifPage() {
         </label>
         <input
           id="tarif-amount"
-          type="number"
-          inputMode="numeric"
-          min={0}
-          max={2000000000}
-          step={1}
+          {...rupiahInputProps}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           className={inputClass}
@@ -186,7 +185,8 @@ export default function MasterTarifPage() {
           aria-describedby="tarif-amount-hint"
         />
         <p id="tarif-amount-hint" className={hintClass}>
-          {target?.jobDesc.name}, grade {target?.grade.grade}. Isi angka rupiah tanpa titik, misalnya 500000.
+          {target?.jobDesc.name}, grade {target?.grade.grade}. Isi angka rupiah, misalnya 500000 atau 500.000.{" "}
+          {rupiahPreview(amount)}
         </p>
       </Modal>
     </div>

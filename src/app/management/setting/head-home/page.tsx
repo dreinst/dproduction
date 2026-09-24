@@ -20,7 +20,7 @@ interface HeadImage {
 
 const EMPTY_FORM = { image: "", title: "", caption: "", active: true };
 const inputClass =
-  "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100";
+  "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600 disabled:bg-slate-100";
 const moveClass =
   "w-8 h-8 rounded flex items-center justify-center text-white transition-colors disabled:cursor-not-allowed disabled:bg-slate-300";
 
@@ -35,6 +35,7 @@ export default function HeadHomePage() {
   const [deleteTarget, setDeleteTarget] = useState<HeadImage | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [moving, setMoving] = useState(false);
 
   const q = searchQuery.trim().toLowerCase();
@@ -117,7 +118,7 @@ export default function HeadHomePage() {
             id="head-status"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as "aktif" | "semua")}
-            className="px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white min-w-[200px]"
+            className="px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600 bg-white min-w-[200px]"
           >
             <option value="aktif">Hanya yang aktif</option>
             <option value="semua">Semua</option>
@@ -126,7 +127,7 @@ export default function HeadHomePage() {
         <button
           type="button"
           onClick={() => openForm()}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
         >
           <Plus className="w-4 h-4" aria-hidden />
           Tambah Gambar
@@ -145,7 +146,7 @@ export default function HeadHomePage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari judul atau URL gambar"
-            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden />
         </div>
@@ -277,7 +278,7 @@ export default function HeadHomePage() {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || uploading}
               className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
             >
               {isSubmitting ? "Menyimpan..." : "Simpan"}
@@ -293,6 +294,7 @@ export default function HeadHomePage() {
             value={form.image}
             onChange={(image) => setForm((f) => ({ ...f, image }))}
             disabled={isSubmitting}
+            onUploadingChange={setUploading}
             required
           />
           <div>

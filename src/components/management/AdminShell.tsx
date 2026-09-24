@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "@/components/management/Sidebar";
 import AdminHeader from "@/components/management/Header";
@@ -27,16 +27,25 @@ function AuthedShell({ children }: { children: ReactNode }) {
   const [ctx, setCtx] = useState<AdminContext | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
 
+  // Drawer hanya dibuka lewat tombol menu di bawah lg. Selama terbuka, fokus pindah ke drawer dan konten di belakangnya
+  // dibuat inert (lihat di bawah); setelah ditutup, fokus kembali ke tombol menu.
   useEffect(() => {
     if (!sidebarOpen) return;
+    drawerRef.current?.querySelector<HTMLElement>("button, a[href]")?.focus();
+    const close = () => setSidebarOpen(false);
     const closeOnEscape = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      setSidebarOpen(false);
+      if (e.key === "Escape") close();
+    };
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    window.addEventListener("keydown", closeOnEscape);
+    desktop.addEventListener("change", close);
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+      desktop.removeEventListener("change", close);
       document.querySelector<HTMLElement>("[data-menu-toggle]")?.focus();
     };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
   }, [sidebarOpen]);
 
   useEffect(() => {
@@ -94,6 +103,7 @@ function AuthedShell({ children }: { children: ReactNode }) {
       <div className="min-h-screen bg-slate-100">
         <a
           href="#konten"
+          inert={sidebarOpen}
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-blue-700 focus:shadow-lg"
         >
           Langsung ke konten
@@ -102,17 +112,20 @@ function AuthedShell({ children }: { children: ReactNode }) {
           <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" aria-hidden onClick={() => setSidebarOpen(false)} />
         )}
         <div
-          className={`fixed inset-y-0 left-0 z-50 transform transition-[transform,visibility] duration-300 lg:visible lg:translate-x-0 ${
-            sidebarOpen ? "visible translate-x-0" : "invisible -translate-x-full"
+          ref={drawerRef}
+          // Saat dibuka, visibility tidak ikut transisi supaya drawer langsung bisa difokus; saat ditutup, drawer tetap
+          // terlihat sampai animasi geser selesai.
+          className={`fixed inset-y-0 left-0 z-50 transform duration-300 lg:visible lg:translate-x-0 ${
+            sidebarOpen ? "visible translate-x-0 transition-transform" : "invisible -translate-x-full transition-[transform,visibility]"
           }`}
         >
           <Sidebar onClose={() => setSidebarOpen(false)} role={ctx.user.role} />
         </div>
 
-        <div className="lg:pl-64">
+        <div className="lg:pl-64" inert={sidebarOpen}>
           <AdminHeader user={ctx.user} menuOpen={sidebarOpen} onMenuToggle={() => setSidebarOpen((open) => !open)} />
-          <main id="konten" tabIndex={-1} className="p-6 lg:p-8 focus:outline-none">{children}</main>
-          <footer className="px-6 lg:px-8 py-4 text-center text-slate-500 text-xs border-t border-slate-200">
+          <main id="konten" tabIndex={-1} className="p-6 lg:p-8 focus:outline-hidden">{children}</main>
+          <footer className="px-6 lg:px-8 py-4 text-center text-slate-600 text-xs border-t border-slate-200">
             {`© ${new Date().getFullYear()} D'Production. Hak cipta dilindungi.`}
           </footer>
         </div>

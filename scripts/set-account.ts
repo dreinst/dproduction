@@ -10,7 +10,7 @@
 //   npx tsx --env-file=.env.local scripts/set-account.ts hapus <username>
 //
 // role: owner, superadmin, admin, staff, atau tester. Akun yang sudah ada ditimpa (level, nama, password),
-// diaktifkan, kuncinya dibuka, dan semua sesinya dicabut. Minimal satu akun owner atau superadmin aktif selalu dijaga.
+// diaktifkan, dan semua sesinya dicabut. Minimal satu akun owner atau superadmin aktif selalu dijaga.
 // Kalau host database bukan localhost atau 127.0.0.1, tambahkan --yakin setelah memastikan database-nya benar.
 import { Writable } from 'node:stream'
 import { createInterface } from 'node:readline/promises'
@@ -110,7 +110,7 @@ async function save(args: string[], fromStdin: boolean) {
   if (!alias.success) throw new StopError(alias.error.issues[0]?.message ?? 'Nama lengkap tidak valid.')
 
   const passwordHash = await readPasswordHash(fromStdin)
-  const data = { alias: alias.data, role, passwordHash, active: true, failedLogins: 0, lockedUntil: null }
+  const data = { alias: alias.data, role, passwordHash, active: true }
   const { user, before } = await prisma.$transaction(async (tx) => {
     const before = await tx.user.findUnique({ where: { username }, select: { role: true, active: true } })
     const user = await tx.user.upsert({

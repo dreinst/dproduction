@@ -51,7 +51,7 @@ export default function AdminLoginPage({ searchParams }: { searchParams: SearchP
   };
 
   const inputClass =
-    "w-full py-3.5 bg-white/5 border border-white/10 rounded-xl text-base text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all";
+    "w-full py-3.5 bg-white/5 border border-white/10 rounded-xl text-base text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">

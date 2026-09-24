@@ -5,6 +5,7 @@ import { HttpError, apiError, handleRouteError, parseId, readJson } from '@/lib/
 import { requireAccess } from '@/lib/auth';
 import { audit } from '@/lib/audit';
 import { revalidateLanding } from '@/lib/revalidate';
+import { removeUnusedImages } from '@/lib/upload';
 import { MESSAGES, updateSchema } from '../schema';
 
 type Params = { params: Promise<{ id: string }> };
@@ -53,6 +54,7 @@ export async function PUT(req: Request, { params }: Params) {
     const changed = keys.filter((key) => before?.[key] !== item[key]);
     await audit(auth.user, 'ubah', 'HeadHome', id, changed.length ? changed.join(', ') : 'tanpa perubahan');
     revalidateLanding();
+    await removeUnusedImages(before?.image);
     return NextResponse.json(item);
   } catch (error) {
     return handleRouteError(error, MESSAGES);
@@ -68,6 +70,7 @@ export async function DELETE(_req: Request, { params }: Params) {
     const deleted = await prisma.headHome.delete({ where: { id } });
     await audit(auth.user, 'hapus', 'HeadHome', id, deleted.title ?? deleted.image);
     revalidateLanding();
+    await removeUnusedImages(deleted.image);
     return NextResponse.json({ message: 'Gambar dihapus.' });
   } catch (error) {
     return handleRouteError(error, MESSAGES);

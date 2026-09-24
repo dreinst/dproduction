@@ -117,7 +117,7 @@ function ModalDialog({ title, onClose, children, footer, onSubmit, onInput, busy
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`flex max-h-[90dvh] w-full ${SIZES[size]} flex-col overflow-hidden rounded-2xl bg-white shadow-2xl focus:outline-none`}
+        className={`flex max-h-[90dvh] w-full ${SIZES[size]} flex-col overflow-hidden rounded-2xl bg-white shadow-2xl focus:outline-hidden`}
       >
         <div className="flex shrink-0 items-center justify-between gap-4 border-b border-slate-100 bg-slate-50/50 px-6 py-4">
           <h2 id={titleId} className="text-lg font-bold text-slate-800">

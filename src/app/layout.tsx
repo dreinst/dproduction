@@ -3,6 +3,10 @@ import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
+// Halaman 404 di-prerender saat build tanpa database, jadi ikut dirender ulang berkala supaya Setting Kantor di Navbar dan
+// Footer-nya pulih sendiri setelah deploy. Beranda memakai nilai yang sama.
+export const revalidate = 300;
+
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-plus-jakarta" });
 

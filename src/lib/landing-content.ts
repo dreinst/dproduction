@@ -217,12 +217,19 @@ export const getLandingContent = cache(async (): Promise<LandingContent> => {
   const heroImage = imageSrc(heroRow?.image);
   const heroTitle = text(heroRow?.title);
   const heroCaption = text(heroRow?.caption);
+  // Judul dan keterangan sudah tampil di kartu di atas gambar, jadi tidak diulang di alt. Gambar cadangan memakai alt
+  // deskriptifnya; gambar lain dianggap dekoratif kalau kartunya berisi teks.
   const hero = heroImage
     ? {
         image: heroImage,
         title: heroTitle,
         caption: heroCaption,
-        alt: [heroTitle, heroCaption].filter(Boolean).join(", ") || "Dokumentasi acara D'Production",
+        alt:
+          heroImage === FALLBACK.hero.image
+            ? FALLBACK.hero.alt
+            : heroTitle || heroCaption
+              ? ""
+              : "Dokumentasi acara D'Production",
       }
     : FALLBACK.hero;
 

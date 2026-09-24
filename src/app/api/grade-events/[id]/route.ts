@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { apiError, handleRouteError, parseId, readJson } from '@/lib/api';
 import { requireAccess } from '@/lib/auth';
 import { audit } from '@/lib/audit';
+import { can } from '@/lib/rbac';
 import { MESSAGES, updateSchema } from '../schema';
 
 type Params = { params: Promise<{ id: string }> };
@@ -35,14 +36,28 @@ export async function PUT(req: Request, { params }: Params) {
 }
 
 // Tarif grade ini ikut terhapus (cascade); Workspace Event yang memakai grade ini membuat hapus ditolak 409.
+// Tarif khusus Pemilik dan Super Admin, jadi role lain hanya bisa menghapus grade yang belum punya tarif.
 export async function DELETE(_req: Request, { params }: Params) {
   try {
     const auth = await requireAccess('gradeEvents', 'write');
     if (!auth.authorized) return auth.response;
     const id = parseId((await params).id);
     if (!id) return apiError(400, 'ID grade tidak valid.');
-    const grade = await prisma.gradeEvent.delete({ where: { id } });
-    await audit(auth.user, 'hapus', 'GradeEvent', id, grade.grade);
+    const grade = await prisma.gradeEvent.findUnique({
+      where: { id },
+      select: { grade: true, _count: { select: { tarif: true } } },
+    });
+    if (!grade) return apiError(404, MESSAGES.P2025);
+    const ownsTarif = can(auth.user.role, 'tarif', 'write');
+    // Syarat tarif ikut di WHERE supaya tarif yang diisi bersamaan tidak ikut terhapus.
+    const { count } = await prisma.gradeEvent.deleteMany({ where: ownsTarif ? { id } : { id, tarif: { none: {} } } });
+    if (!count) {
+      return ownsTarif
+        ? apiError(404, MESSAGES.P2025)
+        : apiError(409, 'Masih ada tarif untuk grade ini. Minta Pemilik atau Super Admin menghapus tarifnya dulu di Master Tarif.');
+    }
+    const tarif = grade._count.tarif;
+    await audit(auth.user, 'hapus', 'GradeEvent', id, tarif ? `${grade.grade}, ${tarif} tarif ikut terhapus` : grade.grade);
     return NextResponse.json({ message: 'Grade dihapus permanen.' });
   } catch (error) {
     return handleRouteError(error, MESSAGES);

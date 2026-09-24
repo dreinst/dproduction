@@ -68,7 +68,7 @@ export function handleRouteError(error: unknown, messages: PrismaMessages = {}) 
 }
 
 // Postgres menolak karakter NUL di kolom teks, jadi ditolak di sini supaya tidak jadi error 500.
-const NO_NUL = /^[^\u0000]*$/;
+export const NO_NUL = /^[^\u0000]*$/;
 
 export const zName = (label = 'Nama') =>
   z

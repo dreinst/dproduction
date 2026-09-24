@@ -13,7 +13,18 @@ import {
   type AdminStatus,
   type WorkspaceEventStatus,
 } from "@/lib/rbac";
-import { formatWib, inputClass, labelClass, orNull, primaryButton, secondaryButton, tabClass, useAction } from "../shared";
+import {
+  formatWib,
+  inputClass,
+  labelClass,
+  orNull,
+  primaryButton,
+  secondaryButton,
+  stickyTd,
+  stickyTh,
+  tabClass,
+  useAction,
+} from "../shared";
 
 interface ReportRow {
   id: number;
@@ -106,19 +117,19 @@ export default function WorkspaceReportPage() {
                 <th className={th}>Status Event</th>
                 <th className={th}>Status Administrasi</th>
                 <th className={th}>Catatan</th>
-                <th className={`${th} text-center`}>Aksi</th>
+                <th className={stickyTh}>Aksi</th>
               </tr>
             </thead>
             <tbody>
               {pagination.pageItems.map((item) => (
-                <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                  <td className={`${td} font-medium text-slate-800 wrap-anywhere`}>{item.name}</td>
-                  <td className={`${td} text-slate-700 wrap-anywhere`}>{item.client}</td>
+                <tr key={item.id} className="group border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                  <td className={`${td} font-medium text-slate-800 break-words`}>{item.name}</td>
+                  <td className={`${td} text-slate-700 break-words`}>{item.client}</td>
                   <td className={`${td} text-slate-700 whitespace-nowrap`}>{formatWib(item.startAt)}</td>
                   <td className={`${td} text-slate-700`}>{WORKSPACE_EVENT_STATUS_LABELS[item.status]}</td>
                   <td className={`${td} font-medium text-slate-800`}>{ADMIN_STATUS_LABELS[item.adminStatus]}</td>
-                  <td className={`${td} text-slate-700 whitespace-pre-line wrap-anywhere`}>{item.adminNote}</td>
-                  <td className={`${td} text-center`}>
+                  <td className={`${td} text-slate-700 whitespace-pre-line break-words`}>{item.adminNote}</td>
+                  <td className={`${stickyTd} text-center`}>
                     <button
                       type="button"
                       onClick={() => openForm(item)}

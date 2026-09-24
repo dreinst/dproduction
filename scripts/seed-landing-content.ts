@@ -118,11 +118,21 @@ async function main() {
   )
 
   if (AWAL) {
-    const { count } = await prisma.event.updateMany({
-      where: { name: { in: DOCUMENTED_EVENTS.map((e) => e.name) }, active: true },
-      data: { active: false },
-    })
-    console.log(`Event: ${count} event dokumentasi dinonaktifkan (--awal).`)
+    // Di produksi nama event dokumentasi masih versi seed lama yang memakai tanda pisah panjang, jadi dicocokkan juga
+    // lewat kolom foto. Namanya sekalian diganti ke versi tanda kurung supaya dashboard ikut bersih.
+    let count = 0
+    for (const e of DOCUMENTED_EVENTS) {
+      const updated = await prisma.event.updateMany({
+        where: { OR: [{ photo: e.photo }, { name: e.name }] },
+        data: { name: e.name, active: false },
+      })
+      count += updated.count
+    }
+    const active = await prisma.event.count({ where: { active: true } })
+    console.log(`Event: ${count} event dokumentasi dinonaktifkan (--awal). Event aktif di Masterpiece sekarang ${active}.`)
+    if (active !== masterpieces.length) {
+      console.log(`Periksa Master Event: portofolio resmi berjumlah ${masterpieces.length}, bukan ${active}.`)
+    }
   }
 }
 
