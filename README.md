@@ -206,7 +206,7 @@ Mode lain:
 - `DRY_RUN=1 dproduction-autodeploy.sh` hanya mencetak SHA `main`, status check `ci`, dan langkah yang akan dijalankan, tanpa memanggil Coolify.
 - `ROLLBACK_SHA=<sha 40 karakter> dproduction-autodeploy.sh` men-deploy SHA itu tanpa cek `main` dan CI. SHA `main` saat itu ditahan (tidak di-deploy otomatis) sampai ada commit baru di `main`; hapus `/var/lib/dproduction-autodeploy/hold` untuk melepasnya.
 
-Nama field dan endpoint Coolify yang dipakai skrip harus dicocokkan dulu dengan versi Coolify di VPS sebelum skrip dipakai (lihat komentar di skrip).
+Field dan endpoint Coolify yang dipakai skrip sudah dicocokkan dengan Coolify di VPS: deploy harus lewat `POST /api/v1/deploy?uuid=`, dan token butuh izin write dan deploy.
 
 ### Sebelum menggabungkan perubahan yang membawa migrasi
 

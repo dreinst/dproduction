@@ -18,8 +18,8 @@
 # saat build dan hanya skrip ini yang men-deploy.
 #
 # Nama field dan endpoint Coolify (PATCH /api/v1/applications/{uuid} field git_commit_sha,
-# GET /api/v1/deploy?uuid=, GET /api/v1/deployments/{uuid} field status) harus dicek dulu
-# terhadap versi Coolify yang terpasang di VPS sebelum skrip ini dipakai.
+# POST /api/v1/deploy?uuid=, GET /api/v1/deployments/{uuid} field status) sudah dicocokkan dengan
+# Coolify di VPS (Laravel 12, 24 September 2026). GET /deploy ditolak, jadi deploy wajib POST.
 #
 # Mode:
 #   DRY_RUN=1   hanya mencetak SHA main, status check ci, dan langkah yang akan dijalankan.
@@ -123,7 +123,7 @@ else
 fi
 
 if [[ $DRY_RUN == 1 ]]; then
-  log "DRY_RUN: PATCH /api/v1/applications/${APP_UUID:-<APP_UUID>} git_commit_sha=$sha, GET /api/v1/deploy?uuid=${APP_UUID:-<APP_UUID>}, lalu cek status deployment sampai finished, failed, atau cancelled (maksimal 20 menit)."
+  log "DRY_RUN: PATCH /api/v1/applications/${APP_UUID:-<APP_UUID>} git_commit_sha=$sha, POST /api/v1/deploy?uuid=${APP_UUID:-<APP_UUID>}, lalu cek status deployment sampai finished, failed, atau cancelled (maksimal 20 menit)."
   exit 0
 fi
 
@@ -133,7 +133,7 @@ if [[ -z $ROLLBACK_SHA ]]; then
 fi
 
 coolify PATCH "/applications/$APP_UUID" "$(jq -nc --arg sha "$sha" '{git_commit_sha: $sha}')" >/dev/null
-deployment=$(coolify GET "/deploy?uuid=$APP_UUID" | jq -r '.deployments[0].deployment_uuid // empty')
+deployment=$(coolify POST "/deploy?uuid=$APP_UUID" | jq -r '.deployments[0].deployment_uuid // empty')
 [[ -n $deployment ]] || { log "Coolify tidak mengembalikan deployment_uuid."; exit 1; }
 log "Deployment $deployment untuk $sha dimulai."
 
