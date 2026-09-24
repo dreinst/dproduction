@@ -7,13 +7,14 @@ import { usePagination } from "@/hooks/usePagination";
 import Modal from "@/components/management/Modal";
 import Pagination, { PageSizeSelect } from "@/components/management/Pagination";
 import AdminThumb from "@/components/management/AdminThumb";
+import ImageField from "@/components/management/ImageField";
 import { useAdminUser } from "@/components/management/AdminShell";
 
 interface RentalItem {
   id: number;
   name: string;
   description: string | null;
-  price: string | null;
+  price: number | null;
   unit: string | null;
   waCart: string | null;
   photo: string | null;
@@ -21,6 +22,7 @@ interface RentalItem {
 }
 
 const EMPTY_FORM = { name: "", description: "", price: "", unit: "", waCart: "", photo: "", active: true };
+const rupiah = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 });
 const inputClass =
   "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100";
 const th = "px-3 py-3 text-left font-semibold";
@@ -58,7 +60,7 @@ export default function MasterRentalPage() {
         ? {
             name: item.name,
             description: item.description ?? "",
-            price: item.price ?? "",
+            price: item.price?.toString() ?? "",
             unit: item.unit ?? "",
             waCart: item.waCart ?? "",
             photo: item.photo ?? "",
@@ -74,7 +76,7 @@ export default function MasterRentalPage() {
     const payload = {
       name: form.name.trim(),
       description: form.description.trim() || null,
-      price: form.price.trim() || null,
+      price: form.price === "" ? null : Number(form.price),
       unit: form.unit.trim() || null,
       waCart: form.waCart.trim() || null,
       photo: form.photo.trim() || null,
@@ -119,7 +121,7 @@ export default function MasterRentalPage() {
             onChange={(e) => setStatusFilter(e.target.value as "aktif" | "semua")}
             className="px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white min-w-[200px]"
           >
-            <option value="aktif">Hanya yang aktif</option>
+            <option value="aktif">Hanya yang tampil</option>
             <option value="semua">Semua</option>
           </select>
         </div>
@@ -167,11 +169,11 @@ export default function MasterRentalPage() {
                 <th className={th}>No</th>
                 <th className={`${th} min-w-40`}>Nama</th>
                 <th className={`${th} min-w-56`}>Deskripsi</th>
-                <th className={th}>Harga</th>
+                <th className={th}>Harga mulai</th>
                 <th className={th}>Satuan</th>
                 <th className={th}>WA Cart</th>
                 <th className={`${th} text-center`}>Foto</th>
-                <th className={`${th} text-center`}>Aktif</th>
+                <th className={`${th} text-center`}>Tampil</th>
                 {canWrite && <th className={stickyTh}>Aksi</th>}
               </tr>
             </thead>
@@ -183,7 +185,11 @@ export default function MasterRentalPage() {
                   <td className={`${td} text-slate-600`}>
                     <p className="line-clamp-2">{item.description}</p>
                   </td>
-                  <td className={`${td} whitespace-nowrap text-slate-700`}>{item.price}</td>
+                  <td
+                    className={`${td} whitespace-nowrap ${item.price === null ? "text-slate-600 italic" : "text-slate-700"}`}
+                  >
+                    {item.price === null ? "Hubungi Kami" : rupiah.format(item.price)}
+                  </td>
                   <td className={`${td} text-slate-700`}>{item.unit}</td>
                   <td className={td}>
                     {item.waCart && (
@@ -205,9 +211,9 @@ export default function MasterRentalPage() {
                   </td>
                   <td className={`${td} text-center`}>
                     {item.active ? (
-                      <CheckSquare className="w-5 h-5 text-green-600 mx-auto" aria-label="Aktif" />
+                      <CheckSquare className="w-5 h-5 text-green-600 mx-auto" aria-label="Tampil di website" />
                     ) : (
-                      <Square className="w-5 h-5 text-slate-400 mx-auto" aria-label="Nonaktif" />
+                      <Square className="w-5 h-5 text-slate-400 mx-auto" aria-label="Tidak tampil" />
                     )}
                   </td>
                   {canWrite && (
@@ -310,26 +316,28 @@ export default function MasterRentalPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="rental-price" className="block text-sm font-medium text-slate-700 mb-1">
-                Harga (opsional)
+                Harga mulai (Rp)
               </label>
               <input
                 id="rental-price"
-                type="text"
+                type="number"
                 inputMode="numeric"
+                min={0}
+                max={2000000000}
+                step={1}
                 value={form.price}
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
                 className={inputClass}
                 disabled={isSubmitting}
-                maxLength={30}
                 aria-describedby="rental-price-hint"
               />
-              <p id="rental-price-hint" className="mt-1 text-xs text-slate-500">
-                Angka rupiah, misalnya 1500000 atau Rp 1.500.000.
+              <p id="rental-price-hint" className="mt-1 text-xs text-slate-600">
+                Kosongkan kalau harga menyesuaikan; di website tampil Hubungi Kami.
               </p>
             </div>
             <div>
               <label htmlFor="rental-unit" className="block text-sm font-medium text-slate-700 mb-1">
-                Satuan (opsional)
+                Satuan (misalnya hari)
               </label>
               <input
                 id="rental-unit"
@@ -339,11 +347,7 @@ export default function MasterRentalPage() {
                 className={inputClass}
                 disabled={isSubmitting}
                 maxLength={50}
-                aria-describedby="rental-unit-hint"
               />
-              <p id="rental-unit-hint" className="mt-1 text-xs text-slate-500">
-                Misalnya per hari atau per unit.
-              </p>
             </div>
           </div>
           <div>
@@ -368,28 +372,13 @@ export default function MasterRentalPage() {
               Diawali https://, misalnya https://wa.me/p/1234567890.
             </p>
           </div>
-          <div>
-            <label htmlFor="rental-photo" className="block text-sm font-medium text-slate-700 mb-1">
-              URL foto (opsional)
-            </label>
-            <input
-              id="rental-photo"
-              type="text"
-              inputMode="url"
-              value={form.photo}
-              onChange={(e) => setForm({ ...form, photo: e.target.value })}
-              className={inputClass}
-              disabled={isSubmitting}
-              maxLength={2000}
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              aria-describedby="rental-photo-hint"
-            />
-            <p id="rental-photo-hint" className="mt-1 text-xs text-slate-500">
-              Diawali https:// atau / untuk file di situs ini, misalnya /assets/nama-foto.jpg.
-            </p>
-          </div>
+          <ImageField
+            id="rental-photo"
+            label="Foto (opsional)"
+            value={form.photo}
+            onChange={(photo) => setForm((f) => ({ ...f, photo }))}
+            disabled={isSubmitting}
+          />
           <div className="flex items-center gap-3">
             <input
               id="rental-active"
@@ -400,7 +389,7 @@ export default function MasterRentalPage() {
               className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             />
             <label htmlFor="rental-active" className="text-sm font-medium text-slate-700">
-              Aktif
+              Tampil di website
             </label>
           </div>
         </div>
@@ -435,8 +424,9 @@ export default function MasterRentalPage() {
       >
         {errorBox}
         <p className="text-sm text-slate-700">
-          Rental <span className="font-semibold text-slate-900">{deleteTarget?.name}</span> akan dihapus permanen dan
-          tidak bisa dikembalikan. Kalau hanya ingin menyembunyikannya, batalkan lalu nonaktifkan lewat tombol Edit.
+          Rental <span className="font-semibold text-slate-900">{deleteTarget?.name}</span> dihapus permanen dan tidak
+          tampil lagi di website. Kalau hanya ingin menyembunyikannya, batalkan lalu hapus centang Tampil di website
+          lewat tombol Edit.
         </p>
       </Modal>
     </div>

@@ -7,6 +7,7 @@ import { usePagination } from "@/hooks/usePagination";
 import Modal from "@/components/management/Modal";
 import Pagination, { PageSizeSelect } from "@/components/management/Pagination";
 import AdminThumb from "@/components/management/AdminThumb";
+import ImageField from "@/components/management/ImageField";
 import { useAdminUser } from "@/components/management/AdminShell";
 
 interface EventItem {
@@ -113,7 +114,7 @@ export default function MasterEventPage() {
             onChange={(e) => setStatusFilter(e.target.value as "aktif" | "semua")}
             className="px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white min-w-[200px]"
           >
-            <option value="aktif">Hanya yang aktif</option>
+            <option value="aktif">Hanya yang tampil</option>
             <option value="semua">Semua</option>
           </select>
         </div>
@@ -163,7 +164,7 @@ export default function MasterEventPage() {
                 <th className={th}>Tahun</th>
                 <th className={`${th} min-w-56`}>Deskripsi</th>
                 <th className={`${th} text-center`}>Foto</th>
-                <th className={`${th} text-center`}>Aktif</th>
+                <th className={`${th} text-center`}>Tampil</th>
                 {canWrite && <th className={stickyTh}>Aksi</th>}
               </tr>
             </thead>
@@ -185,9 +186,9 @@ export default function MasterEventPage() {
                   </td>
                   <td className={`${td} text-center`}>
                     {item.active ? (
-                      <CheckSquare className="w-5 h-5 text-green-600 mx-auto" aria-label="Aktif" />
+                      <CheckSquare className="w-5 h-5 text-green-600 mx-auto" aria-label="Tampil di website" />
                     ) : (
-                      <Square className="w-5 h-5 text-slate-400 mx-auto" aria-label="Nonaktif" />
+                      <Square className="w-5 h-5 text-slate-400 mx-auto" aria-label="Tidak tampil" />
                     )}
                   </td>
                   {canWrite && (
@@ -304,40 +305,31 @@ export default function MasterEventPage() {
               maxLength={2000}
             />
           </div>
+          <ImageField
+            id="event-photo"
+            label="Foto (opsional)"
+            value={form.photo}
+            onChange={(photo) => setForm((f) => ({ ...f, photo }))}
+            disabled={isSubmitting}
+          />
           <div>
-            <label htmlFor="event-photo" className="block text-sm font-medium text-slate-700 mb-1">
-              URL foto (opsional)
-            </label>
-            <input
-              id="event-photo"
-              type="text"
-              inputMode="url"
-              value={form.photo}
-              onChange={(e) => setForm({ ...form, photo: e.target.value })}
-              className={inputClass}
-              disabled={isSubmitting}
-              maxLength={2000}
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              aria-describedby="event-photo-hint"
-            />
-            <p id="event-photo-hint" className="mt-1 text-xs text-slate-500">
-              Diawali https:// atau / untuk file di situs ini, misalnya /assets/portfolio/nama-foto.jpg.
+            <div className="flex items-center gap-3">
+              <input
+                id="event-active"
+                type="checkbox"
+                checked={form.active}
+                onChange={(e) => setForm({ ...form, active: e.target.checked })}
+                disabled={isSubmitting}
+                aria-describedby="event-active-hint"
+                className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="event-active" className="text-sm font-medium text-slate-700">
+                Tampil di website
+              </label>
+            </div>
+            <p id="event-active-hint" className="mt-1 text-xs text-slate-600">
+              Event yang tampil muncul di section Masterpiece, urut tahun terbaru.
             </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <input
-              id="event-active"
-              type="checkbox"
-              checked={form.active}
-              onChange={(e) => setForm({ ...form, active: e.target.checked })}
-              disabled={isSubmitting}
-              className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="event-active" className="text-sm font-medium text-slate-700">
-              Aktif
-            </label>
           </div>
         </div>
       </Modal>
@@ -364,15 +356,15 @@ export default function MasterEventPage() {
               disabled={isSubmitting}
               className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
             >
-              {isSubmitting ? "Menghapus..." : "Hapus"}
+              {isSubmitting ? "Menghapus..." : "Hapus permanen"}
             </button>
           </>
         }
       >
         {errorBox}
         <p className="text-sm text-slate-700">
-          Event <span className="font-semibold text-slate-900">{deleteTarget?.name}</span> akan hilang dari daftar ini
-          dan tidak bisa dikembalikan lewat dashboard. Datanya tetap tersimpan di database.
+          Event <span className="font-semibold text-slate-900">{deleteTarget?.name}</span> dihapus permanen dan tidak
+          tampil lagi di website.
         </p>
       </Modal>
     </div>

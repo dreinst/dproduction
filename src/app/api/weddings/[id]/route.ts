@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { apiError, handleRouteError, parseId, readJson, softDelete, updateActive } from '@/lib/api';
+import { apiError, handleRouteError, parseId, readJson } from '@/lib/api';
 import { requireAccess } from '@/lib/auth';
+import { audit } from '@/lib/audit';
+import { revalidateLanding } from '@/lib/revalidate';
 import { updateSchema } from '../schema';
 
 type Params = { params: Promise<{ id: string }> };
+const MESSAGES = { P2025: 'Wedding tidak ditemukan.' };
 
 export async function GET(_req: Request, { params }: Params) {
   try {
@@ -12,8 +15,8 @@ export async function GET(_req: Request, { params }: Params) {
     if (!auth.authorized) return auth.response;
     const id = parseId((await params).id);
     if (!id) return apiError(400, 'ID wedding tidak valid.');
-    const wedding = await prisma.wedding.findFirst({ where: { id, deletedAt: null } });
-    return wedding ? NextResponse.json(wedding) : apiError(404, 'Wedding tidak ditemukan atau sudah dihapus.');
+    const wedding = await prisma.wedding.findUnique({ where: { id } });
+    return wedding ? NextResponse.json(wedding) : apiError(404, MESSAGES.P2025);
   } catch (error) {
     return handleRouteError(error);
   }
@@ -25,10 +28,12 @@ export async function PUT(req: Request, { params }: Params) {
     if (!auth.authorized) return auth.response;
     const id = parseId((await params).id);
     if (!id) return apiError(400, 'ID wedding tidak valid.');
-    await updateActive(prisma.wedding, id, updateSchema.parse(await readJson(req)));
-    return NextResponse.json(await prisma.wedding.findUnique({ where: { id } }));
+    const wedding = await prisma.wedding.update({ where: { id }, data: updateSchema.parse(await readJson(req)) });
+    await audit(auth.user, 'ubah', 'Wedding', id, wedding.name);
+    revalidateLanding();
+    return NextResponse.json(wedding);
   } catch (error) {
-    return handleRouteError(error);
+    return handleRouteError(error, MESSAGES);
   }
 }
 
@@ -38,9 +43,11 @@ export async function DELETE(_req: Request, { params }: Params) {
     if (!auth.authorized) return auth.response;
     const id = parseId((await params).id);
     if (!id) return apiError(400, 'ID wedding tidak valid.');
-    await softDelete(prisma.wedding, id);
-    return NextResponse.json({ message: 'Wedding dihapus.' });
+    const wedding = await prisma.wedding.delete({ where: { id } });
+    await audit(auth.user, 'hapus', 'Wedding', id, wedding.name);
+    revalidateLanding();
+    return NextResponse.json({ message: 'Wedding dihapus permanen.' });
   } catch (error) {
-    return handleRouteError(error);
+    return handleRouteError(error, MESSAGES);
   }
 }

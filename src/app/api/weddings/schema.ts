@@ -4,7 +4,7 @@ import { zName, zText, zUrl } from '@/lib/api';
 const fields = {
   name: zName('Nama wedding'),
   description: zText(2000, 'Deskripsi').nullable().optional(),
-  photo: zUrl('URL foto').nullable().optional(),
+  photo: zUrl('Foto').nullable().optional(),
   active: z.boolean({ error: 'Status aktif harus ya atau tidak.' }),
 };
 
