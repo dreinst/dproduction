@@ -7,15 +7,18 @@ import { usePagination } from "@/hooks/usePagination";
 import Modal from "@/components/management/Modal";
 import Pagination, { PageSizeSelect } from "@/components/management/Pagination";
 import AdminThumb from "@/components/management/AdminThumb";
+import ImageField from "@/components/management/ImageField";
 
 interface HeadImage {
   id: number;
   image: string;
+  title: string | null;
+  caption: string | null;
   active: boolean;
   sortIndex: number;
 }
 
-const EMPTY_FORM = { image: "", active: true };
+const EMPTY_FORM = { image: "", title: "", caption: "", active: true };
 const inputClass =
   "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-100";
 const moveClass =
@@ -36,14 +39,18 @@ export default function HeadHomePage() {
 
   const q = searchQuery.trim().toLowerCase();
   const filtered = data.filter(
-    (item) => (statusFilter === "semua" || item.active) && (!q || item.image.toLowerCase().includes(q)),
+    (item) =>
+      (statusFilter === "semua" || item.active) &&
+      (!q || item.image.toLowerCase().includes(q) || !!item.title?.toLowerCase().includes(q)),
   );
   const pagination = usePagination(filtered, `${statusFilter}|${q}`);
 
   const openForm = (item?: HeadImage) => {
     clearSaveError();
     setEditing(item ?? null);
-    setForm(item ? { image: item.image, active: item.active } : EMPTY_FORM);
+    setForm(
+      item ? { image: item.image, title: item.title ?? "", caption: item.caption ?? "", active: item.active } : EMPTY_FORM,
+    );
     setFormOpen(true);
   };
 
@@ -55,7 +62,12 @@ export default function HeadHomePage() {
 
   const handleSave = async () => {
     setIsSubmitting(true);
-    const payload = { image: form.image.trim(), active: form.active };
+    const payload = {
+      image: form.image.trim(),
+      title: form.title.trim() || null,
+      caption: form.caption.trim() || null,
+      active: form.active,
+    };
     // sortIndex baru ditentukan server (urutan terakhir + 1).
     const ok = editing ? await updateItem(editing.id, payload) : await createItem(payload as HeadImage);
     setIsSubmitting(false);
@@ -89,7 +101,12 @@ export default function HeadHomePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-800">Head Home</h1>
+      <div>
+        <h1 className="text-2xl font-bold text-slate-800">Head Home</h1>
+        <p className="mt-1 text-sm text-slate-600">
+          Gambar aktif dengan urutan paling atas dipakai sebagai gambar hero di website.
+        </p>
+      </div>
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -120,14 +137,14 @@ export default function HeadHomePage() {
         <PageSizeSelect pagination={pagination} />
         <div className="relative w-full sm:w-72">
           <label htmlFor="head-search" className="sr-only">
-            Cari URL gambar
+            Cari judul atau URL gambar
           </label>
           <input
             id="head-search"
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari URL gambar"
+            placeholder="Cari judul atau URL gambar"
             className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
           />
           <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden />
@@ -149,6 +166,7 @@ export default function HeadHomePage() {
               <tr className="bg-slate-800 text-white text-sm">
                 <th className="hidden sm:table-cell px-4 py-3 text-left font-semibold w-12">No</th>
                 <th className="px-3 sm:px-4 py-3 text-left font-semibold">Gambar</th>
+                <th className="px-3 sm:px-4 py-3 text-left font-semibold">Judul</th>
                 <th className="px-3 sm:px-4 py-3 text-center font-semibold">Urutan</th>
                 <th className="hidden sm:table-cell px-4 py-3 text-center font-semibold">Aktif</th>
                 <th className="px-3 sm:px-4 py-3 text-center font-semibold">Aksi</th>
@@ -167,6 +185,9 @@ export default function HeadHomePage() {
                         <span className="hidden sm:inline text-xs text-slate-600 break-all">{item.image}</span>
                         {!item.active && <span className="sm:hidden text-xs text-slate-500">Nonaktif</span>}
                       </div>
+                    </td>
+                    <td className="px-3 sm:px-4 py-3 text-sm text-slate-800 break-words">
+                      {item.title || <span className="italic text-slate-600">Tanpa judul</span>}
                     </td>
                     <td className="px-3 sm:px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
@@ -226,7 +247,7 @@ export default function HeadHomePage() {
               })}
               {pagination.pageItems.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-600 text-sm">
+                  <td colSpan={6} className="px-4 py-8 text-center text-slate-600 text-sm">
                     {data.length ? "Tidak ada gambar yang cocok dengan filter." : "Belum ada gambar."}
                   </td>
                 </tr>
@@ -266,29 +287,42 @@ export default function HeadHomePage() {
       >
         {errorBox}
         <div className="space-y-4">
+          <ImageField
+            id="head-image"
+            label="Gambar"
+            value={form.image}
+            onChange={(image) => setForm((f) => ({ ...f, image }))}
+            disabled={isSubmitting}
+            required
+          />
           <div>
-            <label htmlFor="head-image" className="block text-sm font-medium text-slate-700 mb-1">
-              URL gambar
+            <label htmlFor="head-title" className="block text-sm font-medium text-slate-700 mb-1">
+              Judul kartu
             </label>
-            <div className="flex items-center gap-3">
-              <input
-                id="head-image"
-                type="text"
-                inputMode="url"
-                value={form.image}
-                onChange={(e) => setForm({ ...form, image: e.target.value })}
-                className={inputClass}
-                disabled={isSubmitting}
-                required
-                maxLength={2000}
-                placeholder="/assets/portfolio/tentang-kami-dekorasi-ustegra.jpg"
-                aria-describedby="head-image-hint"
-              />
-              <AdminThumb src={form.image} alt="Pratinjau gambar" />
-            </div>
-            <p id="head-image-hint" className="mt-1 text-xs text-slate-500">
-              Path file di situs ini (diawali /, spasi ditulis %20) atau alamat lengkap yang diawali https://.
-            </p>
+            <input
+              id="head-title"
+              type="text"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              className={inputClass}
+              disabled={isSubmitting}
+              maxLength={100}
+              placeholder="Contoh: Corporate Event"
+            />
+          </div>
+          <div>
+            <label htmlFor="head-caption" className="block text-sm font-medium text-slate-700 mb-1">
+              Keterangan kartu
+            </label>
+            <textarea
+              id="head-caption"
+              value={form.caption}
+              onChange={(e) => setForm({ ...form, caption: e.target.value })}
+              className={inputClass}
+              disabled={isSubmitting}
+              maxLength={300}
+              rows={2}
+            />
           </div>
           <div className="flex items-center gap-3">
             <input

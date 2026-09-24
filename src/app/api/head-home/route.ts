@@ -3,6 +3,8 @@ import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { handleRouteError, readJson } from '@/lib/api';
 import { requireAccess } from '@/lib/auth';
+import { audit } from '@/lib/audit';
+import { revalidateLanding } from '@/lib/revalidate';
 import { MESSAGES, createSchema } from './schema';
 
 export async function GET() {
@@ -25,6 +27,8 @@ export async function POST(req: Request) {
       const { _max } = await prisma.headHome.aggregate({ _max: { sortIndex: true } });
       try {
         const item = await prisma.headHome.create({ data: { ...data, sortIndex: (_max.sortIndex ?? 0) + 1 } });
+        await audit(auth.user, 'tambah', 'HeadHome', item.id, item.title ?? item.image);
+        revalidateLanding();
         return NextResponse.json(item, { status: 201 });
       } catch (error) {
         const conflict = error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';

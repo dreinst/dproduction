@@ -3,6 +3,8 @@ import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { HttpError, apiError, handleRouteError, parseId, readJson } from '@/lib/api';
 import { requireAccess } from '@/lib/auth';
+import { audit } from '@/lib/audit';
+import { revalidateLanding } from '@/lib/revalidate';
 import { MESSAGES, updateSchema } from '../schema';
 
 type Params = { params: Promise<{ id: string }> };
@@ -29,9 +31,9 @@ export async function PUT(req: Request, { params }: Params) {
     if (!id) return apiError(400, 'ID gambar tidak valid.');
     const { sortIndex, ...data } = updateSchema.parse(await readJson(req));
 
-    const item = await prisma.$transaction(async (tx) => {
+    const [before, item] = await prisma.$transaction(async (tx) => {
+      const current = await tx.headHome.findUnique({ where: { id } });
       if (sortIndex !== undefined) {
-        const current = await tx.headHome.findUnique({ where: { id }, select: { sortIndex: true } });
         const other = await tx.headHome.findUnique({ where: { sortIndex }, select: { id: true } });
         // Urutan hanya ditukar dengan pemiliknya. Karena unik, id terkecil diparkir di -id dulu; kunci berurutan id mencegah deadlock.
         if (current && !other) throw new HttpError(409, 'Urutan sudah berubah. Muat ulang halaman lalu coba lagi.');
@@ -45,8 +47,12 @@ export async function PUT(req: Request, { params }: Params) {
           await tx.headHome.update({ where: { id: a.id }, data: { sortIndex: a.sortIndex } });
         }
       }
-      return tx.headHome.update({ where: { id }, data: { ...data, sortIndex } });
+      return [current, await tx.headHome.update({ where: { id }, data: { ...data, sortIndex } })] as const;
     }, SERIALIZABLE);
+    const keys = ['image', 'title', 'caption', 'active', 'sortIndex'] as const;
+    const changed = keys.filter((key) => before?.[key] !== item[key]);
+    await audit(auth.user, 'ubah', 'HeadHome', id, changed.length ? changed.join(', ') : 'tanpa perubahan');
+    revalidateLanding();
     return NextResponse.json(item);
   } catch (error) {
     return handleRouteError(error, MESSAGES);
@@ -59,7 +65,9 @@ export async function DELETE(_req: Request, { params }: Params) {
     if (!auth.authorized) return auth.response;
     const id = parseId((await params).id);
     if (!id) return apiError(400, 'ID gambar tidak valid.');
-    await prisma.headHome.delete({ where: { id } });
+    const deleted = await prisma.headHome.delete({ where: { id } });
+    await audit(auth.user, 'hapus', 'HeadHome', id, deleted.title ?? deleted.image);
+    revalidateLanding();
     return NextResponse.json({ message: 'Gambar dihapus.' });
   } catch (error) {
     return handleRouteError(error, MESSAGES);
