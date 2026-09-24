@@ -3,10 +3,15 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { CheckCircle2 } from "lucide-react";
+import type { LandingKantor } from "@/lib/landing-content";
 
-export default function TentangKamiSection() {
+type Props = Pick<LandingKantor, "aboutUs" | "stats">;
+
+export default function TentangKamiSection({ aboutUs, stats }: Props) {
   return (
-    <section id="tentang-kami" className="py-20 lg:py-32 overflow-hidden bg-white">
+    <section id="tentang-kami" className="relative py-20 lg:py-32 overflow-hidden bg-white">
+      {/* Anchor cadangan untuk tautan lama /#tentang_kami, di puncak section. */}
+      <span id="tentang_kami" aria-hidden="true" className="absolute top-0" />
       <div className="container mx-auto px-4 lg:px-8">
         
         <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center mb-32">
@@ -49,12 +54,11 @@ export default function TentangKamiSection() {
               Lebih Dari Sekadar <span className="gradient-text">Event Organizer</span>
             </h2>
             
-            <p className="text-lg text-slate-600 mb-6 leading-relaxed">
-              D&apos;Production adalah mitra terpercaya Anda di Malang. Kami percaya bahwa setiap acara memiliki cerita dan tujuannya masing-masing. Oleh karena itu, kami tidak hanya menyelenggarakan acara, tapi kami merancang pengalaman.
-            </p>
-            <p className="text-lg text-slate-600 mb-10 leading-relaxed">
-              Dengan tim yang berdedikasi tinggi, kreatif, dan berpengalaman, kami memastikan setiap detail, dari konsep hingga eksekusi, berjalan dengan sempurna.
-            </p>
+            {aboutUs.map((paragraph, i) => (
+              <p key={i} className={`text-lg text-slate-600 leading-relaxed ${i === aboutUs.length - 1 ? "mb-10" : "mb-6"}`}>
+                {paragraph}
+              </p>
+            ))}
 
             <ul className="space-y-4 mb-10">
               {["Konsep Kreatif & Out of the Box", "Manajemen Budget Transparan", "Tim Profesional & Berpengalaman", "Garansi Kesuksesan Acara"].map((item, i) => (
@@ -69,15 +73,15 @@ export default function TentangKamiSection() {
 
             <div className="flex flex-wrap gap-8 lg:gap-12 pt-6 border-t border-slate-200">
               <div>
-                <p className="text-4xl font-extrabold text-blue-600 mb-2">17+</p>
+                <p className="text-4xl font-extrabold text-blue-600 mb-2">{stats.clients}+</p>
                 <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Klien</p>
               </div>
               <div>
-                <p className="text-4xl font-extrabold text-blue-600 mb-2">10+</p>
+                <p className="text-4xl font-extrabold text-blue-600 mb-2">{stats.years}+</p>
                 <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Tahun Pengalaman</p>
               </div>
               <div>
-                <p className="text-4xl font-extrabold text-blue-600 mb-2">47+</p>
+                <p className="text-4xl font-extrabold text-blue-600 mb-2">{stats.events}+</p>
                 <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Event Sukses</p>
               </div>
             </div>

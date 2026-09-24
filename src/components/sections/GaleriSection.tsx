@@ -3,23 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Maximize2, X } from "lucide-react";
-import Image from "next/image";
+import LandingImage from "@/components/LandingImage";
+import type { LandingContent } from "@/lib/landing-content";
 
-const photos = [
-  { src: "/assets/portfolio/hebitren-bandung-aerial-desa.jpg", label: "Hebitren BI Bandung", caption: "Dokumentasi Udara" },
-  { src: "/assets/portfolio/ustegra-panggung.jpg", label: "Peresmian Ustegra", caption: "Panggung & Dekorasi" },
-  { src: "/assets/portfolio/hebitren-jogja-bandara.jpg", label: "Hebitren BI Jogja", caption: "Penjemputan Peserta" },
-  { src: "/assets/portfolio/temres-magelang-penjemputan.jpg", label: "Temres BI Magelang", caption: "Kedatangan Peserta" },
-  { src: "/assets/portfolio/ustegra-tur-vip.jpg", label: "Peresmian Ustegra", caption: "Tur Tamu VIP" },
-  { src: "/assets/portfolio/hebitren-jogja-kunjungan-tani.jpg", label: "Hebitren BI Jogja", caption: "Kunjungan Lapangan" },
-  { src: "/assets/portfolio/temres-magelang-gedung-bi.jpg", label: "Temres BI Magelang", caption: "Dokumentasi Udara" },
-  { src: "/assets/portfolio/ustegra-pabrik-aerial.jpg", label: "Peresmian Ustegra", caption: "Dokumentasi Udara" },
-  { src: "/assets/portfolio/temres-magelang-santai.jpg", label: "Temres BI Magelang", caption: "Momen Santai Peserta" },
-];
+type Photo = LandingContent["photos"][number];
+type Props = { photos: Photo[]; videos: LandingContent["videos"] };
 
-type Photo = (typeof photos)[number];
+// Label foto = nama album, ditambah keterangan kalau ada.
+const photoLabel = (photo: Photo) => (photo.caption ? `${photo.album}, ${photo.caption}` : photo.album);
 
-export default function GaleriSection() {
+export default function GaleriSection({ photos, videos }: Props) {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -73,12 +66,12 @@ export default function GaleriSection() {
         <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
           {photos.map((photo, index) => (
             <motion.div
-              key={photo.src}
+              key={index}
               initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: (index % 3) * 0.1 }}
               className="relative group rounded-3xl overflow-hidden break-inside-avoid shadow-lg"
             >
               <div className="w-full aspect-[4/3] bg-slate-200 group-hover:scale-105 transition-transform duration-700 relative flex items-center justify-center">
-                <Image src={photo.src} fill sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" alt={`${photo.label}, ${photo.caption}`} className="object-cover" />
+                <LandingImage src={photo.image} sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" alt={photoLabel(photo)} className="object-cover" />
               </div>
 
               <div className="absolute inset-0 bg-gradient-to-t from-blue-900/80 via-blue-900/20 to-transparent opacity-0 group-hover:opacity-100 group-has-focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-8">
@@ -86,9 +79,9 @@ export default function GaleriSection() {
                   <Maximize2 className="w-5 h-5" />
                 </span>
                 <span className="inline-block px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-full w-max mb-3">
-                  {photo.label}
+                  {photo.album}
                 </span>
-                <h3 className="text-white font-bold text-xl">{photo.caption}</h3>
+                {photo.caption && <h3 className="text-white font-bold text-xl">{photo.caption}</h3>}
               </div>
               <button
                 type="button"
@@ -96,12 +89,33 @@ export default function GaleriSection() {
                   triggerRef.current = e.currentTarget;
                   setSelectedPhoto(photo);
                 }}
-                aria-label={`Perbesar foto ${photo.label}, ${photo.caption}`}
+                aria-label={`Perbesar foto ${photoLabel(photo)}`}
                 className="absolute inset-0 rounded-3xl focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-white"
               />
             </motion.div>
           ))}
         </div>
+
+        {videos.length > 0 && (
+          <div className="mt-20">
+            <h3 className="text-3xl font-bold text-slate-900 mb-8 text-center">Video</h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              {videos.map((video, index) => (
+                <div key={index} className="aspect-video w-full rounded-3xl overflow-hidden shadow-lg bg-slate-200">
+                  <iframe
+                    src={`https://www.youtube-nocookie.com/embed/${video.id}`}
+                    title={video.title}
+                    loading="lazy"
+                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                    className="w-full h-full border-0"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
       </div>
 
@@ -115,7 +129,7 @@ export default function GaleriSection() {
             onClick={() => setSelectedPhoto(null)}
             role="dialog"
             aria-modal="true"
-            aria-label={`Foto ${selectedPhoto.label}, ${selectedPhoto.caption}`}
+            aria-label={`Foto ${photoLabel(selectedPhoto)}`}
             className="fixed inset-0 z-50 flex items-center justify-center sm:p-4 bg-black/90 backdrop-blur-sm"
           >
             <button
@@ -134,7 +148,7 @@ export default function GaleriSection() {
               onClick={(e) => e.stopPropagation()}
               className="relative w-full max-w-5xl h-[85dvh] sm:rounded-xl overflow-hidden shadow-2xl"
             >
-              <Image src={selectedPhoto.src} fill sizes="(min-width: 1024px) 1024px, 100vw" alt={`${selectedPhoto.label}, ${selectedPhoto.caption}`} className="object-contain" />
+              <LandingImage src={selectedPhoto.image} sizes="(min-width: 1024px) 1024px, 100vw" alt={photoLabel(selectedPhoto)} className="object-contain" />
             </motion.div>
           </motion.div>
         )}

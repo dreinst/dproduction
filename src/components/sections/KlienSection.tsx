@@ -16,7 +16,16 @@ const highlights = [
   },
 ];
 
-const clients = ["Bank Indonesia", "PT. Ustegra"];
+const clients = [
+  "Bank Indonesia",
+  "PT. Ustegra",
+  "G4S",
+  "KPU Kab. Malang",
+  "Emba",
+  "MS Glow",
+  "Smartfren",
+  "Pemprov Jawa Timur",
+];
 
 export default function KlienSection() {
   return (
@@ -48,7 +57,7 @@ export default function KlienSection() {
         <div className="w-full bg-white py-10 mb-20 rounded-[2.5rem] shadow-xl border border-slate-100">
           <div className="flex flex-wrap justify-center gap-x-16 gap-y-6">
             {clients.map((client) => (
-              <div key={client} className="text-2xl font-black text-slate-500 uppercase tracking-widest px-4">
+              <div key={client} className="text-2xl font-black text-slate-500 uppercase tracking-widest text-center px-4">
                 {client}
               </div>
             ))}

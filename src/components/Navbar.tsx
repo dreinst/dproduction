@@ -18,7 +18,8 @@ const links = [
   { href: "/#kontak", label: "Kontak", id: "kontak" },
 ];
 
-export default function Navbar() {
+// whatsapp dalam format 62xxx dari Setting Kantor (getLandingKantor).
+export default function Navbar({ whatsapp }: { whatsapp: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("beranda");
@@ -126,7 +127,7 @@ export default function Navbar() {
           {/* CTA Button */}
           <div className="hidden lg:flex items-center ml-auto xl:ml-0 mr-3 xl:mr-0">
             <a
-              href={whatsappUrl()}
+              href={whatsappUrl(undefined, whatsapp)}
               target="_blank"
               rel="noopener noreferrer"
               onClick={trackWhatsAppClick}
@@ -180,7 +181,7 @@ export default function Navbar() {
               })}
               <div className="pt-6 px-2">
                 <a
-                  href={whatsappUrl()}
+                  href={whatsappUrl(undefined, whatsapp)}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={trackWhatsAppClick}

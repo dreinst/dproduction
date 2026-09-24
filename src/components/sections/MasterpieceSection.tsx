@@ -2,22 +2,10 @@
 
 import { motion } from "framer-motion";
 import { Trophy, ArrowRight, CalendarDays } from "lucide-react";
+import type { LandingContent } from "@/lib/landing-content";
 
-// Daftar portofolio resmi D'Production, sesuai dokumen "Portofolio D'Pro 2026 Presentation".
-const masterpieces = [
-  { title: "Gebyar QRIS Ngalam Bank Indonesia", year: "2023" },
-  { title: "HUT Prov. Jawa Timur Ke-78", year: "2023" },
-  { title: "Malang BI-Youth-Tiful Festival", year: "2024" },
-  { title: "Employee Excellence Award G4S", year: "2024" },
-  { title: "QRIS Fun Run Bank Indonesia", year: "2024" },
-  { title: "Pesta Demokrasi KPU Kab. Malang", year: "2024" },
-  { title: "Emba Run Malang 10K", year: "2025" },
-  { title: "Emba JetBus Run Malang 10K", year: "2026" },
-  { title: "MS Glow Run Malang Half Marathon", year: "2026" },
-  { title: "Smartfren Fun Run Malang", year: "2026" },
-];
-
-export default function MasterpieceSection() {
+// Portofolio dari Master Event yang aktif, tahun terbaru dulu.
+export default function MasterpieceSection({ items }: { items: LandingContent["masterpieces"] }) {
   return (
     <section id="masterpiece" className="py-20 lg:py-32 bg-white overflow-x-hidden">
       <div className="container mx-auto px-4 lg:px-8">
@@ -44,17 +32,17 @@ export default function MasterpieceSection() {
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {masterpieces.map((item, index) => (
+          {items.map((item, index) => (
             <motion.div
-              key={item.title}
+              key={index}
               initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: (index % 3) * 0.08 }}
               className="bg-slate-50 hover:bg-white border border-slate-100 hover:border-blue-100 hover:shadow-xl hover:shadow-slate-200/50 rounded-3xl p-8 transition-all duration-300"
             >
               <div className="w-12 h-12 rounded-2xl gradient-bg flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-500/20">
                 <CalendarDays className="w-6 h-6" />
               </div>
-              <p className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-2">{item.year}</p>
-              <h3 className="text-xl font-bold text-slate-900 leading-snug">{item.title}</h3>
+              {item.year != null && <p className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-2">{item.year}</p>}
+              <h3 className="text-xl font-bold text-slate-900 leading-snug">{item.name}</h3>
             </motion.div>
           ))}
         </div>
