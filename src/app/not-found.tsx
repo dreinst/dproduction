@@ -3,15 +3,17 @@ import Link from "next/link";
 import { Home } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { getLandingKantor } from "@/lib/landing-content";
 
 export const metadata: Metadata = {
   title: { absolute: "Halaman Tidak Ditemukan | D'Production" },
 };
 
-export default function NotFound() {
+export default async function NotFound() {
+  const kantor = await getLandingKantor();
   return (
     <>
-      <Navbar />
+      <Navbar whatsapp={kantor.whatsapp} />
       <main className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-4 pt-24">
         <div className="max-w-md w-full text-center space-y-6">
           <h1 className="text-9xl font-extrabold text-slate-200">404</h1>
@@ -30,7 +32,7 @@ export default function NotFound() {
           </div>
         </div>
       </main>
-      <Footer />
+      <Footer kantor={kantor} />
     </>
   );
 }
