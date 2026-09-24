@@ -13,18 +13,21 @@ if (!['localhost', '127.0.0.1'].includes(new URL(BASE_URL).hostname)) {
 }
 if (!PASSWORD || !SECRET) throw new Error('Isi SEED_PASSWORD dan JWT_SECRET yang sama dengan server.');
 
-const ENDPOINTS: Record<Resource, string> = {
+type ReadResource = Exclude<Resource, 'uploads'>;
+
+const ENDPOINTS: Record<ReadResource, string> = {
   dashboard: '/api/dashboard',
   workspaceEvents: '/api/workspace-events',
-  workspaceReports: '/api/workspace-reports',
-  workspaceSalary: '/api/workspace-salary',
+  crews: '/api/crews',
+  reports: '/api/reports',
+  salary: `/api/salary?month=${new Date().toISOString().slice(0, 7)}`,
+  tarif: '/api/tarif',
   events: '/api/events',
   weddings: '/api/weddings',
   rentals: '/api/rentals',
   gradeEvents: '/api/grade-events',
   jobdescs: '/api/jobdescs',
-  galeriFoto: '/api/galeri-foto',
-  galeriFotoAlbums: '/api/galeri-foto-albums',
+  galeriFoto: '/api/galeri-albums',
   galeriVideo: '/api/galeri-video',
   headHome: '/api/head-home',
   kantorSettings: '/api/kantor-settings',
@@ -35,7 +38,7 @@ const ENDPOINTS: Record<Resource, string> = {
 
 // Route yang belum memakai requireAccess dan masih menolak role yang sudah diizinkan API_ACCESS.
 // Hapus entri begitu route-nya diperbaiki; skrip gagal kalau entri di sini ternyata sudah sesuai.
-const PENDING = new Set<Resource>([]);
+const PENDING = new Set<ReadResource>([]);
 
 const runId = Date.now().toString(36);
 let ipCount = 0;
@@ -76,7 +79,7 @@ const redirectsTo = (res: Response, path: string) =>
   [307, 308].includes(res.status) && new URL(res.headers.get('location') ?? '', BASE_URL).pathname === path;
 
 async function accessMatrix() {
-  const entries = Object.entries(ENDPOINTS) as [Resource, string][];
+  const entries = Object.entries(ENDPOINTS) as [ReadResource, string][];
   for (const [, path] of entries) check((await get(path)).status === 401, `anonim GET ${path} -> 401`);
 
   const cookies = {} as Record<Role, string>;
@@ -86,7 +89,7 @@ async function accessMatrix() {
     cookies[role] = cookie;
   }
 
-  const stillPending = new Set<Resource>();
+  const stillPending = new Set<ReadResource>();
   for (const role of ROLES) {
     for (const [resource, path] of entries) {
       const expected = (API_ACCESS[resource].read as readonly Role[]).includes(role) ? 200 : 403;
@@ -107,7 +110,7 @@ async function accessMatrix() {
 
 async function revocationAndLockout(owner: string) {
   const username = `smoke_${runId}`;
-  const password = `Smoke-${runId}-Password`;
+  const password = `Smoke1-${runId}-Password`;
   const created = await send('POST', '/api/users', owner, { username, password, role: 'staff' });
   check(created.status === 201, 'owner membuat user uji');
   if (created.status !== 201) return;
@@ -161,6 +164,7 @@ async function proxyChecks(owner: string) {
 async function main() {
   const cookies = await accessMatrix();
   if (!cookies.owner) throw new Error('Login owner gagal, uji berikutnya dilewati.');
+  check((await get('/api/users', cookies.superadmin)).status === 200, 'superadmin GET /api/users -> 200 (setara owner)');
   await revocationAndLockout(cookies.owner);
   await proxyChecks(cookies.owner);
   console.log(failures ? `\n${failures} pemeriksaan gagal.` : '\nSemua pemeriksaan lolos.');

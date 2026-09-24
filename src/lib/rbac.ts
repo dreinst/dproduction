@@ -16,28 +16,32 @@ export const ROLE_LABELS: Record<Role, string> = {
 export type Action = 'read' | 'write';
 
 const ALL: readonly Role[] = ROLES;
-const OWNERS: readonly Role[] = ['owner', 'superadmin'];
-const MANAGERS: readonly Role[] = ['owner', 'superadmin', 'admin'];
+// Owner (Pemilik) dan Superadmin setara, sama dengan aturan Produksia.
+export const OWNERS: readonly Role[] = ['owner', 'superadmin'];
+export const MANAGERS: readonly Role[] = ['owner', 'superadmin', 'admin'];
 const both = (roles: readonly Role[]) => ({ read: roles, write: roles });
 
 export const API_ACCESS = {
   dashboard: { read: ALL, write: [] },
   workspaceEvents: { read: ALL, write: MANAGERS },
-  workspaceReports: both(OWNERS),
-  workspaceSalary: both(OWNERS),
+  crews: both(MANAGERS),
+  reports: both(OWNERS),
+  salary: both(OWNERS),
+  // Tarif honor hanya untuk owner dan superadmin; JobDesc sendiri hanya berisi nama sehingga tetap MANAGERS.
+  tarif: both(OWNERS),
   events: both(MANAGERS),
   weddings: both(MANAGERS),
   rentals: both(MANAGERS),
   gradeEvents: both(MANAGERS),
   jobdescs: both(MANAGERS),
   galeriFoto: both(MANAGERS),
-  galeriFotoAlbums: both(MANAGERS),
   galeriVideo: both(MANAGERS),
   headHome: both(OWNERS),
   kantorSettings: both(OWNERS),
   database: both(OWNERS),
   leads: both(MANAGERS),
-  users: both(['owner']),
+  users: both(OWNERS),
+  uploads: { read: [], write: MANAGERS },
 } satisfies Record<string, Record<Action, readonly Role[]>>;
 
 export type Resource = keyof typeof API_ACCESS;
@@ -66,7 +70,7 @@ export const NAV: NavItem[] = [
     name: 'Galeri',
     icon: 'galeri',
     children: [
-      page('Foto', '/management/galeri/foto', 'galeriFotoAlbums'),
+      page('Foto', '/management/galeri/foto', 'galeriFoto'),
       page('Video', '/management/galeri/video', 'galeriVideo'),
     ],
   },
@@ -74,12 +78,12 @@ export const NAV: NavItem[] = [
     name: 'Master',
     icon: 'master',
     children: [
-      page('Master Foto', '/management/master/foto', 'galeriFoto'),
       page('Master Event', '/management/master/event', 'events'),
       page('Master Wedding', '/management/master/wedding', 'weddings'),
       page('Master Rental', '/management/master/rental', 'rentals'),
       page('Master Grade Event', '/management/master/grade-event', 'gradeEvents'),
       page('Master JobDesc', '/management/master/jobdesc', 'jobdescs'),
+      page('Master Tarif', '/management/master/tarif', 'tarif'),
     ],
   },
   {
@@ -96,8 +100,9 @@ export const NAV: NavItem[] = [
     icon: 'workspace',
     children: [
       page('Event', '/management/workspace/event', 'workspaceEvents'),
-      page('Report', '/management/workspace/report', 'workspaceReports'),
-      page('Salary', '/management/workspace/salary', 'workspaceSalary'),
+      page('Crew', '/management/workspace/crew', 'crews'),
+      page('Report', '/management/workspace/report', 'reports'),
+      page('Salary', '/management/workspace/salary', 'salary'),
     ],
   },
 ];
@@ -136,17 +141,31 @@ export function safeNextPath(raw: string | null | undefined): string | null {
   return url.pathname + url.search + url.hash;
 }
 
-export const WORKSPACE_EVENT_STATUS = ['running', 'selesai'] as const;
+// Nilai harus sama persis dengan enum di prisma/schema.prisma. File ini diimpor komponen klien, jadi jangan impor @prisma/client.
+export const WORKSPACE_EVENT_STATUS = ['berjalan', 'selesai', 'batal', 'ditunda'] as const;
 export type WorkspaceEventStatus = (typeof WORKSPACE_EVENT_STATUS)[number];
 export const WORKSPACE_EVENT_STATUS_LABELS: Record<WorkspaceEventStatus, string> = {
-  running: 'Berjalan',
+  berjalan: 'Berjalan',
+  selesai: 'Selesai',
+  batal: 'Batal',
+  ditunda: 'Ditunda',
+};
+
+export const ADMIN_STATUS = ['belum', 'invoice_terkirim', 'lunas', 'selesai'] as const;
+export type AdminStatus = (typeof ADMIN_STATUS)[number];
+export const ADMIN_STATUS_LABELS: Record<AdminStatus, string> = {
+  belum: 'Belum',
+  invoice_terkirim: 'Invoice Terkirim',
+  lunas: 'Lunas',
   selesai: 'Selesai',
 };
 
-export const REPORT_STATUS = ['admin', 'selesai', 'performance'] as const;
-export type ReportStatus = (typeof REPORT_STATUS)[number];
-export const REPORT_STATUS_LABELS: Record<ReportStatus, string> = {
-  admin: 'Administrasi',
-  selesai: 'Administrasi Selesai',
-  performance: 'Team Performance',
+export const LEAD_STATUS = ['baru', 'dihubungi', 'penawaran', 'deal', 'batal'] as const;
+export type LeadStatus = (typeof LEAD_STATUS)[number];
+export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
+  baru: 'Baru',
+  dihubungi: 'Dihubungi',
+  penawaran: 'Penawaran',
+  deal: 'Deal',
+  batal: 'Batal',
 };

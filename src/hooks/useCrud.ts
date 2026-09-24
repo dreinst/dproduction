@@ -10,7 +10,8 @@ type Payload<T> = Omit<T, 'id' | 'createdAt' | 'updatedAt'>;
 const SESSION_ENDED = 'Sesi Anda sudah berakhir. Silakan masuk lagi.';
 const OFFLINE = 'Tidak dapat terhubung ke server. Periksa koneksi lalu coba lagi.';
 
-class RequestError extends Error {}
+// Semua error dari request() berupa RequestError dengan pesan yang aman ditampilkan ke pengguna.
+export class RequestError extends Error {}
 
 function messageFrom(body: unknown, fallback: string) {
   const b = body as { message?: unknown; issues?: { message?: unknown }[] } | null;
@@ -19,14 +20,11 @@ function messageFrom(body: unknown, fallback: string) {
   return typeof issue === 'string' && issue ? issue : fallback;
 }
 
-export function useCrud<T extends { id: number }>({ endpoint }: UseCrudOptions) {
+// request(url, fallback, init?) membalas body JSON. Status 401 mengarahkan ke login; status gagal lain melempar
+// RequestError berisi pesan dari API atau fallback.
+export function useApiRequest() {
   const router = useRouter();
-  const [data, setData] = useState<T[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
-  const request = useCallback(
+  return useCallback(
     async (url: string, fallback: string, init?: RequestInit) => {
       let res: Response;
       try {
@@ -45,6 +43,20 @@ export function useCrud<T extends { id: number }>({ endpoint }: UseCrudOptions) 
     },
     [router],
   );
+}
+
+export const jsonInit = (method: string, payload: unknown): RequestInit => ({
+  method,
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload),
+});
+
+export function useCrud<T extends { id: number }>({ endpoint }: UseCrudOptions) {
+  const request = useApiRequest();
+  const [data, setData] = useState<T[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -74,17 +86,11 @@ export function useCrud<T extends { id: number }>({ endpoint }: UseCrudOptions) 
     return true;
   };
 
-  const json = (method: string, payload: unknown): RequestInit => ({
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
   const createItem = (payload: Payload<T>) =>
-    save(endpoint, json('POST', payload), 'Gagal menyimpan data. Coba lagi.');
+    save(endpoint, jsonInit('POST', payload), 'Gagal menyimpan data. Coba lagi.');
 
   const updateItem = (id: number, payload: Partial<Payload<T>>) =>
-    save(`${endpoint}/${id}`, json('PUT', payload), 'Gagal menyimpan perubahan. Coba lagi.');
+    save(`${endpoint}/${id}`, jsonInit('PUT', payload), 'Gagal menyimpan perubahan. Coba lagi.');
 
   const deleteItem = (id: number) =>
     save(`${endpoint}/${id}`, { method: 'DELETE' }, 'Gagal menghapus data. Coba lagi.');

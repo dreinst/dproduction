@@ -5,6 +5,9 @@ import { canAccessPath, safeNextPath } from '@/lib/rbac';
 const LOGIN_PATH = '/management/login';
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const MAX_BODY_BYTES = 1_000_000;
+// Satu-satunya API yang menerima multipart: unggah gambar, MAX_IMAGE_BYTES (5 MB) plus ruang untuk pembungkus form.
+const UPLOAD_PATH = '/api/uploads';
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024 + 100 * 1024;
 
 // Bentuk sama dengan respons API (success + message), termasuk untuk /api/contact publik.
 const reject = (status: number, message: string) => NextResponse.json({ success: false, message }, { status });
@@ -23,16 +26,21 @@ function guardApi(request: NextRequest) {
     }
   }
 
+  const upload = request.nextUrl.pathname === UPLOAD_PATH;
   const lengthHeader = request.headers.get('content-length');
   const length = Number(lengthHeader ?? 0);
   // Body chunked tanpa Content-Length tidak bisa dicek ukurannya di sini; fetch dari browser selalu mengirim ukurannya.
-  if (length > MAX_BODY_BYTES || (lengthHeader === null && request.headers.has('transfer-encoding'))) {
-    return reject(413, 'Data yang dikirim terlalu besar atau ukurannya tidak diketahui.');
+  const tooLarge = length > (upload ? MAX_UPLOAD_BYTES : MAX_BODY_BYTES);
+  if (tooLarge || (lengthHeader === null && request.headers.has('transfer-encoding'))) {
+    return reject(
+      413,
+      upload && tooLarge ? 'Ukuran gambar maksimal 5 MB.' : 'Data yang dikirim terlalu besar atau ukurannya tidak diketahui.',
+    );
   }
   const hasBody = length > 0;
   const type = request.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
-  if (hasBody && type !== 'application/json') {
-    return reject(415, 'Format data harus JSON.');
+  if (hasBody && type !== (upload ? 'multipart/form-data' : 'application/json')) {
+    return reject(415, upload ? 'Gambar harus dikirim sebagai form multipart.' : 'Format data harus JSON.');
   }
   return NextResponse.next();
 }

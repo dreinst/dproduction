@@ -47,7 +47,7 @@ export const userSelect = { id: true, username: true, alias: true, role: true, a
 export const userFields = {
   username: zUsername,
   password: zPassword,
-  alias: zText(100, 'Alias').nullable().optional(),
+  alias: zText(100, 'Nama lengkap').nullable().optional(),
   role: z.enum(ROLES, { error: 'Level harus salah satu dari: owner, superadmin, admin, staff, tester.' }),
   active: z.boolean({ error: 'Status aktif harus ya atau tidak.' }),
 };

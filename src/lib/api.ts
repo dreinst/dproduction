@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { checkPasswordStrength } from '@/lib/password';
+import { WHATSAPP_PATTERN, normalizeWhatsapp } from '@/lib/site';
 
 // Pesan bawaan zod untuk skema tanpa pesan sendiri.
 z.config(z.locales.id());
@@ -34,22 +36,34 @@ export async function readJson(req: Request): Promise<unknown> {
   }
 }
 
-type PrismaMessages = Partial<Record<'P2002' | 'P2025', string>>;
+type PrismaMessages = Partial<Record<'P2002' | 'P2003' | 'P2025', string>>;
+
+const IN_USE_MESSAGE =
+  'Data ini masih dipakai data lain sehingga tidak bisa dihapus. Nonaktifkan saja atau lepaskan hubungannya dulu.';
 
 export function handleRouteError(error: unknown, messages: PrismaMessages = {}) {
   if (error instanceof HttpError) return apiError(error.status, error.message);
   if (error instanceof z.ZodError) {
     return apiError(400, error.issues[0]?.message ?? 'Data tidak valid.', { issues: error.issues });
   }
-  if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    if (error.code === 'P2025') return apiError(404, messages.P2025 ?? 'Data tidak ditemukan.');
-    if (error.code === 'P2002') return apiError(409, messages.P2002 ?? 'Data dengan nilai yang sama sudah ada.');
+  const known = error instanceof Prisma.PrismaClientKnownRequestError ? error.code : null;
+  // Error dari adapter pg yang tidak diterjemahkan Prisma membawa SQLSTATE Postgres di cause.code.
+  const cause = (error as { cause?: { kind?: unknown; code?: unknown } } | null)?.cause;
+  if (known === 'P2025') return apiError(404, messages.P2025 ?? 'Data tidak ditemukan.');
+  if (known === 'P2002') return apiError(409, messages.P2002 ?? 'Data dengan nilai yang sama sudah ada.');
+  // Postgres 18 melaporkan pelanggaran ON DELETE RESTRICT sebagai 23001, yang tidak diubah adapter menjadi P2003.
+  if (known === 'P2003' || known === 'P2014' || cause?.code === '23503' || cause?.code === '23001') {
+    return apiError(409, messages.P2003 ?? IN_USE_MESSAGE);
   }
-  const writeConflict =
-    (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') ||
-    (error as { cause?: { kind?: unknown } } | null)?.cause?.kind === 'TransactionWriteConflict';
-  if (writeConflict) return apiError(409, 'Data sedang diubah bersamaan. Coba lagi.');
-  console.error(error);
+  if (known === 'P2034' || cause?.kind === 'TransactionWriteConflict') {
+    return apiError(409, 'Data sedang diubah bersamaan. Coba lagi.');
+  }
+  // Error Prisma bisa memuat nilai isian (data pribadi), jadi hanya nama dan kodenya yang dicatat.
+  // Pesan lengkap hanya untuk Error biasa yang dilempar kode sendiri.
+  const { name, code } = (error ?? {}) as { name?: unknown; code?: unknown };
+  const errorCode = code ?? cause?.code;
+  const detail = errorCode ? String(errorCode) : error instanceof Error && name === 'Error' ? error.message : '';
+  console.error(`Error tak terduga di route API: ${typeof name === 'string' ? name : 'tidak diketahui'} ${detail}`.trim());
   return apiError(500, 'Terjadi kesalahan di server. Coba lagi nanti.');
 }
 
@@ -71,12 +85,31 @@ export const zText = (max: number, label = 'Teks') =>
     .max(max, `${label} maksimal ${max} karakter.`)
     .regex(NO_NUL, `${label} berisi karakter yang tidak valid.`);
 
-// Kolom harga dan tarif di DB masih teks, jadi format lama seperti "Rp 1.500.000" tetap diterima.
-export const zAmount = (label: string) =>
-  zText(30, label).regex(
-    /^(rp\.?\s*)?\d[\d.,]*$/i,
-    `${label} harus berupa angka rupiah yang tidak negatif, misalnya 1500000 atau Rp 1.500.000.`,
-  );
+export const zRupiah = (label: string) => {
+  const message = `${label} harus berupa angka rupiah bulat yang tidak negatif.`;
+  return z
+    .number({ error: message })
+    .int(message)
+    .min(0, message)
+    .max(2_000_000_000, `${label} maksimal Rp 2.000.000.000.`);
+};
+
+export const zSortIndex = z
+  .number({ error: 'Urutan harus berupa angka bulat.' })
+  .int('Urutan harus berupa angka bulat.')
+  .min(0, 'Urutan tidak boleh negatif.')
+  .max(INT4_MAX, 'Urutan terlalu besar.');
+
+export const zWhatsapp = (label: string) => {
+  const message = `${label} harus nomor Indonesia yang diawali 08 atau +62, misalnya 08123456789.`;
+  return z.string({ error: message }).overwrite(normalizeWhatsapp).regex(WHATSAPP_PATTERN, message);
+};
+
+// Tanggal dan jam wajib membawa zona waktu (Z atau +07:00) supaya tersimpan benar sebagai UTC.
+export const zDateTime = (label: string) =>
+  z.iso
+    .datetime({ offset: true, error: `${label} wajib diisi dengan tanggal dan jam yang valid beserta zona waktunya.` })
+    .transform((value) => new Date(value));
 
 function isSafeUrl(value: string) {
   if (/[\s\\\u0000-\u001f\u007f]/.test(value)) return false;
@@ -104,31 +137,19 @@ export const zUrl = (label = 'URL') =>
     .max(2000, `${label} maksimal 2000 karakter.`)
     .refine(isSafeUrl, `${label} harus diawali https:// atau / (path di situs ini).`);
 
-export const zIsoDate = (label = 'Tanggal') =>
-  z.iso.date({ error: `${label} harus berupa tanggal yang valid dengan format TTTT-BB-HH.` });
-
 export const zUsername = z
   .string({ error: 'Username wajib diisi.' })
   .trim()
   .toLowerCase()
   .regex(
-    /^[a-z0-9._-]{3,50}$/,
-    'Username 3 sampai 50 karakter dan hanya boleh berisi huruf, angka, titik, garis bawah, atau tanda hubung.',
+    /^[a-z0-9][a-z0-9._-]{2,31}$/,
+    'Username 3 sampai 32 karakter: huruf kecil, angka, titik, garis bawah, atau strip, dan diawali huruf atau angka.',
   );
 
 export const zPassword = z
   .string({ error: 'Password wajib diisi.' })
-  .refine((v) => v.trim().length >= 12, 'Password minimal 12 karakter dan tidak boleh hanya berisi spasi.')
-  .refine((v) => new TextEncoder().encode(v).length <= 72, 'Password maksimal 72 karakter.');
-
-type SoftDeletable<D> = {
-  updateMany(args: { where: { id: number; deletedAt: null }; data: D }): PromiseLike<{ count: number }>;
-};
-
-export async function updateActive<D>(model: SoftDeletable<D>, id: number, data: D) {
-  const { count } = await model.updateMany({ where: { id, deletedAt: null }, data });
-  if (!count) throw new HttpError(404, 'Data tidak ditemukan atau sudah dihapus.');
-}
-
-export const softDelete = (model: SoftDeletable<{ deletedAt: Date }>, id: number) =>
-  updateActive(model, id, { deletedAt: new Date() });
+  .trim()
+  .superRefine((value, ctx) => {
+    const message = checkPasswordStrength(value);
+    if (message) ctx.addIssue({ code: 'custom', message });
+  });

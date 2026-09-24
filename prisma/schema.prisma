@@ -6,59 +6,93 @@ datasource db {
   provider = "postgresql"
 }
 
+enum WorkspaceEventStatus {
+  berjalan
+  selesai
+  batal
+  ditunda
+}
+
+enum AdminStatus {
+  belum
+  invoice_terkirim
+  lunas
+  selesai
+}
+
+enum LeadStatus {
+  baru
+  dihubungi
+  penawaran
+  deal
+  batal
+}
+
 model User {
-  id           Int      @id @default(autoincrement())
-  username     String   @unique
-  passwordHash String
-  alias        String?
-  role         String   @default("admin")
-  active       Boolean  @default(true)
-  tokenVersion Int      @default(0)
-  failedLogins Int      @default(0)
+  id           Int        @id @default(autoincrement())
+  username     String     @unique
+  passwordHash String // scrypt$garam$hash (format Produksia) atau $2b$... (bcrypt lama, tetap diterima saat login)
+  alias        String? // nama lengkap, misalnya "Andrew Steine"
+  role         String     @default("admin") // owner | superadmin | admin | staff | tester, divalidasi isRole()
+  active       Boolean    @default(true)
+  tokenVersion Int        @default(0)
+  failedLogins Int        @default(0)
   lockedUntil  DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  leads        Client[]
+  auditLogs    AuditLog[]
 }
 
+// Lead Masuk dari form kontak. Nama model tetap Client supaya /api/contact dan /api/clients tidak berganti nama.
 model Client {
-  id        Int       @id @default(autoincrement())
-  name      String
-  whatsapp  String
-  eventType String
-  message   String
-  createdAt DateTime  @default(now())
-  deletedAt DateTime?
+  id               Int             @id @default(autoincrement())
+  name             String // pesan asli, tidak bisa diedit
+  whatsapp         String // pesan asli, tidak bisa diedit
+  eventType        String // pesan asli, tidak bisa diedit
+  message          String // pesan asli, tidak bisa diedit
+  status           LeadStatus      @default(baru)
+  notes            String? // catatan tindak lanjut, terpisah dari pesan asli
+  picId            Int? // penanggung jawab
+  pic              User?           @relation(fields: [picId], references: [id], onDelete: SetNull)
+  workspaceEventId Int?            @unique // lead yang sudah dijadikan Workspace Event
+  workspaceEvent   WorkspaceEvent? @relation(fields: [workspaceEventId], references: [id], onDelete: SetNull)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @default(now()) @updatedAt
+
+  @@index([status, createdAt])
 }
 
+// Master Event = portofolio section Masterpiece (active = tampil di website, urut year terbaru).
 model Event {
-  id          Int       @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   name        String
   description String?
   photo       String?
   year        Int?
-  active      Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  deletedAt   DateTime?
-  updatedAt   DateTime  @updatedAt
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
+// Master Wedding = poin layanan Wedding Planner di landing.
 model Wedding {
-  id          Int       @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   name        String
   description String?
   photo       String?
-  active      Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  deletedAt   DateTime?
-  updatedAt   DateTime  @updatedAt
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
+// Master Rental = kartu rental di section Layanan.
 model Rental {
   id          Int      @id @default(autoincrement())
   name        String
   description String?
-  price       String?
-  unit        String?
+  price       Int? // harga mulai dalam rupiah; NULL tampil "Hubungi Kami"
+  unit        String? // misalnya "hari"
   waCart      String?
   photo       String?
   active      Boolean  @default(true)
@@ -66,127 +100,180 @@ model Rental {
   updatedAt   DateTime @updatedAt
 }
 
+// Daftar level resmi event.
 model GradeEvent {
-  id        Int      @id @default(autoincrement())
-  grade     String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        Int              @id @default(autoincrement())
+  grade     String           @unique
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  tarif     Tarif[]
+  events    WorkspaceEvent[]
 }
 
 model JobDesc {
-  id        Int      @id @default(autoincrement())
-  name      String
-  icon      String?
-  levelA    String?
-  levelB    String?
-  levelC    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  icon        String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  tarif       Tarif[]
+  assignments Assignment[]
+}
+
+// Tarif honor per JobDesc per Grade Event. Hanya owner dan superadmin.
+model Tarif {
+  jobDescId    Int
+  jobDesc      JobDesc    @relation(fields: [jobDescId], references: [id], onDelete: Cascade)
+  gradeEventId Int
+  gradeEvent   GradeEvent @relation(fields: [gradeEventId], references: [id], onDelete: Cascade)
+  amount       Int // rupiah
+  updatedAt    DateTime   @updatedAt
+
+  @@id([jobDescId, gradeEventId])
+}
+
+// Kru lapangan, bukan akun login.
+model Crew {
+  id          Int          @id @default(autoincrement())
+  name        String
+  whatsapp    String? // format 08xxxxxxxxxx
+  notes       String?
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  assignments Assignment[]
+}
+
+// Satu baris satu acara. adminStatus dan adminNote adalah "Report" (hanya owner dan superadmin).
+model WorkspaceEvent {
+  id           Int                  @id @default(autoincrement())
+  name         String
+  client       String
+  location     String?
+  startAt      DateTime
+  endAt        DateTime?
+  gradeEventId Int?
+  gradeEvent   GradeEvent?          @relation(fields: [gradeEventId], references: [id], onDelete: Restrict)
+  status       WorkspaceEventStatus @default(berjalan)
+  photoUrl     String?
+  videoUrl     String?
+  notes        String?
+  adminStatus  AdminStatus          @default(belum)
+  adminNote    String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  assignments  Assignment[]
+  lead         Client?
+
+  @@index([startAt])
+}
+
+// Penugasan crew per event; dipakai juga oleh Salary.
+model Assignment {
+  id               Int            @id @default(autoincrement())
+  workspaceEventId Int
+  workspaceEvent   WorkspaceEvent @relation(fields: [workspaceEventId], references: [id], onDelete: Restrict)
+  crewId           Int
+  crew             Crew           @relation(fields: [crewId], references: [id], onDelete: Restrict)
+  jobDescId        Int
+  jobDesc          JobDesc        @relation(fields: [jobDescId], references: [id], onDelete: Restrict)
+  honor            Int            @default(0) // rupiah, otomatis dari Tarif saat dibuat, bisa diubah owner/superadmin
+  paid             Boolean        @default(false)
+  paidAt           DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([workspaceEventId, crewId, jobDescId])
+  @@index([crewId])
+}
+
+// Galeri Foto (menggantikan GaleriFoto lama "Master Foto" dan GaleriFotoAlbum lama).
+model GaleriAlbum {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique // tampil sebagai label foto di landing, misalnya "Hebitren BI Bandung"
+  description String?
+  active      Boolean      @default(true)
+  sortIndex   Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  photos      GaleriFoto[]
 }
 
 model GaleriFoto {
-  id        Int      @id @default(autoincrement())
-  image     String
-  link      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  id        Int         @id @default(autoincrement())
+  albumId   Int
+  album     GaleriAlbum @relation(fields: [albumId], references: [id], onDelete: Restrict)
+  image     String // path lokal (/assets/..., /media/...) atau URL https
+  caption   String?
+  active    Boolean     @default(true)
+  sortIndex Int         @default(0) // urutan global di landing, lalu id
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([albumId])
 }
 
 model GaleriVideo {
   id        Int      @id @default(autoincrement())
-  url       String
+  url       String // URL YouTube
+  title     String? // judul iframe untuk pembaca layar
   active    Boolean  @default(true)
+  sortIndex Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 }
 
-model KantorSetting {
-  id            Int      @id @default(autoincrement())
-  companyName   String   @default("DPro")
-  status        String?
-  motto1        String?
-  motto2        String?
-  description   String?
-  foundedDate   String?
-  address       String?
-  phone         String?
-  email         String?
-  website       String?
-  googleMapsUrl String?
-  facebookUrl   String?
-  instagramUrl  String?
-  youtubeUrl    String?
-  tiktokUrl     String?
-  aboutUs       String?
-  updatedAt     DateTime @updatedAt
-}
-
-model AuditLog {
-  id        Int      @id @default(autoincrement())
-  action    String
-  user      String
-  details   String?
-  timestamp DateTime @default(now())
-}
-
-model WorkspaceSalary {
-  id        Int       @id @default(autoincrement())
-  waktu     String
-  klien     String
-  event     String
-  deskripsi String?
-  active    Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  deletedAt DateTime?
-  updatedAt DateTime  @updatedAt
-}
-
+// Gambar hero: baris aktif pertama menurut sortIndex.
 model HeadHome {
   id        Int      @id @default(autoincrement())
   image     String
+  title     String? // judul kartu hero, misalnya "Corporate Event"
+  caption   String? // keterangan kartu hero
   active    Boolean  @default(true)
   sortIndex Int      @unique @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model WorkspaceEvent {
-  id        Int       @id @default(autoincrement())
-  jobDesc   String
-  date      DateTime
-  client    String
-  status    String    @default("running")
-  waktu     String?
-  event     String?
-  deskripsi String?
-  linkFoto  String?
-  linkVideo String?
-  active    Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  deletedAt DateTime?
-  updatedAt DateTime  @updatedAt
+// Satu baris resmi di id 1.
+model KantorSetting {
+  id                   Int      @id @default(autoincrement())
+  companyName          String   @default("D'Production")
+  status               String?
+  motto1               String?
+  motto2               String?
+  description          String? // teks pembuka Hero
+  foundedYear          Int? // tahun berdiri
+  address              String?
+  phone                String?
+  whatsapp             String? // format 08xxxxxxxxxx, dipakai semua link WhatsApp
+  email                String?
+  website              String?
+  googleMapsUrl        String? // URL embed, diawali https://www.google.com/maps
+  facebookUrl          String?
+  instagramUrl         String?
+  youtubeUrl           String?
+  tiktokUrl            String?
+  aboutUs              String? // paragraf Tentang Kami, dipisah baris kosong
+  statClients          Int?
+  statEvents           Int?
+  statRentalCategories Int?
+  statMembers          Int?
+  statYears            Int? // tahun pengalaman
+  updatedAt            DateTime @updatedAt
 }
 
-model WorkspaceReport {
+model AuditLog {
   id        Int      @id @default(autoincrement())
-  title     String
-  date      Int
-  month     String
-  time      String
-  client    String
-  status    String   @default("admin")
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  username  String // disalin supaya tetap terbaca setelah user dihapus
+  action    String // tambah | ubah | hapus
+  entity    String // nama model, misalnya "Assignment"
+  entityId  Int?
+  summary   String? // tanpa data pribadi (tanpa nomor WA, isi pesan, password)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
 
-model GaleriFotoAlbum {
-  id         Int      @id @default(autoincrement())
-  album      String
-  keterangan String?
-  tanggal    String?
-  image      String?
-  active     Boolean  @default(true)
-  sortIndex  Int      @unique @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  @@index([entity, entityId])
+  @@index([createdAt])
 }
