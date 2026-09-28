@@ -13,13 +13,15 @@ import { useAdminUser } from "@/components/management/AdminShell";
 interface EventItem {
   id: number;
   name: string;
+  client: string | null;
   description: string | null;
   photo: string | null;
   year: number | null;
   active: boolean;
+  featured: boolean;
 }
 
-const EMPTY_FORM = { name: "", year: "", description: "", photo: "", active: true };
+const EMPTY_FORM = { name: "", client: "", year: "", description: "", photo: "", active: true, featured: false };
 const inputClass =
   "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600 disabled:bg-slate-100";
 const th = "px-3 py-3 text-left font-semibold";
@@ -46,7 +48,7 @@ export default function MasterEventPage() {
   const filtered = data.filter(
     (e) =>
       (statusFilter === "semua" || e.active) &&
-      (!q || `${e.name} ${e.description ?? ""} ${e.year ?? ""}`.toLowerCase().includes(q)),
+      (!q || `${e.name} ${e.client ?? ""} ${e.description ?? ""} ${e.year ?? ""}`.toLowerCase().includes(q)),
   );
   const pagination = usePagination(filtered, `${statusFilter}|${q}`);
 
@@ -57,10 +59,12 @@ export default function MasterEventPage() {
       item
         ? {
             name: item.name,
+            client: item.client ?? "",
             year: item.year?.toString() ?? "",
             description: item.description ?? "",
             photo: item.photo ?? "",
             active: item.active,
+            featured: item.featured,
           }
         : EMPTY_FORM,
     );
@@ -71,10 +75,12 @@ export default function MasterEventPage() {
     setIsSubmitting(true);
     const payload = {
       name: form.name.trim(),
+      client: form.client.trim() || null,
       year: form.year ? Number(form.year) : null,
       description: form.description.trim() || null,
       photo: form.photo.trim() || null,
       active: form.active,
+      featured: form.featured,
     };
     const ok = editing ? await updateItem(editing.id, payload) : await createItem(payload);
     setIsSubmitting(false);
@@ -166,6 +172,7 @@ export default function MasterEventPage() {
                 <th className={`${th} min-w-56`}>Deskripsi</th>
                 <th className={`${th} text-center`}>Foto</th>
                 <th className={`${th} text-center`}>Tampil</th>
+                <th className={`${th} text-center`}>Masterpiece</th>
                 {canWrite && <th className={stickyTh}>Aksi</th>}
               </tr>
             </thead>
@@ -173,7 +180,10 @@ export default function MasterEventPage() {
               {pagination.pageItems.map((item, idx) => (
                 <tr key={item.id} className="group border-b border-slate-100 hover:bg-slate-50 transition-colors">
                   <td className={`${td} text-slate-600`}>{pagination.from + idx}.</td>
-                  <td className={`${td} font-medium text-slate-800`}>{item.name}</td>
+                  <td className={`${td} font-medium text-slate-800`}>
+                    {item.name}
+                    {item.client && <span className="block text-xs font-normal text-slate-600">{item.client}</span>}
+                  </td>
                   <td className={`${td} ${item.year ? "text-slate-700" : "text-slate-500 italic"}`}>
                     {item.year ?? "Belum diisi"}
                   </td>
@@ -190,6 +200,13 @@ export default function MasterEventPage() {
                       <CheckSquare className="w-5 h-5 text-green-600 mx-auto" aria-label="Tampil di website" />
                     ) : (
                       <Square className="w-5 h-5 text-slate-400 mx-auto" aria-label="Tidak tampil" />
+                    )}
+                  </td>
+                  <td className={`${td} text-center`}>
+                    {item.featured ? (
+                      <CheckSquare className="w-5 h-5 text-green-600 mx-auto" aria-label="Tampil di Masterpiece" />
+                    ) : (
+                      <Square className="w-5 h-5 text-slate-400 mx-auto" aria-label="Tidak di Masterpiece" />
                     )}
                   </td>
                   {canWrite && (
@@ -276,6 +293,20 @@ export default function MasterEventPage() {
             />
           </div>
           <div>
+            <label htmlFor="event-client" className="block text-sm font-medium text-slate-700 mb-1">
+              Klien (opsional)
+            </label>
+            <input
+              id="event-client"
+              type="text"
+              value={form.client}
+              onChange={(e) => setForm({ ...form, client: e.target.value })}
+              className={inputClass}
+              disabled={isSubmitting}
+              maxLength={120}
+            />
+          </div>
+          <div>
             <label htmlFor="event-year" className="block text-sm font-medium text-slate-700 mb-1">
               Tahun (opsional)
             </label>
@@ -294,7 +325,7 @@ export default function MasterEventPage() {
           </div>
           <div>
             <label htmlFor="event-description" className="block text-sm font-medium text-slate-700 mb-1">
-              Deskripsi (opsional, belum tampil di website)
+              Deskripsi (opsional, tampil di kartu Masterpiece)
             </label>
             <textarea
               id="event-description"
@@ -309,7 +340,7 @@ export default function MasterEventPage() {
           <ImageField
             id="event-photo"
             label="Foto (opsional)"
-            hint={`${DEFAULT_HINT} Foto ini belum tampil di website.`}
+            hint={`${DEFAULT_HINT} Foto dipakai di kartu Masterpiece.`}
             value={form.photo}
             onChange={(photo) => setForm((f) => ({ ...f, photo }))}
             disabled={isSubmitting}
@@ -331,7 +362,26 @@ export default function MasterEventPage() {
               </label>
             </div>
             <p id="event-active-hint" className="mt-1 text-xs text-slate-600">
-              Event yang tampil muncul di section Masterpiece, urut tahun terbaru.
+              Event yang tampil masuk daftar Event yang Sudah Kami Tangani di website, urut tahun terbaru.
+            </p>
+          </div>
+          <div>
+            <div className="flex items-center gap-3">
+              <input
+                id="event-featured"
+                type="checkbox"
+                checked={form.featured}
+                onChange={(e) => setForm({ ...form, featured: e.target.checked })}
+                disabled={isSubmitting}
+                aria-describedby="event-featured-hint"
+                className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="event-featured" className="text-sm font-medium text-slate-700">
+                Tampilkan di Masterpiece
+              </label>
+            </div>
+            <p id="event-featured-hint" className="mt-1 text-xs text-slate-600">
+              Khusus event terbesar. Tampil sebagai kartu berfoto di section Masterpiece, jadi event ini wajib punya foto dan harus tampil di website.
             </p>
           </div>
         </div>

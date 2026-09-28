@@ -23,18 +23,18 @@ export default function TentangKamiSection({ aboutUs, stats }: Props) {
             <div className="grid grid-cols-2 gap-6 relative z-10">
               <div className="space-y-6 pt-12">
                 <div className="rounded-3xl overflow-hidden aspect-[4/5] shadow-xl bg-slate-200 relative">
-                  <Image src="/assets/portfolio/tentang-kami-tim-bandara.jpg" fill sizes="(min-width: 1024px) 22vw, 50vw" alt="Tim D'Production mendokumentasikan kedatangan peserta" className="object-cover" />
+                  <Image src="/assets/portfolio/tim-dpro-rompi.jpg" fill sizes="(min-width: 1024px) 22vw, 50vw" alt="Tim kru D'Production berpose bersama" className="object-cover" />
                 </div>
                 <div className="rounded-3xl overflow-hidden aspect-square shadow-xl bg-slate-200 relative">
-                  <Image src="/assets/portfolio/tentang-kami-dekorasi-ustegra.jpg" fill sizes="(min-width: 1024px) 22vw, 50vw" alt="Dekorasi acara peresmian PT. Ustegra" className="object-cover" />
+                  <Image src="/assets/portfolio/kru-half-marathon-gerbang.jpg" fill sizes="(min-width: 1024px) 22vw, 50vw" alt="Kru acara di gerbang Malang Half Marathon" className="object-cover" />
                 </div>
               </div>
               <div className="space-y-6">
                 <div className="rounded-3xl overflow-hidden aspect-square shadow-xl bg-slate-200 relative">
-                  <Image src="/assets/portfolio/tentang-kami-santai-magelang.jpg" fill sizes="(min-width: 1024px) 22vw, 50vw" alt="Momen santai peserta Temu Responden BI Magelang" className="object-cover" />
+                  <Image src="/assets/portfolio/tim-dpro-penyambutan.jpg" fill sizes="(min-width: 1024px) 22vw, 50vw" alt="Kru D'Production menyambut peserta capacity building Bank Indonesia di bandara" className="object-cover" />
                 </div>
                 <div className="rounded-3xl overflow-hidden aspect-[4/5] shadow-xl bg-slate-200 relative">
-                  <Image src="/assets/portfolio/tentang-kami-kunjungan-sekolah.jpg" fill sizes="(min-width: 1024px) 22vw, 50vw" alt="Kunjungan lapangan program Hebitren BI Bandung" className="object-cover" />
+                  <Image src="/assets/portfolio/temres-magelang-silancur-grup.jpg" fill sizes="(min-width: 1024px) 22vw, 50vw" alt="Foto bersama peserta Temu Responden Bank Indonesia di Silancur, Magelang" className="object-cover" />
                 </div>
               </div>
             </div>

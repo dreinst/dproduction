@@ -36,27 +36,69 @@ export const FALLBACK = {
     statYears: 10,
   },
   hero: {
-    image: "/assets/portfolio/temres-magelang-gala-malam.jpg",
+    image: "/assets/portfolio/temres-magelang-jeep-warna.jpg",
     title: "Corporate Event",
-    caption: "Gathering sukses bersama 500+ peserta dari Bank Indonesia.",
-    alt: "Gala malam Temu Responden Bank Indonesia di Magelang",
+    caption: "Jeep adventure peserta Temu Responden Bank Indonesia di Magelang.",
+    alt: "Iring-iringan jeep dengan asap warna-warni di acara Temu Responden Bank Indonesia, Magelang",
   },
-  // Portofolio resmi dari dokumen "Portofolio D'Pro 2026 Presentation", tahun terbaru dulu.
-  masterpieces: [
-    { name: "Emba JetBus Run Malang 10K", year: 2026 },
-    { name: "MS Glow Run Malang Half Marathon", year: 2026 },
-    { name: "Smartfren Fun Run Malang", year: 2026 },
-    { name: "Emba Run Malang 10K", year: 2025 },
-    { name: "Malang BI-Youth-Tiful Festival", year: 2024 },
-    { name: "Employee Excellence Award G4S", year: 2024 },
-    { name: "QRIS Fun Run Bank Indonesia", year: 2024 },
-    { name: "Pesta Demokrasi KPU Kab. Malang", year: 2024 },
-    { name: "Gebyar QRIS Ngalam Bank Indonesia", year: 2023 },
-    { name: "HUT Prov. Jawa Timur Ke-78", year: 2023 },
-  ] as { name: string; year: number | null }[],
+  // Semua event yang pernah ditangani (portofolio resmi, dokumentasi Drive, dan daftar situs lama), tahun terbaru dulu.
+  // featured = event terbesar dari sisi skala, tampil sebagai kartu berfoto di Masterpiece.
+  events: [
+    { name: "Peresmian Gedung Ekstensi PT. Ustegra", client: "PT. Ustegra", year: 2026, featured: true,
+      photo: "/assets/portfolio/ustegra-perayaan-karyawan.jpg",
+      description: "Seremoni peresmian gedung pabrik baru PT. Ustegra Malang pada 24 Agustus 2026, dari tur pabrik bersama tamu VIP hingga perayaan bersama ratusan karyawan." },
+    { name: "Temu Responden Bank Indonesia (Magelang)", client: "KPw Bank Indonesia Malang", year: 2026, featured: true,
+      photo: "/assets/portfolio/temres-magelang-drone-silancur.jpg",
+      description: "Empat hari evaluasi surveyor KPw Bank Indonesia Malang di Magelang, dengan jeep adventure, kunjungan wisata, dan gala dinner bertema." },
+    { name: "MS Glow Run Malang Half Marathon", client: "MS Glow", year: 2026, featured: true,
+      photo: "/assets/portfolio/half-marathon-flag-off.jpg",
+      description: "Lomba lari half marathon di Kota Malang, dari flag off subuh, rute kota, sampai race village di garis finish." },
+    { name: "Emba JetBus Run Malang 10K", client: "Emba", year: 2026 },
+    { name: "Smartfren Fun Run Malang", client: "Smartfren", year: 2026 },
+    { name: "Program Hebitren Bank Indonesia (Bandung)", client: "KPw Bank Indonesia Kalimantan Barat", year: 2026 },
+    { name: "Program Hebitren Bank Indonesia (Yogyakarta)", client: "Bank Indonesia", year: 2026 },
+    { name: "Gathering 10 Tahun Aice Malang", client: "Aice", year: 2026 },
+    { name: "Serambi Bank Indonesia Malang dan Pasuruan", client: "Bank Indonesia", year: 2026 },
+    { name: "Pasar Santri Sidogiri", client: "Bank Indonesia", year: 2026 },
+    { name: "Wedding di Ijen Suites Malang", client: null, year: 2026 },
+    { name: "Pekan QRIS Nasional dan QRIS Jelajah Indonesia", client: "KPw Bank Indonesia Malang", year: 2025, featured: true,
+      photo: "/assets/portfolio/qris-jelajah-indonesia-coban-rondo.jpg",
+      description: "Rangkaian Pekan QRIS Nasional bersama QRIS Jelajah Indonesia, termasuk perjalanan peserta ke Coban Rondo." },
+    { name: "Emba Run Malang 10K", client: "Emba", year: 2025, featured: true,
+      photo: "/assets/portfolio/emba-run-finish.jpg",
+      description: "Lomba lari 10K di Malang, dari persiapan rute sampai perayaan pelari dan sponsor di garis finish." },
+    { name: "Gathering Bank Indonesia Kalimantan Barat di Bromo", client: "KPw Bank Indonesia Kalimantan Barat", year: 2025 },
+    { name: "Temu Responden Bank Indonesia Malang", client: "KPw Bank Indonesia Malang", year: 2025 },
+    { name: "Starlink BRI Bromo", client: "BRI", year: 2025 },
+    { name: "Employee Gathering Cuddle Me 2025", client: "Cuddle Me", year: 2025 },
+    { name: "BINS Goes To Campus", client: null, year: 2025 },
+    { name: "Kuliah Kebangsaan bersama Sandiaga Uno dan Habib Ja'far", client: "Bank Indonesia dan Universitas Negeri Malang", year: 2025 },
+    { name: "Forum Koordinasi Polhukam", client: "Kemenko Polhukam", year: 2025 },
+    { name: "HUT ke-20 SSK", client: null, year: 2025 },
+    { name: "Yubileum OMK Demako", client: null, year: 2025 },
+    { name: "Capacity Building DSPK", client: "Bank Indonesia", year: 2025 },
+    { name: "One Big Family BI Kalimantan Barat di Bogor", client: "KPw Bank Indonesia Kalimantan Barat", year: 2025 },
+    { name: "Capacity Building Kopi dan Hebitren", client: "KPw Bank Indonesia Kalimantan Barat", year: 2025 },
+    { name: "Capacity Building Pondok Pesantren", client: "Bank Indonesia Jakarta", year: 2025 },
+    { name: "Capacity Building Petani Cabai dan Bawang Merah", client: "KPw Bank Indonesia Sulawesi Tengah", year: 2025 },
+    { name: "Pesta Ulang Tahun ke-78 Bertema Arabian", client: null, year: 2025 },
+    { name: "Reuni Teratai", client: null, year: 2025 },
+    { name: "Malam Tahun Baru eL Hotel", client: "eL Hotel", year: 2025 },
+    { name: "QRIS Fun Run Bank Indonesia", client: "KPw Bank Indonesia Malang", year: 2024, featured: true,
+      photo: "/assets/portfolio/qris-fun-run-start.jpg",
+      description: "Fun run kampanye QRIS Bank Indonesia dengan ribuan pelari, rangkaian Pekan QRIS Nasional 2024 di Malang." },
+    { name: "Malang BI-Youth-Tiful Festival", client: "Bank Indonesia", year: 2024 },
+    { name: "Employee Excellence Award G4S", client: "G4S", year: 2024 },
+    { name: "Pesta Demokrasi KPU Kab. Malang", client: "KPU Kab. Malang", year: 2024 },
+    { name: "Gebyar QRIS Ngalam Bank Indonesia", client: "Bank Indonesia", year: 2023 },
+    { name: "HUT Prov. Jawa Timur Ke-78", client: "Pemerintah Provinsi Jawa Timur", year: 2023 },
+    { name: "Digifest BI Ngalam 2023", client: "KPw Bank Indonesia Malang", year: 2023 },
+    { name: "Kemenkeu Goes To Bromo", client: "Kementerian Keuangan", year: null },
+    { name: "Sekartaji Bank Indonesia", client: "Bank Indonesia", year: null },
+    { name: "Rupiah Championship", client: "Bank Indonesia", year: null },
+  ] as EventEntry[],
   weddingPoints: ["Konsep & Tema", "Dekorasi Premium", "Manajemen Vendor", "Koordinasi Hari-H"],
-  // Belum ada foto pernikahan asli, jadi alt menyebut isi foto apa adanya.
-  weddingPhoto: { src: "/assets/hero img 6.jpg", alt: "Panggung acara QRIS Fun Run Bank Indonesia" },
+  weddingPhoto: { src: "/assets/portfolio/wedding-ijen-suites.jpg", alt: "Dokumentasi pernikahan di Ijen Suites Malang" },
   rentals: [
     { name: "Tenda Premium", price: 200000, unit: "hari" },
     { name: "Sound System Pro", price: 1000000, unit: "hari" },
@@ -64,16 +106,28 @@ export const FALLBACK = {
     { name: "Kursi & Meja", price: null, unit: "hari" },
   ] as { name: string; price: number | null; unit: string | null }[],
   photos: [
-    { image: "/assets/portfolio/hebitren-bandung-aerial-desa.jpg", album: "Hebitren BI Bandung", caption: "Dokumentasi Udara" },
-    { image: "/assets/portfolio/ustegra-panggung.jpg", album: "Peresmian Ustegra", caption: "Panggung & Dekorasi" },
-    { image: "/assets/portfolio/hebitren-jogja-bandara.jpg", album: "Hebitren BI Jogja", caption: "Penjemputan Peserta" },
-    { image: "/assets/portfolio/temres-magelang-penjemputan.jpg", album: "Temres BI Magelang", caption: "Kedatangan Peserta" },
-    { image: "/assets/portfolio/ustegra-tur-vip.jpg", album: "Peresmian Ustegra", caption: "Tur Tamu VIP" },
-    { image: "/assets/portfolio/hebitren-jogja-kunjungan-tani.jpg", album: "Hebitren BI Jogja", caption: "Kunjungan Lapangan" },
-    { image: "/assets/portfolio/temres-magelang-gedung-bi.jpg", album: "Temres BI Magelang", caption: "Dokumentasi Udara" },
-    { image: "/assets/portfolio/ustegra-pabrik-aerial.jpg", album: "Peresmian Ustegra", caption: "Dokumentasi Udara" },
-    { image: "/assets/portfolio/temres-magelang-santai.jpg", album: "Temres BI Magelang", caption: "Momen Santai Peserta" },
+    { image: "/assets/portfolio/hebitren-bandung-masjid-al-jabbar.jpg", album: "Hebitren BI Bandung", caption: "Masjid Raya Al Jabbar dari Udara" },
+    { image: "/assets/portfolio/ustegra-aula-perayaan.jpg", album: "Peresmian Ustegra", caption: "Perayaan Bersama Karyawan" },
+    { image: "/assets/portfolio/half-marathon-udara-malam.jpg", album: "MS Glow Run Half Marathon", caption: "Area Start Menjelang Flag Off" },
+    { image: "/assets/portfolio/temres-magelang-peserta-ceria.jpg", album: "Temres BI Magelang", caption: "Wisata Bersama Peserta" },
+    { image: "/assets/portfolio/hebitren-jogja-petani.jpg", album: "Hebitren BI Jogja", caption: "Bersama Petani Mitra" },
+    { image: "/assets/portfolio/pekan-qris-nasional-panggung.jpg", album: "Pekan QRIS Nasional", caption: "Penampilan di Panggung Utama" },
+    { image: "/assets/portfolio/ustegra-panggung-peresmian.jpg", album: "Peresmian Ustegra", caption: "Panggung Peresmian" },
+    { image: "/assets/portfolio/hebitren-bandung-petik-stroberi.jpg", album: "Hebitren BI Bandung", caption: "Petik Stroberi" },
+    { image: "/assets/portfolio/temres-magelang-peserta-senyum.jpg", album: "Temres BI Magelang", caption: "Keseruan Peserta" },
+    { image: "/assets/portfolio/hebitren-jogja-yia-grup.jpg", album: "Hebitren BI Jogja", caption: "Penyambutan di Bandara YIA" },
+    { image: "/assets/portfolio/kru-half-marathon.jpg", album: "MS Glow Run Half Marathon", caption: "Kru di Race Village" },
+    { image: "/assets/portfolio/ustegra-gedung-udara.jpg", album: "Peresmian Ustegra", caption: "Gedung Baru dari Udara" },
   ] as { image: string; album: string; caption: string | null }[],
+};
+
+export type EventEntry = {
+  name: string;
+  client: string | null;
+  year: number | null;
+  featured?: boolean;
+  photo?: string;
+  description?: string;
 };
 
 export type LandingKantor = {
@@ -92,7 +146,8 @@ export type LandingKantor = {
 
 export type LandingContent = {
   hero: { image: string; title: string | null; caption: string | null; alt: string };
-  masterpieces: typeof FALLBACK.masterpieces;
+  masterpieces: { name: string; client: string | null; year: number | null; photo: string; description: string | null }[];
+  eventList: { name: string; client: string | null; year: number | null }[];
   wedding: { points: string[]; photo: { src: string; alt: string } };
   rentals: typeof FALLBACK.rentals;
   photos: typeof FALLBACK.photos;
@@ -185,7 +240,7 @@ export const getLandingContent = cache(async (): Promise<LandingContent> => {
       prisma.event.findMany({
         where: { active: true },
         orderBy: [{ year: { sort: "desc", nulls: "last" } }, { id: "asc" }],
-        select: { name: true, year: true },
+        select: { name: true, client: true, year: true, featured: true, photo: true, description: true },
       }),
     ),
     query("Master Wedding", () =>
@@ -242,9 +297,17 @@ export const getLandingContent = cache(async (): Promise<LandingContent> => {
     return image ? [{ image, album: p.album.name, caption: text(p.caption) }] : [];
   });
 
+  const eventRows = events?.length ? events : FALLBACK.events;
+  // Masterpiece hanya event featured yang fotonya valid.
+  const masterpieces = eventRows.flatMap((e) => {
+    const photo = e.featured ? imageSrc(e.photo) : null;
+    return photo ? [{ name: e.name, client: text(e.client), year: e.year, photo, description: text(e.description) }] : [];
+  });
+
   return {
     hero,
-    masterpieces: events?.length ? events : FALLBACK.masterpieces,
+    masterpieces,
+    eventList: eventRows.map((e) => ({ name: e.name, client: text(e.client), year: e.year })),
     wedding: {
       points: weddings?.length ? weddings.map((w) => w.name) : FALLBACK.weddingPoints,
       photo: weddingPhoto?.src

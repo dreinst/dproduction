@@ -20,7 +20,7 @@ export default function LayananSection({ whatsapp, wedding, rentals }: Props) {
       color: "blue",
       description: "Punya acara penting tapi bingung mau mulai dari mana? Serahkan saja pada D'Production, event organizer di Malang yang siap mengubah ide dan konsepmu menjadi acara yang berkesan, rapi, dan berjalan lancar dari awal sampai akhir.",
       features: ["Corporate Gathering", "Product Launching", "Seminar & Workshop", "Gala Dinner"],
-      photo: { src: "/assets/portfolio/ustegra-peresmian-aerial.jpg", alt: "Event Organizer" },
+      photo: { src: "/assets/portfolio/temres-magelang-gala-kostum.jpg", alt: "Gala dinner bertema Temu Responden Bank Indonesia di Magelang" },
     },
     {
       id: "wedding",

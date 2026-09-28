@@ -36,7 +36,7 @@ export default async function Home() {
       <HeroSection whatsapp={whatsapp} description={kantor.description} stats={kantor.stats} hero={content.hero} />
       <TentangKamiSection aboutUs={kantor.aboutUs} stats={kantor.stats} />
       <LayananSection whatsapp={whatsapp} wedding={content.wedding} rentals={content.rentals} />
-      <MasterpieceSection items={content.masterpieces} />
+      <MasterpieceSection items={content.masterpieces} events={content.eventList} />
       <KlienSection />
       <GaleriSection photos={content.photos} videos={content.videos} />
       <FaqSection />

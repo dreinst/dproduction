@@ -2,8 +2,9 @@
 // supaya tampilan tidak berubah dan konten tinggal diedit dari dashboard.
 //
 //   npx tsx --env-file=.env.local scripts/seed-landing-content.ts          (hanya mengisi yang kosong)
-//   npx tsx --env-file=.env.local scripts/seed-landing-content.ts --awal   (juga menimpa Setting Kantor dengan data resmi
-//                                                                          dan menonaktifkan 4 event dokumentasi)
+//   npx tsx --env-file=.env.local scripts/seed-landing-content.ts --awal      (juga menimpa Setting Kantor dengan data resmi)
+//   npx tsx --env-file=.env.local scripts/seed-landing-content.ts --perbarui  (menyamakan Master Event, hero, foto Wedding,
+//                                                                             dan galeri hasil seed dengan FALLBACK terbaru)
 //
 // Database selain localhost ditolak kecuali ALLOW_REMOTE_SEED=1 (produksi, hanya dijalankan orang yang berwenang).
 // Aman dijalankan berulang: tabel yang sudah berisi tidak disentuh.
@@ -13,33 +14,18 @@ import { assertLocalDatabase } from './assert-local-db'
 
 const AWAL = process.argv.includes('--awal')
 
-// 4 event dengan foto asli dari Google Drive. Dicatat di Master Event tetapi nonaktif, jadi tidak tampil di Masterpiece.
-const DOCUMENTED_EVENTS = [
-  {
-    name: 'Program Hebitren Bank Indonesia (Bandung)',
-    description: 'Rangkaian kunjungan lapangan program Hebitren Bank Indonesia di Bandung selama 5 hari, termasuk kunjungan ke Masjid Raya Al Jabbar.',
-    photo: '/assets/portfolio/hebitren-bandung-masjid.jpg',
-    year: 2026,
-  },
-  {
-    name: 'Program Hebitren Bank Indonesia (Yogyakarta)',
-    description: 'Rangkaian kunjungan lapangan program Hebitren Bank Indonesia di Yogyakarta selama 4 hari.',
-    photo: '/assets/portfolio/hebitren-jogja-bandara.jpg',
-    year: 2026,
-  },
-  {
-    name: 'Temu Responden Bank Indonesia (Magelang)',
-    description: 'Gala dinner malam puncak Temu Responden Bank Indonesia di Magelang dengan panggung taman bertema dan live music.',
-    photo: '/assets/portfolio/temres-magelang-gala-malam.jpg',
-    year: 2026,
-  },
-  {
-    name: 'Peresmian Gedung Ekstensi PT. Ustegra',
-    description: 'Seremoni peresmian gedung pabrik baru PT. Ustegra Malang pada 24 Agustus 2026, dari tur pabrik bersama tamu VIP hingga hiburan live band.',
-    photo: '/assets/portfolio/ustegra-peresmian-aerial.jpg',
-    year: 2026,
-  },
-]
+const PERBARUI = process.argv.includes('--perbarui')
+
+// Kolom Event dari FALLBACK.events; foto dan deskripsi hanya dimiliki event Masterpiece.
+const eventData = (e: (typeof FALLBACK.events)[number]) => ({
+  name: e.name,
+  client: e.client,
+  year: e.year,
+  featured: e.featured ?? false,
+  photo: e.photo ?? null,
+  description: e.description ?? null,
+  active: true,
+})
 
 // Tabel tanpa kunci tetap (nama bisa diganti di dashboard) hanya diisi kalau benar-benar kosong.
 async function fillIfEmpty(table: string, count: () => Promise<number>, fill: () => Promise<number>) {
@@ -53,7 +39,7 @@ async function fillIfEmpty(table: string, count: () => Promise<number>, fill: ()
 
 async function main() {
   assertLocalDatabase()
-  const { kantor, hero, masterpieces, weddingPoints, rentals, photos } = FALLBACK
+  const { kantor, hero, events, weddingPoints, rentals, photos } = FALLBACK
 
   const hasKantor = await prisma.kantorSetting.findUnique({ where: { id: 1 }, select: { id: true } })
   if (!hasKantor) {
@@ -109,31 +95,58 @@ async function main() {
   await fillIfEmpty(
     'Event',
     () => prisma.event.count(),
-    async () =>
-      (
-        await prisma.event.createMany({
-          data: [...masterpieces, ...DOCUMENTED_EVENTS.map((e) => ({ ...e, active: false }))],
-        })
-      ).count,
+    async () => (await prisma.event.createMany({ data: events.map(eventData) })).count,
   )
 
-  if (AWAL) {
-    // Di produksi nama event dokumentasi masih versi seed lama yang memakai tanda pisah panjang, jadi dicocokkan juga
-    // lewat kolom foto. Namanya sekalian diganti ke versi tanda kurung supaya dashboard ikut bersih.
-    let count = 0
-    for (const e of DOCUMENTED_EVENTS) {
-      const updated = await prisma.event.updateMany({
-        where: { OR: [{ photo: e.photo }, { name: e.name }] },
-        data: { name: e.name, active: false },
-      })
-      count += updated.count
-    }
-    const active = await prisma.event.count({ where: { active: true } })
-    console.log(`Event: ${count} event dokumentasi dinonaktifkan (--awal). Event aktif di Masterpiece sekarang ${active}.`)
-    if (active !== masterpieces.length) {
-      console.log(`Periksa Master Event: portofolio resmi berjumlah ${masterpieces.length}, bukan ${active}.`)
+  if (PERBARUI) await perbarui()
+}
+
+// --perbarui: menyamakan konten hasil seed dengan FALLBACK terbaru (foto terbaik, Masterpiece, daftar event).
+// Event dicocokkan per nama; event lain yang ditambah admin tidak disentuh. Hanya foto galeri hasil seed
+// (path /assets/portfolio/) yang diganti, foto unggahan admin tetap.
+async function perbarui() {
+  const { hero, events, weddingPhoto, photos } = FALLBACK
+  let created = 0
+  let updated = 0
+  for (const e of events) {
+    const data = eventData(e)
+    const res = await prisma.event.updateMany({ where: { name: e.name }, data })
+    if (res.count) updated += res.count
+    else {
+      await prisma.event.create({ data })
+      created++
     }
   }
+  const featured = await prisma.event.count({ where: { active: true, featured: true } })
+  const active = await prisma.event.count({ where: { active: true } })
+  console.log(`Event: ${updated} diperbarui, ${created} ditambah. Aktif ${active}, Masterpiece ${featured}.`)
+
+  const first = await prisma.headHome.findFirst({ orderBy: [{ sortIndex: 'asc' }, { id: 'asc' }] })
+  if (first) {
+    await prisma.headHome.update({ where: { id: first.id }, data: { image: hero.image, title: hero.title, caption: hero.caption, active: true } })
+    console.log('HeadHome: gambar hero pertama diganti.')
+  }
+
+  const wedding = await prisma.wedding.findFirst({ where: { active: true }, orderBy: { id: 'asc' } })
+  if (wedding) {
+    await prisma.wedding.update({ where: { id: wedding.id }, data: { photo: weddingPhoto.src } })
+    console.log(`Wedding: foto dipasang di poin "${wedding.name}".`)
+  }
+
+  const galeri = await prisma.$transaction(async (tx) => {
+    const removed = await tx.galeriFoto.deleteMany({ where: { image: { startsWith: '/assets/portfolio/' } } })
+    await tx.galeriAlbum.deleteMany({ where: { photos: { none: {} } } })
+    const albumId = new Map<string, number>()
+    for (const [i, name] of [...new Set(photos.map((p) => p.album))].entries()) {
+      const album = await tx.galeriAlbum.upsert({ where: { name }, update: { active: true, sortIndex: i }, create: { name, sortIndex: i } })
+      albumId.set(name, album.id)
+    }
+    const { count } = await tx.galeriFoto.createMany({
+      data: photos.map((p, sortIndex) => ({ albumId: albumId.get(p.album) as number, image: p.image, caption: p.caption, sortIndex })),
+    })
+    return { removed: removed.count, count }
+  })
+  console.log(`Galeri: ${galeri.removed} foto lama diganti ${galeri.count} foto terbaik.`)
 }
 
 main()

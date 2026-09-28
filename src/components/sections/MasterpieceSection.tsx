@@ -1,11 +1,22 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Trophy, ArrowRight, CalendarDays } from "lucide-react";
+import { Trophy, ArrowRight, ListChecks } from "lucide-react";
+import LandingImage from "@/components/LandingImage";
 import type { LandingContent } from "@/lib/landing-content";
 
-// Portofolio dari Master Event yang aktif, tahun terbaru dulu.
-export default function MasterpieceSection({ items }: { items: LandingContent["masterpieces"] }) {
+type Props = { items: LandingContent["masterpieces"]; events: LandingContent["eventList"] };
+
+// Masterpiece = event featured berfoto dari Master Event; di bawahnya daftar semua event aktif per tahun.
+export default function MasterpieceSection({ items, events }: Props) {
+  const groups = events.reduce<{ label: string; items: Props["events"] }[]>((acc, e) => {
+    const label = e.year?.toString() ?? "Lainnya";
+    const group = acc.find((g) => g.label === label);
+    if (group) group.items.push(e);
+    else acc.push({ label, items: [e] });
+    return acc;
+  }, []);
+
   return (
     <section id="masterpiece" className="py-20 lg:py-32 bg-white overflow-x-hidden">
       <div className="container mx-auto px-4 lg:px-8">
@@ -27,25 +38,66 @@ export default function MasterpieceSection({ items }: { items: LandingContent["m
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
             className="text-lg text-slate-600"
           >
-            Sebagian acara besar yang telah kami eksekusi sejak 2023, dari kampanye Bank Indonesia hingga fun run berskala ribuan peserta di Malang.
+            Event terbesar yang pernah kami tangani, dari fun run berskala ribuan pelari sampai program multi hari Bank Indonesia.
           </motion.p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {items.map((item, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: (index % 3) * 0.08 }}
-              className="bg-slate-50 hover:bg-white border border-slate-100 hover:border-blue-100 hover:shadow-xl hover:shadow-slate-200/50 rounded-3xl p-8 transition-all duration-300"
-            >
-              <div className="w-12 h-12 rounded-2xl gradient-bg flex items-center justify-center text-white mb-6 shadow-lg shadow-blue-500/20">
-                <CalendarDays className="w-6 h-6" />
+        {items.length > 0 && (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {items.map((item, index) => (
+              <motion.article
+                key={item.name}
+                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: (index % 3) * 0.08 }}
+                className="group bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-lg shadow-slate-200/60 hover:shadow-xl hover:shadow-slate-300/60 transition-shadow duration-300 flex flex-col"
+              >
+                <div className="relative aspect-[4/3] bg-slate-200 overflow-hidden">
+                  <LandingImage
+                    src={item.photo}
+                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                    alt={`Dokumentasi ${item.name}`}
+                    className="object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                  {item.year != null && (
+                    <span className="absolute top-4 left-4 px-3 py-1 rounded-full bg-slate-900/80 text-white text-xs font-bold tracking-wider">
+                      {item.year}
+                    </span>
+                  )}
+                </div>
+                <div className="p-6 flex-1">
+                  <h3 className="text-xl font-bold text-slate-900 leading-snug">{item.name}</h3>
+                  {item.client && <p className="mt-1 text-sm font-semibold text-blue-700">{item.client}</p>}
+                  {item.description && <p className="mt-3 text-slate-600 leading-relaxed">{item.description}</p>}
+                </div>
+              </motion.article>
+            ))}
+          </div>
+        )}
+
+        {groups.length > 0 && (
+          <div id="daftar-event" className="mt-24 scroll-mt-24">
+            <div className="text-center max-w-3xl mx-auto mb-12">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-700 font-medium text-sm mb-6">
+                <ListChecks className="w-4 h-4" /> {events.length} Event
               </div>
-              {item.year != null && <p className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-2">{item.year}</p>}
-              <h3 className="text-xl font-bold text-slate-900 leading-snug">{item.name}</h3>
-            </motion.div>
-          ))}
-        </div>
+              <h3 className="text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">Event yang Sudah Kami Tangani</h3>
+            </div>
+            <div className="columns-1 md:columns-2 lg:columns-3 gap-8">
+              {groups.map((group) => (
+                <div key={group.label} className="break-inside-avoid mb-8 bg-slate-50 border border-slate-100 rounded-3xl p-6">
+                  <h4 className="text-lg font-extrabold text-blue-700 mb-4">{group.label}</h4>
+                  <ul className="space-y-3">
+                    {group.items.map((e) => (
+                      <li key={e.name} className="border-b border-slate-200 last:border-0 pb-3 last:pb-0">
+                        <p className="font-semibold text-slate-900 leading-snug">{e.name}</p>
+                        {e.client && <p className="text-sm text-slate-600">{e.client}</p>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
