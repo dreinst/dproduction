@@ -134,17 +134,18 @@ model Tarif {
 
 // Kru lapangan, bukan akun login.
 model Crew {
-  id          Int          @id @default(autoincrement())
-  name        String
-  whatsapp    String? // format 08xxxxxxxxxx
-  notes       String?
-  bankAccount String? // nomor rekening, hanya terlihat owner dan superadmin
-  active      Boolean      @default(true)
-  legacyId    Int?         @unique // id pegawai di database situs lama
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  assignments Assignment[]
-  absensi     Absensi[]
+  id           Int          @id @default(autoincrement())
+  name         String
+  whatsapp     String? // format 08xxxxxxxxxx
+  notes        String?
+  bankAccount  String? // nomor rekening, hanya terlihat owner dan superadmin
+  passwordHash String? // password situs lama dalam bentuk hash scrypt (format src/lib/password.ts), belum dipakai login
+  active       Boolean      @default(true)
+  legacyId     Int?         @unique // id pegawai di database situs lama
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  assignments  Assignment[]
+  absensi      Absensi[]
 }
 
 // Satu baris satu acara. adminStatus dan adminNote adalah "Report" (hanya owner dan superadmin).
