@@ -3,9 +3,10 @@
 //   npx tsx --env-file=.env.local scripts/impor-situs-lama.ts <file.json>
 //
 // Aman dijalankan berulang: baris dicocokkan lewat id lama (legacyId, legacyKey) atau nama.
-// Password lama (crew dan admin) sengaja TIDAK diimpor. Database selain localhost butuh ALLOW_REMOTE_SEED=1.
+// Password crew lama disimpan sebagai hash scrypt (Crew.passwordHash); login admin lama tidak diimpor. Database selain localhost butuh ALLOW_REMOTE_SEED=1.
 import { readFileSync, existsSync } from 'node:fs'
 import prisma from '../src/lib/prisma'
+import { hashPassword } from '../src/lib/password'
 import { assertLocalDatabase } from './assert-local-db'
 
 type Row = Record<string, string | number | null>
@@ -76,21 +77,25 @@ async function main() {
   }
   console.log(`Klien: ${klien.size}.`)
 
-  // Crew (tanpa password lama).
+  // Crew. Password lama di-hash sekali saja, crew yang sudah punya hash tidak diubah.
   const crew = new Map<number, number>()
   let waInvalid = 0
   for (const p of data.pegawai) {
     const wa = whatsapp(p.hp)
     if (!wa && str(p.hp)) waInvalid++
+    const legacyId = Number(p.id)
+    const existing = await prisma.crew.findUnique({ where: { legacyId }, select: { passwordHash: true } })
+    const pwd = str(p.pwd)
     const values = {
+      passwordHash: pwd && !existing?.passwordHash ? await hashPassword(pwd) : undefined,
       name: clean(p.nama),
       whatsapp: wa,
       notes: orNull([clean(p.jabatan), clean(p.jenis)].filter(Boolean).join(', ')),
       bankAccount: orNull(str(p.rek).trim()),
       active: Number(p.aktif) !== 0,
     }
-    const c = await prisma.crew.upsert({ where: { legacyId: Number(p.id) }, update: values, create: { ...values, legacyId: Number(p.id) } })
-    crew.set(Number(p.id), c.id)
+    const c = await prisma.crew.upsert({ where: { legacyId }, update: values, create: { ...values, legacyId } })
+    crew.set(legacyId, c.id)
   }
   console.log(`Crew: ${crew.size} (nomor WhatsApp tidak valid dikosongkan: ${waInvalid}).`)
 
