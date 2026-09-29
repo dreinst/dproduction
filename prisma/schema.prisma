@@ -138,10 +138,13 @@ model Crew {
   name        String
   whatsapp    String? // format 08xxxxxxxxxx
   notes       String?
+  bankAccount String? // nomor rekening, hanya terlihat owner dan superadmin
   active      Boolean      @default(true)
+  legacyId    Int?         @unique // id pegawai di database situs lama
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   assignments Assignment[]
+  absensi     Absensi[]
 }
 
 // Satu baris satu acara. adminStatus dan adminNote adalah "Report" (hanya owner dan superadmin).
@@ -162,10 +165,47 @@ model WorkspaceEvent {
   adminNote    String?
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
+  legacyId     Int?                 @unique // id kronik di database situs lama
   assignments  Assignment[]
+  absensi      Absensi[]
   lead         Client?
 
   @@index([startAt])
+}
+
+// Absensi crew per event dari aplikasi situs lama: "absen" = absen masuk, "laporan" = foto laporan tambahan.
+// Foto berupa nama file di server situs lama.
+model Absensi {
+  id               Int            @id @default(autoincrement())
+  workspaceEventId Int
+  workspaceEvent   WorkspaceEvent @relation(fields: [workspaceEventId], references: [id], onDelete: Cascade)
+  crewId           Int
+  crew             Crew           @relation(fields: [crewId], references: [id], onDelete: Cascade)
+  jobDescId        Int?
+  kind             String         @default("absen")
+  checkedAt        DateTime
+  lat              Float?
+  lng              Float?
+  photo            String?
+  note             String?
+  verified         Boolean        @default(false)
+  legacyKey        String?        @unique
+  createdAt        DateTime       @default(now())
+
+  @@index([workspaceEventId])
+  @@index([crewId])
+}
+
+// Daftar klien dari situs lama (nama, kontak, logo).
+model Klien {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  address   String?
+  phone     String?
+  logo      String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Penugasan crew per event; dipakai juga oleh Salary.

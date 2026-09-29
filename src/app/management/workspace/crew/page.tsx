@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useCrud } from "@/hooks/useCrud";
 import { usePagination } from "@/hooks/usePagination";
+import { useAdminUser } from "@/components/management/AdminShell";
 import Modal from "@/components/management/Modal";
 import Pagination, { PageSizeSelect } from "@/components/management/Pagination";
 import { waNumber } from "@/lib/site";
@@ -25,14 +26,16 @@ interface Crew {
   name: string;
   whatsapp: string | null;
   notes: string | null;
+  bankAccount?: string | null;
   active: boolean;
 }
 
-const EMPTY_FORM = { name: "", whatsapp: "", notes: "", active: true };
+const EMPTY_FORM = { name: "", whatsapp: "", notes: "", bankAccount: "", active: true };
 const th = "px-3 py-3 text-left font-semibold";
 const td = "px-3 py-3 align-top text-sm";
 
 export default function WorkspaceCrewPage() {
+  const canSeeBank = useAdminUser().can("salary", "read");
   const { data, loading, error, saveError, clearSaveError, createItem, updateItem, deleteItem } = useCrud<Crew>({
     endpoint: "/api/crews",
   });
@@ -50,13 +53,23 @@ export default function WorkspaceCrewPage() {
   const openForm = (item?: Crew) => {
     clearSaveError();
     setEditing(item ?? null);
-    setForm(item ? { name: item.name, whatsapp: item.whatsapp ?? "", notes: item.notes ?? "", active: item.active } : EMPTY_FORM);
+    setForm(
+      item
+        ? { name: item.name, whatsapp: item.whatsapp ?? "", notes: item.notes ?? "", bankAccount: item.bankAccount ?? "", active: item.active }
+        : EMPTY_FORM,
+    );
     setFormOpen(true);
   };
 
   const handleSave = async () => {
     setIsSubmitting(true);
-    const payload = { name: form.name, whatsapp: orNull(form.whatsapp), notes: orNull(form.notes), active: form.active };
+    const payload = {
+      name: form.name,
+      whatsapp: orNull(form.whatsapp),
+      notes: orNull(form.notes),
+      ...(canSeeBank && { bankAccount: orNull(form.bankAccount) }),
+      active: form.active,
+    };
     const ok = editing ? await updateItem(editing.id, payload) : await createItem(payload);
     setIsSubmitting(false);
     if (ok) setFormOpen(false);
@@ -278,6 +291,26 @@ export default function WorkspaceCrewPage() {
               maxLength={1000}
             />
           </div>
+          {canSeeBank && (
+            <div>
+              <label htmlFor="crew-bank" className={labelClass}>
+                Nomor rekening
+              </label>
+              <input
+                id="crew-bank"
+                type="text"
+                value={form.bankAccount}
+                onChange={(e) => setForm({ ...form, bankAccount: e.target.value })}
+                className={inputClass}
+                disabled={isSubmitting}
+                maxLength={100}
+                aria-describedby="crew-bank-hint"
+              />
+              <p id="crew-bank-hint" className={hintClass}>
+                Hanya terlihat oleh owner dan superadmin.
+              </p>
+            </div>
+          )}
           <div className="flex items-center gap-3">
             <input
               id="crew-active"
