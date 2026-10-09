@@ -99,7 +99,8 @@ export async function proxy(request: NextRequest) {
 export const config = {
   // Sengaja tidak menyebut alamat admin: isi matcher ikut terbit di berkas publik
   // /_next/static/<buildId>/_clientMiddlewareManifest.js. Yang dikecualikan hanya berkas statis Next dan berkas
-  // metadata di akar situs (anjuran dokumentasi Next untuk proxy).
+  // metadata di akar situs (anjuran dokumentasi Next untuk proxy). Kalau daftar pengecualian ini diubah, salin juga ke
+  // SKIPPED_BY_PROXY di src/lib/admin-path.ts.
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|opengraph-image|twitter-image|robots.txt|sitemap.xml|manifest.webmanifest).*)',
   ],

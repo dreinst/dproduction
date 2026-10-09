@@ -18,13 +18,25 @@ export function isInnerPath(pathname: string) {
 // Repo ini publik, jadi alamat admin di server bisa dibedakan dari bawaan lewat env NEXT_PUBLIC_ADMIN_BASE. Isi saat
 // build: Next menanam nilainya ke kode server dan berkas JS admin hanya kalau env itu sudah ada waktu build dan
 // ditulis utuh seperti di bawah. Kalau baru diisi saat server jalan, proxy memakainya tetapi berkas JS admin tidak.
-// Yang diterima satu segmen huruf kecil, angka, atau strip. /api ditolak karena ditangani proxy lebih dulu (halaman
-// login tidak akan terjangkau), /media dan /assets karena berisi gambar yang dimuat halaman admin. Nilai yang tidak
-// sah diabaikan dan alamat bawaan dipakai.
-const RESERVED = ['/api', '/media', '/assets'];
+// Yang diterima satu segmen huruf kecil, angka, atau strip yang belum dipakai untuk hal lain. Nilai yang tidak sah
+// diabaikan dan alamat bawaan dipakai. Halaman publik atau pengalihan baru yang namanya berbentuk seperti itu ikut
+// didaftarkan di RESERVED.
+const RESERVED = [
+  // /api ditangani proxy lebih dulu (halaman login tidak akan terjangkau), dua lainnya berisi gambar untuk halaman admin.
+  '/api', '/media', '/assets',
+  // Halaman publik.
+  '/layanan', '/portofolio', '/katalog', '/tentang', '/offline',
+  // Sumber pengalihan URL lama di next.config.ts. Pengalihan jalan sebelum proxy, jadi dashboard ikut dialihkan.
+  '/team', '/masterpiece', '/rental', '/event', '/wedding', '/kontak', '/gbr', '/images',
+];
+// Awalan yang dilewati matcher di src/proxy.ts: proxy tidak pernah berjalan di sana, jadi halaman login pun tidak
+// terbuka. Isinya salinan persis daftar di dalam (?!...) matcher itu, termasuk titiknya yang berarti karakter apa pun.
+const SKIPPED_BY_PROXY = new RegExp(
+  '^/(_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|opengraph-image|twitter-image|robots.txt|sitemap.xml|manifest.webmanifest)',
+);
 const fromEnv = process.env.NEXT_PUBLIC_ADMIN_BASE ?? '';
-export const ADMIN_BASE =
-  /^\/[a-z0-9-]{3,40}$/.test(fromEnv) && !isInnerPath(fromEnv) && !RESERVED.includes(fromEnv) ? fromEnv : '/dproadmin';
+const taken = isInnerPath(fromEnv) || RESERVED.includes(fromEnv) || SKIPPED_BY_PROXY.test(fromEnv);
+export const ADMIN_BASE = /^\/[a-z0-9-]{3,40}$/.test(fromEnv) && !taken ? fromEnv : '/dproadmin';
 export const ADMIN_LOGIN = `${ADMIN_BASE}/login`;
 
 export function isAdminPath(pathname: string) {
