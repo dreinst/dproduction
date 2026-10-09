@@ -75,6 +75,7 @@ export async function removeUnusedImages(...urls: (string | null | undefined)[])
         prisma.event.count({ where: { photo: url } }),
         prisma.wedding.count({ where: { photo: url } }),
         prisma.rental.count({ where: { photo: url } }),
+        prisma.klien.count({ where: { logo: url } }),
         prisma.galeriFoto.count({ where: { image: url } }),
         prisma.headHome.count({ where: { image: url } }),
       ]);

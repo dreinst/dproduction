@@ -10,7 +10,9 @@ const TABLES: readonly (readonly [table: string, name: string, href: string | nu
   ['Client', 'Lead Masuk', `${ADMIN_BASE}/leads`],
   ['Event', 'Master Event', `${ADMIN_BASE}/master/event`],
   ['Wedding', 'Master Wedding', `${ADMIN_BASE}/master/wedding`],
-  ['Rental', 'Master Rental', `${ADMIN_BASE}/master/rental`],
+  ['Rental', 'Katalog', `${ADMIN_BASE}/master/rental`],
+  ['RentalCategory', 'Kategori Katalog', `${ADMIN_BASE}/master/kategori-katalog`],
+  ['Klien', 'Klien', `${ADMIN_BASE}/master/klien`],
   ['GradeEvent', 'Master Grade Event', `${ADMIN_BASE}/master/grade-event`],
   ['JobDesc', 'Master JobDesc', `${ADMIN_BASE}/master/jobdesc`],
   ['Tarif', 'Master Tarif', `${ADMIN_BASE}/master/tarif`],
@@ -39,6 +41,8 @@ export async function GET() {
       UNION ALL SELECT 'Event', count(*)::int, max("updatedAt") FROM "Event"
       UNION ALL SELECT 'Wedding', count(*)::int, max("updatedAt") FROM "Wedding"
       UNION ALL SELECT 'Rental', count(*)::int, max("updatedAt") FROM "Rental"
+      UNION ALL SELECT 'RentalCategory', count(*)::int, max("updatedAt") FROM "RentalCategory"
+      UNION ALL SELECT 'Klien', count(*)::int, max("updatedAt") FROM "Klien"
       UNION ALL SELECT 'GradeEvent', count(*)::int, max("updatedAt") FROM "GradeEvent"
       UNION ALL SELECT 'JobDesc', count(*)::int, max("updatedAt") FROM "JobDesc"
       UNION ALL SELECT 'Tarif', count(*)::int, max("updatedAt") FROM "Tarif"

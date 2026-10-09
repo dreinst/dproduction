@@ -85,7 +85,7 @@ Role resmi ada lima: `owner` (Pemilik), `superadmin` (Super Admin), `admin` (Adm
 | Workspace Report | `/management/workspace/report` | owner, superadmin | owner, superadmin |
 | Workspace Salary | `/management/workspace/salary` | owner, superadmin | owner, superadmin |
 | Master Tarif | `/management/master/tarif` | owner, superadmin | owner, superadmin |
-| Master Event, Wedding, Rental, Grade Event, JobDesc | `/management/master/*` selain Tarif | owner, superadmin, admin | owner, superadmin, admin |
+| Master Event, Wedding, Katalog, Kategori Katalog, Klien, Grade Event, JobDesc | `/management/master/*` selain Tarif | owner, superadmin, admin | owner, superadmin, admin |
 | Galeri Foto dan Video | `/management/galeri/foto`, `/management/galeri/video` | owner, superadmin, admin | owner, superadmin, admin |
 | Lead Masuk (tabel `Client`) | `/management/leads` | owner, superadmin, admin | owner, superadmin, admin |
 | Setting Kantor dan Head Home | `/management/setting/kantor`, `/management/setting/head-home` | owner, superadmin | owner, superadmin |
@@ -125,7 +125,7 @@ Role resmi ada lima: `owner` (Pemilik), `superadmin` (Super Admin), `admin` (Adm
 - Ukuran maksimal 5 MB. Format yang diterima JPG, PNG, dan WebP, dicek dari isi file, bukan dari nama atau tipe yang dikirim browser.
 - Gambar di-encode ulang dengan `sharp` sebelum disimpan, sehingga metadata EXIF dan XMP (koordinat GPS, model HP, waktu foto) ikut terbuang. Orientasi foto HP tetap benar. Resolusi maksimal 60 megapiksel.
 - File disimpan di `UPLOAD_DIR` dengan nama acak dan disajikan publik di `/media/<nama>` dengan cache satu hari. Di produksi folder ini adalah volume persisten `/app/uploads`.
-- Saat baris dengan kolom gambar dihapus atau gambarnya diganti, file `/media` lama ikut dihapus kalau tidak dipakai kolom gambar lain (Master Event, Wedding, Rental, Galeri Foto, Head Home). Salinan di cache browser dan cache `/_next/image` kedaluwarsa paling lama satu hari kemudian. File yang diunggah tetapi formnya tidak jadi disimpan tetap ada di folder, tetapi alamatnya acak dan tidak pernah tampil di mana pun.
+- Saat baris dengan kolom gambar dihapus atau gambarnya diganti, file `/media` lama ikut dihapus kalau tidak dipakai kolom gambar lain (Master Event, Wedding, Katalog, logo Klien, Galeri Foto, Head Home). Salinan di cache browser dan cache `/_next/image` kedaluwarsa paling lama satu hari kemudian. File yang diunggah tetapi formnya tidak jadi disimpan tetap ada di folder, tetapi alamatnya acak dan tidak pernah tampil di mana pun.
 - Kolom gambar tetap menerima path di situs ini (misalnya `/assets/...` atau `/media/...`) atau URL `https://`.
 
 ## Perintah

@@ -20,7 +20,7 @@ export function apiError(status: number, message: string, extra?: Record<string,
   return NextResponse.json({ message, ...extra }, { status });
 }
 
-const INT4_MAX = 2147483647;
+export const INT4_MAX = 2147483647;
 
 export function parseId(raw: string): number | null {
   if (!/^[1-9]\d{0,9}$/.test(raw)) return null;
@@ -69,6 +69,10 @@ export function handleRouteError(error: unknown, messages: PrismaMessages = {}) 
 
 // Postgres menolak karakter NUL di kolom teks, jadi ditolak di sini supaya tidak jadi error 500.
 export const NO_NUL = /^[^\u0000]*$/;
+
+// Untuk filter Prisma ber-mode insensitive: Prisma memakai ILIKE tanpa meng-escape wildcard, jadi % dan _ di dalam
+// nilai dicocokkan apa adanya lewat backslash.
+export const likeLiteral = (value: string) => value.replace(/[\\%_]/g, '\\$&');
 
 export const zName = (label = 'Nama') =>
   z

@@ -27,6 +27,8 @@ const ENDPOINTS: Record<ReadResource, string> = {
   events: '/api/events',
   weddings: '/api/weddings',
   rentals: '/api/rentals',
+  rentalCategories: '/api/rental-categories',
+  klien: '/api/klien',
   gradeEvents: '/api/grade-events',
   jobdescs: '/api/jobdescs',
   galeriFoto: '/api/galeri-albums',

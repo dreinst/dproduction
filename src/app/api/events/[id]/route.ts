@@ -5,7 +5,7 @@ import { requireAccess } from '@/lib/auth';
 import { audit } from '@/lib/audit';
 import { revalidateLanding } from '@/lib/revalidate';
 import { removeUnusedImages } from '@/lib/upload';
-import { updateSchema } from '../schema';
+import { applyMasterpieceRule, updateSchema } from '../schema';
 
 type Params = { params: Promise<{ id: string }> };
 const MESSAGES = { P2025: 'Event tidak ditemukan.' };
@@ -29,12 +29,13 @@ export async function PUT(req: Request, { params }: Params) {
     if (!auth.authorized) return auth.response;
     const id = parseId((await params).id);
     if (!id) return apiError(400, 'ID event tidak valid.');
-    const data = updateSchema.parse(await readJson(req));
-    const before = await prisma.event.findUnique({ where: { id }, select: { photo: true } });
-    const event = await prisma.event.update({ where: { id }, data });
+    const input = updateSchema.parse(await readJson(req));
+    const before = await prisma.event.findUnique({ where: { id }, select: { photo: true, active: true, featured: true } });
+    if (!before) return apiError(404, MESSAGES.P2025);
+    const event = await prisma.event.update({ where: { id }, data: applyMasterpieceRule(input, before) });
     await audit(auth.user, 'ubah', 'Event', id, event.name);
     revalidateLanding();
-    await removeUnusedImages(before?.photo);
+    await removeUnusedImages(before.photo);
     return NextResponse.json(event);
   } catch (error) {
     return handleRouteError(error, MESSAGES);

@@ -7,13 +7,18 @@ if (!["localhost", "127.0.0.1"].includes(new URL(BASE_URL).hostname)) {
   process.exit(1);
 }
 
+// Alamat IP berbeda tiap kali skrip dijalankan, supaya batas 5 kiriman per 10 menit per IP tidak menggagalkan uji ulang.
+const runIp = `smoke-${Date.now().toString(36)}`;
+
 function postContact(body) {
   return fetch(`${BASE_URL}/api/contact`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-real-ip": runIp },
     body: JSON.stringify(body),
   });
 }
+
+const lead = { name: "Smoke Test CI", whatsapp: "081234567890", eventType: "corporate" };
 
 const checks = [
   ["GET / 200 dan memuat h1", async () => {
@@ -48,15 +53,17 @@ const checks = [
     const res = await fetch(`${BASE_URL}/api/health`);
     return res.status === 200 && (await res.json()).ok === true;
   }],
-  ["POST /api/contact valid 201", async () => {
-    const res = await postContact({
-      name: "Smoke Test CI",
-      whatsapp: "081234567890",
-      eventType: "corporate",
-      message: "Pesan uji otomatis dari smoke test.",
-    });
+  // Bentuk kiriman form v2: tanpa pesan, dengan tanggal acara (di sini 30 hari dari sekarang).
+  ["POST /api/contact valid tanpa pesan, dengan tanggal acara 201", async () => {
+    const eventDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const res = await postContact({ ...lead, eventDate });
     await res.arrayBuffer();
     return res.status === 201;
+  }],
+  ["POST /api/contact tanggal acara tidak valid 400", async () => {
+    const res = await postContact({ ...lead, eventDate: "2026-02-30" });
+    await res.arrayBuffer();
+    return res.status === 400;
   }],
   ["POST /api/contact tidak valid 400", async () => {
     const res = await postContact({ name: "", whatsapp: "", eventType: "", message: "" });
