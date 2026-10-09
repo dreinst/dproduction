@@ -124,7 +124,12 @@ export default function Footer({ kantor }: Props) {
             © 2026 <span className="text-slate-300 font-semibold">{kantor.companyName}</span>. All Rights Reserved.
           </p>
           <p className="mt-4 flex items-center gap-4 text-xs text-slate-400">
-            <span>Made by dreinst</span>
+            <span>
+              Made by{" "}
+              <a href="https://www.instagram.com/dreiinst/" target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">
+                dreinst
+              </a>
+            </span>
             <span aria-hidden="true" className="h-4 w-px bg-slate-600" />
             <span className="flex items-center gap-2.5">
               Organized by
