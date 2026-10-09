@@ -129,7 +129,7 @@ export default function Footer({ kantor }: Props) {
             <span className="flex items-center gap-2.5">
               Organized by
               {/* eslint-disable-next-line @next/next/no-img-element -- SVG statis, tanpa optimasi */}
-              <img src="/logo-dpro-ringkas.svg" alt="D'PRO" className="h-5 w-auto shrink-0" />
+              <img src="/logo-dpro-ringkas.svg?v=2" alt="D'PRO" className="h-5 w-auto shrink-0" />
             </span>
           </p>
         </div>
