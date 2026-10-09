@@ -4,11 +4,11 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Users, CalendarDays, Box, ArrowRight } from "lucide-react";
 import LandingImage from "@/components/LandingImage";
 import { whatsappUrl, trackWhatsAppClick } from "@/lib/site";
-import type { LandingContent, LandingKantor } from "@/lib/landing-content";
+import type { LandingAngka, LandingHero, LandingKantor } from "@/lib/landing-content";
 
-type Props = Pick<LandingKantor, "whatsapp" | "description" | "stats"> & { hero: LandingContent["hero"] };
+type Props = Pick<LandingKantor, "whatsapp" | "description"> & { angka: LandingAngka; rentalCategories: number; hero: LandingHero };
 
-export default function HeroSection({ whatsapp, description, stats, hero }: Props) {
+export default function HeroSection({ whatsapp, description, angka, rentalCategories, hero }: Props) {
   const reduceMotion = useReducedMotion();
 
   return (
@@ -55,10 +55,10 @@ export default function HeroSection({ whatsapp, description, stats, hero }: Prop
               {/* Social Proof */}
               <div className="mt-12 flex items-center gap-4">
                 <div className="w-12 h-12 shrink-0 rounded-full border-2 border-white bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs">
-                  {stats.clients}+
+                  {angka.clients.text}
                 </div>
                 <div className="text-sm text-slate-300 font-medium drop-shadow-md">
-                  Dipercaya oleh <span className="text-white font-bold">{stats.clients}+ klien</span> dan perusahaan.
+                  Dipercaya oleh <span className="text-white font-bold">{angka.clients.text} klien</span> dan perusahaan.
                 </div>
               </div>
             </div>
@@ -72,7 +72,8 @@ export default function HeroSection({ whatsapp, description, stats, hero }: Prop
                   sizes="(min-width: 640px) 860px, 170vw"
                   loading="eager"
                   fetchPriority="high"
-                  alt={hero.alt}
+                  // Judul dan keterangan tampil di kartu di atas gambar, jadi tidak diulang di alt kalau isinya sama.
+                  alt={hero.alt === hero.caption || hero.alt === hero.title ? "" : hero.alt}
                   className="object-cover"
                 />
                 {(hero.title || hero.caption) && (
@@ -96,7 +97,7 @@ export default function HeroSection({ whatsapp, description, stats, hero }: Prop
                 </div>
                 <div>
                   <p className="text-xs text-white/80 font-medium">Pengalaman</p>
-                  <p className="text-lg font-bold text-white">{stats.years}+ Tahun</p>
+                  <p className="text-lg font-bold text-white">{angka.years.text} Tahun</p>
                 </div>
               </motion.div>
             </div>
@@ -113,28 +114,28 @@ export default function HeroSection({ whatsapp, description, stats, hero }: Prop
               <div className="w-16 h-16 mx-auto bg-blue-50 group-hover:bg-blue-600 rounded-2xl flex items-center justify-center mb-4 text-blue-600 group-hover:text-white transition-colors duration-300 shadow-sm">
                 <Users className="w-8 h-8" />
               </div>
-              <p className="font-heading text-4xl font-extrabold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">{stats.clients}+</p>
+              <p className="font-heading text-4xl font-extrabold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">{angka.clients.text}</p>
               <p className="text-slate-500 font-medium">Klien</p>
             </a>
             <a href="#masterpiece" className="group block text-center p-6 -m-6 rounded-3xl hover:bg-slate-50 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 border border-transparent hover:border-slate-100">
               <div className="w-16 h-16 mx-auto bg-green-50 group-hover:bg-green-600 rounded-2xl flex items-center justify-center mb-4 text-green-600 group-hover:text-white transition-colors duration-300 shadow-sm">
                 <CalendarDays className="w-8 h-8" />
               </div>
-              <p className="font-heading text-4xl font-extrabold text-slate-900 mb-2 group-hover:text-green-600 transition-colors">{stats.events}+</p>
+              <p className="font-heading text-4xl font-extrabold text-slate-900 mb-2 group-hover:text-green-600 transition-colors">{angka.events.text}</p>
               <p className="text-slate-500 font-medium">Event</p>
             </a>
             <a href="#layanan" className="group block text-center p-6 -m-6 rounded-3xl hover:bg-slate-50 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 border border-transparent hover:border-slate-100">
               <div className="w-16 h-16 mx-auto bg-purple-50 group-hover:bg-purple-600 rounded-2xl flex items-center justify-center mb-4 text-purple-600 group-hover:text-white transition-colors duration-300 shadow-sm">
                 <Box className="w-8 h-8" />
               </div>
-              <p className="font-heading text-4xl font-extrabold text-slate-900 mb-2 group-hover:text-purple-600 transition-colors">{stats.rentalCategories}+</p>
+              <p className="font-heading text-4xl font-extrabold text-slate-900 mb-2 group-hover:text-purple-600 transition-colors">{rentalCategories}</p>
               <p className="text-slate-500 font-medium">Kategori Rental</p>
             </a>
             <a href="#tentang-kami" className="group block text-center p-6 -m-6 rounded-3xl hover:bg-slate-50 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 border border-transparent hover:border-slate-100">
               <div className="w-16 h-16 mx-auto bg-orange-50 group-hover:bg-orange-600 rounded-2xl flex items-center justify-center mb-4 text-orange-600 group-hover:text-white transition-colors duration-300 shadow-sm">
                 <Users className="w-8 h-8" />
               </div>
-              <p className="font-heading text-4xl font-extrabold text-slate-900 mb-2 group-hover:text-orange-600 transition-colors">{stats.members}+</p>
+              <p className="font-heading text-4xl font-extrabold text-slate-900 mb-2 group-hover:text-orange-600 transition-colors">{angka.members.text}</p>
               <p className="text-slate-500 font-medium">Member</p>
             </a>
           </div>

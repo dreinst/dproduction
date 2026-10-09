@@ -3,13 +3,10 @@
 import { motion } from "framer-motion";
 import { CalendarDays, Heart, Speaker, Box, CheckCircle2, ArrowRight } from "lucide-react";
 import LandingImage from "@/components/LandingImage";
-import { whatsappUrl, trackWhatsAppClick } from "@/lib/site";
-import type { LandingContent } from "@/lib/landing-content";
+import { hargaKatalog, whatsappUrl, trackWhatsAppClick } from "@/lib/site";
+import type { KatalogItem, LandingWedding } from "@/lib/landing-content";
 
-type Props = { whatsapp: string; wedding: LandingContent["wedding"]; rentals: LandingContent["rentals"] };
-
-// Pemisah ribuan titik tanpa Intl supaya hasil server dan browser selalu sama.
-const rupiah = (value: number) => String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+type Props = { whatsapp: string; wedding: LandingWedding; rentals: KatalogItem[] };
 
 export default function LayananSection({ whatsapp, wedding, rentals }: Props) {
   const services = [
@@ -28,7 +25,7 @@ export default function LayananSection({ whatsapp, wedding, rentals }: Props) {
       icon: Heart,
       color: "pink",
       description: "Hari pernikahan hanya datang sekali. Sebagai wedding organizer di Malang, kami hadir untuk membantu mewujudkan pernikahan impianmu, mulai dari konsep, dekorasi, venue, hingga rundown acara. Semua kami rancang dengan teliti agar kamu bisa menikmati hari bahagiamu tanpa rasa khawatir.",
-      features: wedding.points,
+      features: wedding.points.map((point) => point.name),
       photo: wedding.photo,
     },
   ];
@@ -129,6 +126,7 @@ export default function LayananSection({ whatsapp, wedding, rentals }: Props) {
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {rentals.map((item, index) => {
                 const Icon = /sound/i.test(item.name) ? Speaker : Box;
+                const price = item.prices[0] && hargaKatalog(item.prices[0], item.priceFrom);
                 return (
                   <div key={index} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 hover:bg-slate-800 transition-colors rounded-2xl p-6 group">
                     <div className="w-12 h-12 bg-slate-700 group-hover:bg-blue-600 transition-colors rounded-xl flex items-center justify-center mb-6">
@@ -136,7 +134,7 @@ export default function LayananSection({ whatsapp, wedding, rentals }: Props) {
                     </div>
                     <h4 className="font-bold text-lg mb-2">{item.name}</h4>
                     <p className="text-sm text-slate-400 font-medium">
-                      {item.price ? `${item.priceFrom ? "Mulai " : ""}Rp ${rupiah(item.price)}${item.unit ? ` ${item.unit}` : ""}` : "Hubungi Kami"}
+                      {price ? `${price.nominal}${price.keterangan ? ` ${price.keterangan}` : ""}` : "Hubungi Kami"}
                     </p>
                   </div>
                 );

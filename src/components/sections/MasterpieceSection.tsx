@@ -3,20 +3,13 @@
 import { motion } from "framer-motion";
 import { Trophy, ArrowRight, ListChecks } from "lucide-react";
 import LandingImage from "@/components/LandingImage";
-import type { LandingContent } from "@/lib/landing-content";
+import type { LandingEvents } from "@/lib/landing-content";
 
-type Props = { items: LandingContent["masterpieces"]; events: LandingContent["eventList"] };
+// total = angka event dari getLandingAngka, sama dengan yang tampil di hero.
+type Props = { items: LandingEvents["masterpieces"]; groups: LandingEvents["byYear"]; total: string };
 
 // Masterpiece = event featured berfoto dari Master Event; di bawahnya daftar semua event aktif per tahun.
-export default function MasterpieceSection({ items, events }: Props) {
-  const groups = events.reduce<{ label: string; items: Props["events"] }[]>((acc, e) => {
-    const label = e.year?.toString() ?? "Lainnya";
-    const group = acc.find((g) => g.label === label);
-    if (group) group.items.push(e);
-    else acc.push({ label, items: [e] });
-    return acc;
-  }, []);
-
+export default function MasterpieceSection({ items, groups, total }: Props) {
   return (
     <section id="masterpiece" className="py-20 lg:py-32 bg-white overflow-x-hidden">
       <div className="container mx-auto px-4 lg:px-8">
@@ -77,7 +70,7 @@ export default function MasterpieceSection({ items, events }: Props) {
           <div id="daftar-event" className="mt-24 scroll-mt-24">
             <div className="text-center max-w-3xl mx-auto mb-12">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-700 font-medium text-sm mb-6">
-                <ListChecks className="w-4 h-4" /> {events.length} Event
+                <ListChecks className="w-4 h-4" /> {total} Event
               </div>
               <h3 className="text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">Event yang Sudah Kami Tangani</h3>
             </div>
@@ -86,7 +79,7 @@ export default function MasterpieceSection({ items, events }: Props) {
                 <div key={group.label} className="break-inside-avoid mb-8 bg-slate-50 border border-slate-100 rounded-3xl p-6">
                   <h4 className="text-lg font-extrabold text-blue-700 mb-4">{group.label}</h4>
                   <ul className="space-y-3">
-                    {group.items.map((e) => (
+                    {group.events.map((e) => (
                       <li key={e.name} className="border-b border-slate-200 last:border-0 pb-3 last:pb-0">
                         <p className="font-semibold text-slate-900 leading-snug">{e.name}</p>
                         {e.client && <p className="text-sm text-slate-600">{e.client}</p>}

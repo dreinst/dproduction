@@ -3,11 +3,11 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { CheckCircle2 } from "lucide-react";
-import type { LandingKantor } from "@/lib/landing-content";
+import type { LandingAngka, LandingKantor } from "@/lib/landing-content";
 
-type Props = Pick<LandingKantor, "aboutUs" | "stats">;
+type Props = Pick<LandingKantor, "aboutUs"> & { angka: LandingAngka };
 
-export default function TentangKamiSection({ aboutUs, stats }: Props) {
+export default function TentangKamiSection({ aboutUs, angka }: Props) {
   return (
     <section id="tentang-kami" className="relative py-20 lg:py-32 overflow-hidden bg-white">
       {/* Anchor cadangan untuk tautan lama /#tentang_kami, di puncak section. */}
@@ -73,15 +73,15 @@ export default function TentangKamiSection({ aboutUs, stats }: Props) {
 
             <div className="flex flex-wrap gap-8 lg:gap-12 pt-6 border-t border-slate-200">
               <div>
-                <p className="text-4xl font-extrabold text-blue-600 mb-2">{stats.clients}+</p>
+                <p className="text-4xl font-extrabold text-blue-600 mb-2">{angka.clients.text}</p>
                 <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Klien</p>
               </div>
               <div>
-                <p className="text-4xl font-extrabold text-blue-600 mb-2">{stats.years}+</p>
+                <p className="text-4xl font-extrabold text-blue-600 mb-2">{angka.years.text}</p>
                 <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Tahun Pengalaman</p>
               </div>
               <div>
-                <p className="text-4xl font-extrabold text-blue-600 mb-2">{stats.events}+</p>
+                <p className="text-4xl font-extrabold text-blue-600 mb-2">{angka.events.text}</p>
                 <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Event Sukses</p>
               </div>
             </div>

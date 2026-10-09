@@ -1,9 +1,13 @@
-// Khusus server: konten landing dari database, dengan cadangan konten kode kalau DB kosong atau tidak bisa dijangkau.
+// Khusus server: isi halaman publik dari database. Kalau database tidak bisa dijangkau, dipakai salinan data terakhir yang
+// berhasil dibaca, dan kalau salinan belum ada, konten kode (FALLBACK). Konten kode juga mengisi bagian yang tabelnya
+// belum punya baris sama sekali.
 // Jangan diimpor komponen klien kecuali lewat `import type`.
+import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { cache } from "react";
-import type { KantorSetting } from "@prisma/client";
+import type { KantorSetting, Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
-import { WHATSAPP_NUMBER, waNumber, youtubeId } from "@/lib/site";
+import { WHATSAPP_NUMBER, formatRibuan, formatWhatsapp, waNumber, wibDate, youtubeId } from "@/lib/site";
 
 const MAPS_PREFIX = "https://www.google.com/maps";
 
@@ -152,6 +156,8 @@ export const FALLBACK = {
     { name: "Kursi dan Meja", category: "Tenda dan Perlengkapan", price: null, unit: "per hari", priceHidden: true,
       photo: "/assets/portfolio/ustegra-aula-perayaan.jpg" },
   ] as RentalEntry[],
+  // Empat kartu harga di Beranda, sesuai desain. Kalau salah satunya tidak aktif lagi, item lain yang mengisi.
+  cuplikanKatalog: ["Dry Ice", "Giant Confetti", "Paket Fireworks A", "Sound System"],
   // Klien yang dihitung, urut seperti Master Klien. Di situs hanya logo yang tampil, dengan nama sebagai teks alt.
   // Klien tanpa logo ikut dihitung, tetapi namanya tidak ditampilkan.
   klien: [
@@ -219,40 +225,138 @@ export type RentalEntry = {
   photo?: string;
 };
 
+// Asal isi sebuah pembacaan: database, salinan data terakhir yang berhasil dibaca (saat database terganggu), atau konten kode.
+export type Sumber = "db" | "salinan" | "bawaan";
+
 export type LandingKantor = {
   companyName: string;
   address: string;
-  whatsapp: string; // 62xxx untuk wa.me
-  whatsappDisplay: string; // +62 819 3893 8800
+  whatsapp: string; // WhatsApp 1 dalam format 62xxx untuk wa.me, dipakai semua ajakan umum
+  whatsappDisplay: string; // +62 819-3893-8800
+  whatsapp2: string | null; // WhatsApp 2 dalam format 62xxx; null kalau dikosongkan di Setting Kantor
+  whatsapp2Display: string | null;
   email: string;
   socials: { instagram: string | null; youtube: string | null; facebook: string | null; tiktok: string | null };
   googleMapsUrl: string;
   description: string;
   aboutUs: string[];
   foundedYear: number;
-  stats: { clients: number; events: number; rentalCategories: number; members: number; years: number };
 };
 
-export type LandingContent = {
-  hero: { image: string; title: string | null; caption: string | null; alt: string };
+// Satu angka di pita hero. text siap tampil: angka yang diisi tangan di Setting Kantor diberi "+", angka hitungan tidak.
+export type Angka = { value: number; text: string };
+
+export type LandingAngka = { foundedYear: number; years: Angka; events: Angka; clients: Angka; members: Angka };
+
+export type LandingHero = { image: string; title: string | null; caption: string | null; alt: string };
+
+export type LandingEvents = {
+  // Semua event aktif per tahun, tahun terbaru dulu. Event tanpa tahun ada di kelompok terakhir (year null).
+  byYear: { year: number | null; label: string; events: { name: string; client: string | null }[] }[];
+  // Event featured yang fotonya valid, tahun terbaru dulu lalu urutan tabel. Beranda memakai tiga yang pertama.
   masterpieces: { name: string; client: string | null; year: number | null; photo: string; description: string | null }[];
-  eventList: { name: string; client: string | null; year: number | null }[];
-  wedding: { points: string[]; photo: { src: string; alt: string } };
-  rentals: { name: string; price: number | null; unit: string | null; priceFrom: boolean }[];
-  photos: typeof FALLBACK.photos;
+};
+
+// Hanya klien aktif yang berlogo. Nama dipakai sebagai teks alt logo, tidak untuk daftar teks.
+export type LandingKlien = { logos: { name: string; logo: string }[] };
+
+export type KatalogItem = {
+  name: string;
+  photo: string | null;
+  // Baris harga berurutan, yang pertama harga utama. Kosong berarti "Harga lewat WhatsApp": nominalnya tidak dikirim.
+  prices: { amount: number; unit: string | null }[];
+  priceFrom: boolean;
+};
+
+// slug dipakai sebagai hash penyaring di halaman katalog, misalnya /katalog#fireworks.
+export type LandingKatalog = {
+  categories: { name: string; slug: string; description: string | null; items: KatalogItem[] }[];
+};
+
+export type LandingWedding = {
+  points: { name: string; description: string | null }[];
+  photo: { src: string; alt: string };
+};
+
+export type LandingGaleri = {
+  photos: { image: string; album: string; caption: string | null }[];
   videos: { id: string; title: string }[];
 };
 
-// Hanya nama dan kode error yang dicatat, karena pesan error Prisma bisa memuat isi data.
-async function query<T>(label: string, run: () => Promise<T>): Promise<T | null> {
-  if (!process.env.DATABASE_URL) return null;
+// Database dianggap gagal kalau belum menjawab dalam waktu ini, supaya pengunjung tidak menunggu koneksi yang menggantung.
+const DB_TIMEOUT_MS = 2500;
+// Naikkan kalau bentuk hasil salah satu pembaca berubah, supaya salinan lama tidak dipakai kode baru.
+const SNAPSHOT_VERSION = 1;
+// Folder yang sama dengan cache halaman bersama (CACHE_DIR), jadi salinan ikut dibagi antar instance dan bertahan
+// melewati deploy.
+const SNAPSHOT_DIR = path.join(
+  /*turbopackIgnore: true*/ process.env.CACHE_DIR || path.join(/*turbopackIgnore: true*/ process.cwd(), ".next", "cache", "dpro"),
+  "data",
+);
+const lastSaved = new Map<string, string>();
+let tmpCount = 0;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(Object.assign(new Error("Database terlalu lama menjawab."), { code: "ETIMEDOUT" })), ms);
+  });
+  // Kalau kalah cepat dari timeout, penolakan query yang datang belakangan tidak boleh menjadi unhandledRejection.
+  promise.catch(() => {});
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+// Salinan hanya ditulis dari hasil baca database yang berhasil, jadi konten kode tidak pernah menimpanya.
+async function saveSnapshot(name: string, data: unknown) {
+  const body = JSON.stringify(data);
+  const file = path.join(/*turbopackIgnore: true*/ SNAPSHOT_DIR, `${name}.json`);
+  // Isi yang sama tidak ditulis ulang, kecuali berkasnya hilang (misalnya folder cache dikosongkan saat server jalan).
+  if (lastSaved.get(name) === body && (await stat(/*turbopackIgnore: true*/ file).catch(() => null))) return;
+  // Nama sementara unik per penulisan: dua halaman yang dirender bersamaan bisa menyimpan salinan yang sama, dan berkas
+  // sementara yang dipakai berdua bisa tercampur isinya atau sudah dipindahkan penulis lain.
+  const tmp = `${file}.${process.pid}.${tmpCount++}.tmp`;
   try {
-    return await run();
+    await mkdir(/*turbopackIgnore: true*/ SNAPSHOT_DIR, { recursive: true });
+    await writeFile(/*turbopackIgnore: true*/ tmp, JSON.stringify({ v: SNAPSHOT_VERSION, savedAt: new Date().toISOString(), data }));
+    await rename(/*turbopackIgnore: true*/ tmp, file);
+    lastSaved.set(name, body);
   } catch (error) {
-    const { name, code, cause } = (error ?? {}) as { name?: unknown; code?: unknown; cause?: { code?: unknown; kind?: unknown } };
-    const detail = code ?? cause?.code ?? cause?.kind ?? "";
-    console.error(`Landing memakai konten cadangan, gagal membaca ${label}: ${String(name ?? "Error")} ${String(detail)}`.trim());
+    await rm(/*turbopackIgnore: true*/ tmp, { force: true }).catch(() => {});
+    console.error(`Gagal menyimpan salinan konten ${name}: ${String((error as { code?: unknown }).code ?? "")}`.trim());
+  }
+}
+
+async function loadSnapshot<T>(name: string): Promise<T | null> {
+  try {
+    const raw = JSON.parse(await readFile(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ SNAPSHOT_DIR, `${name}.json`), "utf8"));
+    return raw?.v === SNAPSHOT_VERSION ? (raw.data as T) : null;
+  } catch {
     return null;
+  }
+}
+
+// Semua data database untuk halaman publik dibaca lewat fungsi ini. Database dibaca dengan batas waktu; kalau gagal
+// dipakai salinan terakhir, lalu konten kode. Tidak pernah melempar galat, jadi halaman tetap 200. Yang dicatat hanya
+// nama dan kode galat, karena pesan galat Prisma bisa memuat isi data.
+// name menjadi nama berkas salinan, jadi harus unik dan tetap. Hasil fromDb harus selamat lewat JSON (tanpa Date,
+// Decimal, atau BigInt) dan bentuknya sama dengan hasil builtIn. Satu query gagal berarti seluruh pembacaan gagal,
+// supaya satu kelompok data tidak mencampur isi database dengan konten kode.
+// Halaman yang memakainya wajib merender <PenandaKonten sumber={[...]} /> dengan sumber dari tiap hasil.
+export async function readLanding<T extends object>(name: string, fromDb: () => Promise<T>, builtIn: () => T): Promise<T & { sumber: Sumber }> {
+  // Build image berjalan tanpa DATABASE_URL.
+  if (!process.env.DATABASE_URL) return { ...builtIn(), sumber: "bawaan" };
+  try {
+    const data = await withTimeout(fromDb(), DB_TIMEOUT_MS);
+    void saveSnapshot(name, data);
+    return { ...data, sumber: "db" };
+  } catch (error) {
+    const { name: errorName, code, cause } = (error ?? {}) as { name?: unknown; code?: unknown; cause?: { code?: unknown; kind?: unknown } };
+    const detail = code ?? cause?.code ?? cause?.kind ?? "";
+    const snapshot = await loadSnapshot<T>(name);
+    console.error(
+      `Landing memakai ${snapshot ? "salinan terakhir" : "konten bawaan"}, gagal membaca ${name}: ${String(errorName ?? "Error")} ${String(detail)}`.trim(),
+    );
+    return snapshot ? { ...snapshot, sumber: "salinan" } : { ...builtIn(), sumber: "bawaan" };
   }
 }
 
@@ -269,18 +373,15 @@ const httpsUrl = (value: string | null | undefined) => {
   return url && /^https:\/\/[^\s\\]+$/i.test(url) ? url : null;
 };
 
-function formatWhatsapp(number: string) {
-  const rest = number.slice(2);
-  return `+62 ${rest.slice(0, 3)} ${rest.slice(3, 7)} ${rest.slice(7)}`.trim();
-}
+const BY_ORDER: [{ sortIndex: "asc" }, { id: "asc" }] = [{ sortIndex: "asc" }, { id: "asc" }];
 
-type Counts = { events: number | null; clients: number | null; crews: number | null };
-
-function toLandingKantor(row: KantorSetting | null, counts?: Counts): LandingKantor {
+function toLandingKantor(row: KantorSetting | null): LandingKantor {
   const f = FALLBACK.kantor;
-  // Tanpa baris Setting Kantor semua link cadangan dipakai; kalau baris ada, link kosong berarti ikonnya disembunyikan.
+  // Tanpa baris Setting Kantor semua link dan nomor cadangan dipakai; kalau baris ada, link atau WhatsApp 2 yang
+  // kosong berarti sengaja disembunyikan.
   const social = (value: string | null | undefined, fallback: string | null) => (row ? httpsUrl(value) : fallback);
   const whatsapp = waNumber(row?.whatsapp) ?? waNumber(f.whatsapp) ?? WHATSAPP_NUMBER;
+  const whatsapp2 = waNumber(row ? row.whatsapp2 : f.whatsapp2);
   const maps = text(row?.googleMapsUrl);
 
   return {
@@ -288,6 +389,8 @@ function toLandingKantor(row: KantorSetting | null, counts?: Counts): LandingKan
     address: text(row?.address) ?? f.address,
     whatsapp,
     whatsappDisplay: formatWhatsapp(whatsapp),
+    whatsapp2,
+    whatsapp2Display: whatsapp2 && formatWhatsapp(whatsapp2),
     email: text(row?.email) ?? f.email,
     socials: {
       instagram: social(row?.instagramUrl, f.instagramUrl),
@@ -303,15 +406,6 @@ function toLandingKantor(row: KantorSetting | null, counts?: Counts): LandingKan
       .map((p) => p.trim())
       .filter(Boolean),
     foundedYear: row?.foundedYear ?? f.foundedYear,
-    // Angka yang dikosongkan di Setting Kantor dihitung dari baris aktif tabelnya. Tabel yang kosong atau tidak terbaca
-    // memakai konten cadangan, sama seperti daftar yang tampil di halaman.
-    stats: {
-      clients: row?.statClients ?? (counts?.clients || FALLBACK.klien.length),
-      events: row?.statEvents ?? (counts?.events || FALLBACK.events.length),
-      rentalCategories: row?.statRentalCategories ?? f.statRentalCategories,
-      members: row?.statMembers ?? (counts?.crews || f.statMembers),
-      years: row?.statYears ?? f.statYears,
-    },
   };
 }
 
@@ -319,116 +413,296 @@ function toLandingKantor(row: KantorSetting | null, counts?: Counts): LandingKan
 // atau lambat.
 export const KANTOR_CADANGAN: LandingKantor = toLandingKantor(null);
 
-export const getLandingKantor = cache(async (): Promise<LandingKantor> => {
-  const active = { where: { active: true } };
-  const [row, events, clients, crews] = await Promise.all([
-    query("Setting Kantor", () => prisma.kantorSetting.findUnique({ where: { id: 1 } })),
-    query("jumlah Master Event", () => prisma.event.count(active)),
-    query("jumlah Master Klien", () => prisma.klien.count(active)),
-    query("jumlah Crew", () => prisma.crew.count(active)),
-  ]);
-  return toLandingKantor(row, { events, clients, crews });
+export const getLandingKantor = cache(
+  (): Promise<LandingKantor & { sumber: Sumber }> =>
+    readLanding(
+      "kantor",
+      async () => toLandingKantor(await prisma.kantorSetting.findUnique({ where: { id: 1 } })),
+      () => toLandingKantor(null),
+    ),
+);
+
+const counted = (value: number): Angka => ({ value, text: formatRibuan(value) });
+const manual = (value: number): Angka => ({ value, text: `${formatRibuan(value)}+` });
+
+type StatRow = Pick<KantorSetting, "foundedYear" | "statEvents" | "statClients" | "statMembers">;
+type Counts = { events: number; eventRows: number; clients: number; klienRows: number; crews: number };
+
+// Angka yang diisi di Setting Kantor tampil dengan "+". Yang dikosongkan dihitung dari baris aktif tabelnya, dan tabel
+// yang belum punya baris memakai jumlah di konten kode, sama seperti daftar yang tampil di halaman.
+function toAngka(row: StatRow | null, counts: Counts | null): Omit<LandingAngka, "years"> {
+  const f = FALLBACK.kantor;
+  const angka = (stat: number | null, count: number) => (stat != null ? manual(stat) : counted(count));
+  return {
+    foundedYear: row?.foundedYear ?? f.foundedYear,
+    events: angka(row ? row.statEvents : f.statEvents, counts?.eventRows ? counts.events : FALLBACK.events.length),
+    clients: angka(row ? row.statClients : f.statClients, counts?.klienRows ? counts.clients : FALLBACK.klien.length),
+    members: row?.statMembers == null && counts?.crews ? counted(counts.crews) : manual(row?.statMembers ?? f.statMembers),
+  };
+}
+
+// Sumber semua angka di situs: pita hero, tombol "Lihat semua N event", judul bagian Klien, dan teks di halaman lain.
+export const getLandingAngka = cache(async (): Promise<LandingAngka & { sumber: Sumber }> => {
+  const data = await readLanding(
+    "angka",
+    async () => {
+      const active = { where: { active: true } };
+      const [row, events, eventRows, clients, klienRows, crews] = await Promise.all([
+        prisma.kantorSetting.findUnique({
+          where: { id: 1 },
+          select: { foundedYear: true, statEvents: true, statClients: true, statMembers: true },
+        }),
+        prisma.event.count(active),
+        prisma.event.count(),
+        prisma.klien.count(active),
+        prisma.klien.count(),
+        prisma.crew.count(active),
+      ]);
+      return toAngka(row, { events, eventRows, clients, klienRows, crews });
+    },
+    () => toAngka(null, null),
+  );
+  // Dihitung saat render dan tidak ikut salinan, supaya tetap benar kalau salinan lama dipakai melewati pergantian tahun.
+  return { ...data, years: counted(Math.max(0, Number(wibDate().slice(0, 4)) - data.foundedYear)) };
 });
 
-export const getLandingContent = cache(async (): Promise<LandingContent> => {
-  const [heroRow, events, weddings, rentals, photos, videos] = await Promise.all([
-    query("Head Home", () =>
-      prisma.headHome.findFirst({
-        where: { active: true },
-        orderBy: [{ sortIndex: "asc" }, { id: "asc" }],
-        select: { image: true, title: true, caption: true },
-      }),
-    ),
-    query("Master Event", () =>
-      prisma.event.findMany({
-        where: { active: true },
-        orderBy: [{ year: { sort: "desc", nulls: "last" } }, { id: "asc" }],
-        select: { name: true, client: true, year: true, featured: true, photo: true, description: true },
-      }),
-    ),
-    query("Master Wedding", () =>
-      prisma.wedding.findMany({ where: { active: true }, orderBy: { id: "asc" }, select: { name: true, photo: true } }),
-    ),
-    query("Master Rental", () =>
-      prisma.rental.findMany({
-        where: { active: true },
-        orderBy: [{ sortIndex: "asc" }, { id: "asc" }],
-        select: { name: true, price: true, unit: true, priceFrom: true, priceHidden: true },
-      }),
-    ),
-    query("Galeri Foto", () =>
-      prisma.galeriFoto.findMany({
-        where: { active: true, album: { active: true } },
-        orderBy: [{ sortIndex: "asc" }, { id: "asc" }],
-        select: { image: true, caption: true, album: { select: { name: true } } },
-      }),
-    ),
-    query("Galeri Video", () =>
-      prisma.galeriVideo.findMany({
-        where: { active: true },
-        orderBy: [{ sortIndex: "asc" }, { id: "asc" }],
-        select: { url: true, title: true },
-      }),
-    ),
-  ]);
+function toLandingHero(row: { image: string; title: string | null; caption: string | null } | null): LandingHero {
+  const image = imageSrc(row?.image);
+  if (!image) return FALLBACK.hero;
+  const title = text(row?.title);
+  const caption = text(row?.caption);
+  // alt selalu terisi. Halaman yang juga menampilkan title atau caption di dekat gambar boleh mengosongkan alt-nya
+  // sendiri supaya teks yang sama tidak dibacakan dua kali.
+  const alt = image === FALLBACK.hero.image ? FALLBACK.hero.alt : (caption ?? title ?? "Dokumentasi acara D'Production");
+  return { image, title, caption, alt };
+}
 
-  const heroImage = imageSrc(heroRow?.image);
-  const heroTitle = text(heroRow?.title);
-  const heroCaption = text(heroRow?.caption);
-  // Judul dan keterangan sudah tampil di kartu di atas gambar, jadi tidak diulang di alt. Gambar cadangan memakai alt
-  // deskriptifnya; gambar lain dianggap dekoratif kalau kartunya berisi teks.
-  const hero = heroImage
-    ? {
-        image: heroImage,
-        title: heroTitle,
-        caption: heroCaption,
-        alt:
-          heroImage === FALLBACK.hero.image
-            ? FALLBACK.hero.alt
-            : heroTitle || heroCaption
-              ? ""
-              : "Dokumentasi acara D'Production",
-      }
-    : FALLBACK.hero;
+// Head Home: baris aktif pertama menurut urutan.
+export const getLandingHero = cache(
+  (): Promise<LandingHero & { sumber: Sumber }> =>
+    readLanding(
+      "hero",
+      async () =>
+        toLandingHero(
+          await prisma.headHome.findFirst({
+            where: { active: true },
+            orderBy: BY_ORDER,
+            select: { image: true, title: true, caption: true },
+          }),
+        ),
+      () => FALLBACK.hero,
+    ),
+);
 
-  const weddingPhoto = weddings
-    ?.map((w) => ({ src: imageSrc(w.photo), name: w.name }))
-    .find((w) => w.src);
+type EventRow = Pick<EventEntry, "name" | "client" | "year" | "featured"> & { photo?: string | null; description?: string | null };
 
-  const dbPhotos = (photos ?? []).flatMap((p) => {
-    const image = imageSrc(p.image);
-    return image ? [{ image, album: p.album.name, caption: text(p.caption) }] : [];
-  });
-
-  const eventRows = events?.length ? events : FALLBACK.events;
-  // Masterpiece hanya event featured yang fotonya valid.
-  const masterpieces = eventRows.flatMap((e) => {
-    const photo = e.featured ? imageSrc(e.photo) : null;
-    return photo ? [{ name: e.name, client: text(e.client), year: e.year, photo, description: text(e.description) }] : [];
-  });
-
+function toLandingEvents(rows: EventRow[]): LandingEvents {
+  const byYear: LandingEvents["byYear"] = [];
+  for (const e of rows) {
+    const entry = { name: e.name, client: text(e.client) };
+    const group = byYear.find((g) => g.year === e.year);
+    if (group) group.events.push(entry);
+    else byYear.push({ year: e.year, label: e.year?.toString() ?? "Tahun belum dicatat", events: [entry] });
+  }
   return {
-    hero,
-    masterpieces,
-    eventList: eventRows.map((e) => ({ name: e.name, client: text(e.client), year: e.year })),
-    wedding: {
-      points: weddings?.length ? weddings.map((w) => w.name) : FALLBACK.weddingPoints,
-      photo: weddingPhoto?.src
-        ? { src: weddingPhoto.src, alt: `Dokumentasi layanan Wedding Planner, ${weddingPhoto.name}` }
-        : FALLBACK.weddingPhoto,
-    },
-    // Harga yang disembunyikan (harga lewat WhatsApp) tidak ikut dikirim ke halaman.
-    rentals: (rentals?.length ? rentals : FALLBACK.rentals).map((r) => ({
-      name: r.name,
-      price: r.priceHidden ? null : r.price,
-      unit: r.unit,
-      priceFrom: r.priceFrom ?? false,
-    })),
-    photos: dbPhotos.length ? dbPhotos : FALLBACK.photos,
-    // Video tidak punya cadangan: baris video hanya tampil kalau ada video aktif yang valid.
-    videos: (videos ?? []).flatMap((v) => {
-      const id = youtubeId(v.url);
-      return id ? [{ id, title: text(v.title) ?? "Video YouTube D'Production" }] : [];
+    byYear,
+    masterpieces: rows.flatMap((e) => {
+      const photo = e.featured ? imageSrc(e.photo) : null;
+      return photo ? [{ name: e.name, client: text(e.client), year: e.year, photo, description: text(e.description) }] : [];
     }),
   };
+}
+
+// Master Event. Konten kode hanya menggantikan tabel yang belum punya baris sama sekali: tabel yang berisi tetapi semua
+// barisnya disembunyikan admin tetap tampil kosong. Aturan yang sama berlaku untuk pembaca lain di bawah.
+export const getLandingEvents = cache(
+  (): Promise<LandingEvents & { sumber: Sumber }> =>
+    readLanding(
+      "event",
+      async () => {
+        const rows = await prisma.event.findMany({
+          where: { active: true },
+          orderBy: [{ year: { sort: "desc", nulls: "last" } }, { id: "asc" }],
+          select: { name: true, client: true, year: true, featured: true, photo: true, description: true },
+        });
+        return toLandingEvents(rows.length || (await prisma.event.count()) ? rows : FALLBACK.events);
+      },
+      () => toLandingEvents(FALLBACK.events),
+    ),
+);
+
+function toLandingKlien(rows: { name: string; logo: string | null }[]): LandingKlien {
+  return {
+    logos: rows.flatMap((k) => {
+      const logo = imageSrc(k.logo);
+      return logo ? [{ name: k.name, logo }] : [];
+    }),
+  };
+}
+
+// Pita logo. Kueri sengaja hanya memilih name dan logo: kolom address dan phone di tabel Klien memuat kontak narahubung
+// dan tidak boleh sampai ke halaman publik.
+export const getLandingKlien = cache(
+  (): Promise<LandingKlien & { sumber: Sumber }> =>
+    readLanding(
+      "klien",
+      async () => {
+        const rows = await prisma.klien.findMany({
+          where: { active: true, logo: { not: null } },
+          orderBy: { id: "asc" },
+          select: { name: true, logo: true },
+        });
+        return toLandingKlien(rows.length || (await prisma.klien.count()) ? rows : FALLBACK.klien);
+      },
+      () => toLandingKlien(FALLBACK.klien),
+    ),
+);
+
+const RENTAL_ARGS = {
+  orderBy: BY_ORDER,
+  select: { name: true, price: true, unit: true, priceFrom: true, priceHidden: true, extraPrices: true, photo: true },
+} satisfies Prisma.RentalFindManyArgs;
+
+type RentalRow = Pick<RentalEntry, "name" | "price" | "unit" | "priceFrom" | "priceHidden"> & {
+  extraPrices?: unknown;
+  photo?: string | null;
+};
+
+// extraPrices berupa JSON di tabel, jadi bentuknya diperiksa lagi di sini. Butir yang tidak sah dilewati.
+const toExtraPrice = (value: unknown) => {
+  const { amount, unit } = (value ?? {}) as { amount?: unknown; unit?: unknown };
+  return typeof amount === "number" && Number.isSafeInteger(amount) && amount > 0
+    ? [{ amount, unit: typeof unit === "string" ? text(unit) : null }]
+    : [];
+};
+
+// Satu-satunya jalan item katalog menuju halaman. Kalau harga disembunyikan atau kosong, nominal utama dan harga
+// tambahannya dibuang di sini, sebelum hasilnya disalin atau dirender.
+function toKatalogItem(r: RentalRow): KatalogItem {
+  const prices =
+    r.priceHidden || !r.price
+      ? []
+      : [{ amount: r.price, unit: text(r.unit) }, ...(Array.isArray(r.extraPrices) ? r.extraPrices.flatMap(toExtraPrice) : [])];
+  return { name: r.name, photo: imageSrc(r.photo), prices, priceFrom: prices.length > 0 && !!r.priceFrom };
+}
+
+// loose = item aktif tanpa kategori. Tetap ditampilkan di kelompok "Lainnya" supaya item yang ditandai tampil tidak
+// hilang diam-diam. Kategori tanpa item aktif tidak ikut.
+function toLandingKatalog(categories: { name: string; description: string | null; rentals: RentalRow[] }[], loose: RentalRow[]): LandingKatalog {
+  const taken = new Set<string>();
+  return {
+    categories: [...categories, { name: "Lainnya", description: null, rentals: loose }]
+      .filter((c) => c.rentals.length)
+      .map((c) => {
+        const base = c.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "kategori";
+        let slug = base;
+        for (let n = 2; taken.has(slug); n++) slug = `${base}-${n}`;
+        taken.add(slug);
+        return { name: c.name, slug, description: text(c.description), items: c.rentals.map(toKatalogItem) };
+      }),
+  };
+}
+
+const builtInKatalog = () =>
+  toLandingKatalog(
+    FALLBACK.rentalCategories.map((c) => ({ ...c, rentals: FALLBACK.rentals.filter((r) => r.category === c.name) })),
+    [],
+  );
+
+// Katalog harga: kategori aktif berurutan, masing-masing dengan item aktifnya.
+export const getLandingKatalog = cache(
+  (): Promise<LandingKatalog & { sumber: Sumber }> =>
+    readLanding(
+      "katalog",
+      async () => {
+        const [categories, loose] = await Promise.all([
+          prisma.rentalCategory.findMany({
+            where: { active: true },
+            orderBy: BY_ORDER,
+            select: { name: true, description: true, rentals: { where: { active: true }, ...RENTAL_ARGS } },
+          }),
+          prisma.rental.findMany({ where: { active: true, categoryId: null }, ...RENTAL_ARGS }),
+        ]);
+        const filled = loose.length || categories.some((c) => c.rentals.length) || (await prisma.rental.count());
+        return filled ? toLandingKatalog(categories, loose) : builtInKatalog();
+      },
+      builtInKatalog,
+    ),
+);
+
+export type KatalogCuplikan = KatalogItem & { category: string };
+
+// Empat kartu harga untuk Beranda, dari data katalog yang sama. Item di FALLBACK.cuplikanKatalog didahulukan, sisanya
+// diisi item lain menurut urutan katalog dengan yang berfoto lebih dulu.
+export const getLandingKatalogCuplikan = cache(async (): Promise<{ items: KatalogCuplikan[]; sumber: Sumber }> => {
+  const { categories, sumber } = await getLandingKatalog();
+  const all = categories.flatMap((c) => c.items.map((item) => ({ ...item, category: c.name })));
+  const chosen = FALLBACK.cuplikanKatalog.flatMap((name) => all.find((item) => item.name === name) ?? []);
+  const rest = all.filter((item) => !chosen.includes(item));
+  return { items: [...chosen, ...rest.filter((item) => item.photo), ...rest.filter((item) => !item.photo)].slice(0, 4), sumber };
 });
+
+// rows null berarti tabel Master Wedding belum punya baris.
+function toLandingWedding(rows: { name: string; description: string | null; photo: string | null }[] | null): LandingWedding {
+  const photo = rows?.map((w) => ({ src: imageSrc(w.photo), name: w.name })).find((w) => w.src);
+  return {
+    points: rows
+      ? rows.map((w) => ({ name: w.name, description: text(w.description) }))
+      : FALLBACK.weddingPoints.map((name) => ({ name, description: null })),
+    // Foto cadangan memakai alt deskriptifnya, juga kalau foto yang sama dipasang lewat Master Wedding.
+    photo:
+      photo?.src && photo.src !== FALLBACK.weddingPhoto.src
+        ? { src: photo.src, alt: `Dokumentasi layanan Wedding Planner, ${photo.name}` }
+        : FALLBACK.weddingPhoto,
+  };
+}
+
+// Layanan pernikahan dari Master Wedding: poin layanan dan satu foto (baris aktif pertama yang berfoto).
+export const getLandingWedding = cache(
+  (): Promise<LandingWedding & { sumber: Sumber }> =>
+    readLanding(
+      "pernikahan",
+      async () => {
+        const rows = await prisma.wedding.findMany({
+          where: { active: true },
+          orderBy: { id: "asc" },
+          select: { name: true, description: true, photo: true },
+        });
+        return toLandingWedding(rows.length || (await prisma.wedding.count()) ? rows : null);
+      },
+      () => toLandingWedding(null),
+    ),
+);
+
+// Galeri foto (foto aktif di album aktif) dan video YouTube. Video tidak punya konten kode: tanpa video aktif yang
+// valid daftarnya kosong.
+export const getLandingGaleri = cache(
+  (): Promise<LandingGaleri & { sumber: Sumber }> =>
+    readLanding(
+      "galeri",
+      async () => {
+        const [photos, videos] = await Promise.all([
+          prisma.galeriFoto.findMany({
+            where: { active: true, album: { active: true } },
+            orderBy: BY_ORDER,
+            select: { image: true, caption: true, album: { select: { name: true } } },
+          }),
+          prisma.galeriVideo.findMany({ where: { active: true }, orderBy: BY_ORDER, select: { url: true, title: true } }),
+        ]);
+        return {
+          photos:
+            photos.length || (await prisma.galeriFoto.count())
+              ? photos.flatMap((p) => {
+                  const image = imageSrc(p.image);
+                  return image ? [{ image, album: p.album.name, caption: text(p.caption) }] : [];
+                })
+              : FALLBACK.photos,
+          videos: videos.flatMap((v) => {
+            const id = youtubeId(v.url);
+            return id ? [{ id, title: text(v.title) ?? "Video YouTube D'Production" }] : [];
+          }),
+        };
+      },
+      () => ({ photos: FALLBACK.photos, videos: [] }),
+    ),
+);

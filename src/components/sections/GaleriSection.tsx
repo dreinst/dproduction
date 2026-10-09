@@ -4,10 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Maximize2, X } from "lucide-react";
 import LandingImage from "@/components/LandingImage";
-import type { LandingContent } from "@/lib/landing-content";
+import type { LandingGaleri } from "@/lib/landing-content";
 
-type Photo = LandingContent["photos"][number];
-type Props = { photos: Photo[]; videos: LandingContent["videos"] };
+type Photo = LandingGaleri["photos"][number];
+type Props = { photos: Photo[]; videos: LandingGaleri["videos"] };
 
 // Label foto = nama album, ditambah keterangan kalau ada.
 const photoLabel = (photo: Photo) => (photo.caption ? `${photo.album}, ${photo.caption}` : photo.album);

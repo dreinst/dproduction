@@ -1,6 +1,8 @@
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.dpro.events";
 
+// WhatsApp 1 dipakai semua ajakan umum; WhatsApp 2 hanya tampil berdampingan di bagian kontak.
 export const WHATSAPP_NUMBER = "6281938938800";
+export const WHATSAPP_NUMBER_2 = "6282132370811";
 export const WHATSAPP_DEFAULT_TEXT =
   "Halo D'Production, saya dapat info dari website dan ingin konsultasi acara.";
 
@@ -37,6 +39,45 @@ export function waNumber(value: string | null | undefined) {
   if (!value) return null;
   const local = normalizeWhatsapp(value);
   return WHATSAPP_PATTERN.test(local) ? `62${local.slice(1)}` : null;
+}
+
+// 62xxx (hasil waNumber) menjadi teks tampil, misalnya "+62 819-3893-8800".
+export function formatWhatsapp(number: string) {
+  const rest = number.slice(2);
+  return `+62 ${[rest.slice(0, 3), rest.slice(3, 7), rest.slice(7)].filter(Boolean).join("-")}`;
+}
+
+// Pemisah ribuan titik tanpa Intl, supaya hasil di server dan di peramban selalu sama.
+export const formatRibuan = (value: number) => String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+// 1500000 menjadi "Rp 1.500.000".
+export const formatRupiah = (amount: number) => `Rp ${formatRibuan(amount)}`;
+
+// Teks satu baris harga katalog. unit adalah keterangan yang tampil apa adanya di samping nominal, misalnya "per mesin".
+// Keterangan yang tidak diawali "per " (misalnya "300 sampai 400 shot") tampil di baris kedua, jadi sebaris bernilai false.
+// priceFrom milik itemnya dan berlaku untuk semua baris harga item itu.
+export function hargaKatalog(price: { amount: number; unit: string | null }, priceFrom = false) {
+  const keterangan = price.unit?.trim() || null;
+  return {
+    nominal: `${priceFrom ? "Mulai " : ""}${formatRupiah(price.amount)}`,
+    keterangan,
+    sebaris: !keterangan || /^per\s/i.test(keterangan),
+  };
+}
+
+// Tanggal kalender di WIB (UTC+7, tanpa jam musim panas) sebagai YYYY-MM-DD. offsetDays menggeser harinya.
+export function wibDate(offsetDays = 0) {
+  return new Date(Date.now() + (7 + 24 * offsetDays) * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+const BULAN = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+];
+
+// "2026-12-12" menjadi "12 Desember 2026". Hanya untuk tanggal yang sudah dipastikan berformat YYYY-MM-DD.
+export function formatTanggal(isoDate: string) {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return `${day} ${BULAN[month - 1]} ${year}`;
 }
 
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;

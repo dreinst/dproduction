@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import PenandaKonten from "@/components/PenandaKonten";
 import HeroSection from "@/components/sections/HeroSection";
 import TentangKamiSection from "@/components/sections/TentangKamiSection";
 import LayananSection from "@/components/sections/LayananSection";
@@ -7,7 +8,15 @@ import KlienSection from "@/components/sections/KlienSection";
 import GaleriSection from "@/components/sections/GaleriSection";
 import FaqSection from "@/components/sections/FaqSection";
 import KontakSection from "@/components/sections/KontakSection";
-import { getLandingContent, getLandingKantor } from "@/lib/landing-content";
+import {
+  getLandingAngka,
+  getLandingEvents,
+  getLandingGaleri,
+  getLandingHero,
+  getLandingKantor,
+  getLandingKatalog,
+  getLandingWedding,
+} from "@/lib/landing-content";
 
 // Konten dari database di-render ulang paling lama tiap 5 menit, atau segera setelah admin menyimpan (revalidateLanding).
 export const revalidate = 300;
@@ -28,17 +37,31 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const [content, kantor] = await Promise.all([getLandingContent(), getLandingKantor()]);
+  const [kantor, angka, hero, events, katalog, wedding, galeri] = await Promise.all([
+    getLandingKantor(),
+    getLandingAngka(),
+    getLandingHero(),
+    getLandingEvents(),
+    getLandingKatalog(),
+    getLandingWedding(),
+    getLandingGaleri(),
+  ]);
   const { whatsapp } = kantor;
 
   return (
     <>
-      <HeroSection whatsapp={whatsapp} description={kantor.description} stats={kantor.stats} hero={content.hero} />
-      <TentangKamiSection aboutUs={kantor.aboutUs} stats={kantor.stats} />
-      <LayananSection whatsapp={whatsapp} wedding={content.wedding} rentals={content.rentals} />
-      <MasterpieceSection items={content.masterpieces} events={content.eventList} />
+      <HeroSection
+        whatsapp={whatsapp}
+        description={kantor.description}
+        angka={angka}
+        rentalCategories={katalog.categories.length}
+        hero={hero}
+      />
+      <TentangKamiSection aboutUs={kantor.aboutUs} angka={angka} />
+      <LayananSection whatsapp={whatsapp} wedding={wedding} rentals={katalog.categories.flatMap((category) => category.items)} />
+      <MasterpieceSection items={events.masterpieces} groups={events.byYear} total={angka.events.text} />
       <KlienSection />
-      <GaleriSection photos={content.photos} videos={content.videos} />
+      <GaleriSection photos={galeri.photos} videos={galeri.videos} />
       <FaqSection />
       <KontakSection
         address={kantor.address}
@@ -47,6 +70,8 @@ export default async function Home() {
         email={kantor.email}
         googleMapsUrl={kantor.googleMapsUrl}
       />
+      {/* Menandai halaman yang dirender tanpa data database, supaya tidak tersimpan di cache selama masa revalidate penuh. */}
+      <PenandaKonten sumber={[kantor, angka, hero, events, katalog, wedding, galeri].map((data) => data.sumber)} />
     </>
   );
 }
