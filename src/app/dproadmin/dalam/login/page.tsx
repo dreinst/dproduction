@@ -1,10 +1,10 @@
 "use client";
 
 import { use, useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Eye, EyeOff, Lock, User, ArrowRight } from "lucide-react";
 import { safeNextPath } from "@/lib/rbac";
+import { ADMIN_BASE } from "@/lib/admin-path";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -13,7 +13,7 @@ const COOKIE_BLOCKED =
 
 export default function AdminLoginPage({ searchParams }: { searchParams: SearchParams }) {
   const params = use(searchParams);
-  const next = safeNextPath(typeof params.next === "string" ? params.next : null) ?? "/management";
+  const next = safeNextPath(typeof params.next === "string" ? params.next : null) ?? ADMIN_BASE;
   const expired = params.expired === "1";
 
   const [username, setUsername] = useState("");
@@ -21,7 +21,6 @@ export default function AdminLoginPage({ searchParams }: { searchParams: SearchP
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +40,9 @@ export default function AdminLoginPage({ searchParams }: { searchParams: SearchP
       } else if (!(await fetch("/api/auth/me")).ok) {
         setError(COOKIE_BLOCKED);
       } else {
-        router.replace(next);
+        // Muat dokumen penuh, bukan router.replace: cache router klien bisa masih menyimpan pengalihan ke login untuk
+        // alamat tujuan (sisa permintaan saat sesi habis), sehingga navigasi klien kembali ke halaman login.
+        window.location.assign(next);
         return;
       }
     } catch {

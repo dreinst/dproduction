@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle, Clock, PauseCircle, XCircle, type LucideIcon } from "lucide-react";
 import { WORKSPACE_EVENT_STATUS_LABELS as LABELS, type WorkspaceEventStatus } from "@/lib/rbac";
+import { expiredLoginUrl } from "@/lib/admin-path";
 
 type ChartStatus = "selesai" | "berjalan";
 type Dashboard = {
@@ -46,7 +47,7 @@ export default function AdminDashboard() {
         if (cancelled) return;
         if (res.status === 401) {
           const here = window.location.pathname + window.location.search;
-          router.replace(`/management/login?next=${encodeURIComponent(here)}&expired=1`);
+          router.replace(expiredLoginUrl(here));
           return;
         }
         const body = await res.json().catch(() => null);

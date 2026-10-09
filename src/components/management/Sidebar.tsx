@@ -18,6 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { navFor, type NavIcon, type NavItem, type Role } from "@/lib/rbac";
+import { ADMIN_LOGIN } from "@/lib/admin-path";
 
 const ICONS: Record<NavIcon, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -49,7 +50,7 @@ export default function Sidebar({ onClose, role }: SidebarProps) {
     } catch (e) {
       console.error(e);
     }
-    router.replace("/management/login");
+    router.replace(ADMIN_LOGIN);
     router.refresh();
   };
 

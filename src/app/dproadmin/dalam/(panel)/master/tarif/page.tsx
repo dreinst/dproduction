@@ -16,7 +16,7 @@ import {
   rupiahPreview,
   secondaryButton,
   useAction,
-} from "@/app/management/workspace/shared";
+} from "../../workspace/shared";
 
 type JobDesc = { id: number; name: string };
 type Grade = { id: number; grade: string };

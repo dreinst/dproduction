@@ -224,6 +224,10 @@ function toLandingKantor(row: KantorSetting | null): LandingKantor {
   };
 }
 
+// Data kantor dari konten kode, tanpa menyentuh database. Dipakai halaman 404 supaya tetap tampil saat database mati
+// atau lambat.
+export const KANTOR_CADANGAN: LandingKantor = toLandingKantor(null);
+
 export const getLandingKantor = cache(async (): Promise<LandingKantor> => {
   const row = await query("Setting Kantor", () => prisma.kantorSetting.findUnique({ where: { id: 1 } }));
   return toLandingKantor(row);

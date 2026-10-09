@@ -3,25 +3,26 @@ import prisma from '@/lib/prisma';
 import { handleRouteError } from '@/lib/api';
 import { requireAccess } from '@/lib/auth';
 import { canAccessPath } from '@/lib/rbac';
+import { ADMIN_BASE } from '@/lib/admin-path';
 
 // href null berarti tabel tidak punya halaman sendiri (hanya ditampilkan jumlahnya).
 const TABLES: readonly (readonly [table: string, name: string, href: string | null])[] = [
-  ['Client', 'Lead Masuk', '/management/leads'],
-  ['Event', 'Master Event', '/management/master/event'],
-  ['Wedding', 'Master Wedding', '/management/master/wedding'],
-  ['Rental', 'Master Rental', '/management/master/rental'],
-  ['GradeEvent', 'Master Grade Event', '/management/master/grade-event'],
-  ['JobDesc', 'Master JobDesc', '/management/master/jobdesc'],
-  ['Tarif', 'Master Tarif', '/management/master/tarif'],
-  ['GaleriAlbum', 'Galeri Album', '/management/galeri/foto'],
-  ['GaleriFoto', 'Galeri Foto', '/management/galeri/foto'],
-  ['GaleriVideo', 'Galeri Video', '/management/galeri/video'],
-  ['HeadHome', 'Setting Head Home', '/management/setting/head-home'],
-  ['KantorSetting', 'Setting Kantor', '/management/setting/kantor'],
-  ['User', 'Setting Login', '/management/setting/login'],
-  ['WorkspaceEvent', 'Workspace Event', '/management/workspace/event'],
-  ['Crew', 'Workspace Crew', '/management/workspace/crew'],
-  ['Assignment', 'Penugasan Crew', '/management/workspace/salary'],
+  ['Client', 'Lead Masuk', `${ADMIN_BASE}/leads`],
+  ['Event', 'Master Event', `${ADMIN_BASE}/master/event`],
+  ['Wedding', 'Master Wedding', `${ADMIN_BASE}/master/wedding`],
+  ['Rental', 'Master Rental', `${ADMIN_BASE}/master/rental`],
+  ['GradeEvent', 'Master Grade Event', `${ADMIN_BASE}/master/grade-event`],
+  ['JobDesc', 'Master JobDesc', `${ADMIN_BASE}/master/jobdesc`],
+  ['Tarif', 'Master Tarif', `${ADMIN_BASE}/master/tarif`],
+  ['GaleriAlbum', 'Galeri Album', `${ADMIN_BASE}/galeri/foto`],
+  ['GaleriFoto', 'Galeri Foto', `${ADMIN_BASE}/galeri/foto`],
+  ['GaleriVideo', 'Galeri Video', `${ADMIN_BASE}/galeri/video`],
+  ['HeadHome', 'Setting Head Home', `${ADMIN_BASE}/setting/head-home`],
+  ['KantorSetting', 'Setting Kantor', `${ADMIN_BASE}/setting/kantor`],
+  ['User', 'Setting Login', `${ADMIN_BASE}/setting/login`],
+  ['WorkspaceEvent', 'Workspace Event', `${ADMIN_BASE}/workspace/event`],
+  ['Crew', 'Workspace Crew', `${ADMIN_BASE}/workspace/crew`],
+  ['Assignment', 'Penugasan Crew', `${ADMIN_BASE}/workspace/salary`],
   ['AuditLog', 'Riwayat Perubahan', null],
 ];
 

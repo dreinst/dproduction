@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { apiError, handleRouteError, readJson } from '@/lib/api';
-import { setSessionCookie, signSession } from '@/lib/session';
+import { setKnownCookie, setSessionCookie, signSession } from '@/lib/session';
 import { clientIp, forgetHits, loginFailKey, rateLimit } from '@/lib/rate-limit';
 import { isRole } from '@/lib/rbac';
 import { DUMMY_PASSWORD_HASH, verifyPassword } from '@/lib/password';
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
 
     const token = await signSession(user);
     const res = NextResponse.json({ user: { id: user.id, username: user.username, role: user.role } });
-    return setSessionCookie(res, token);
+    return setKnownCookie(setSessionCookie(res, token));
   } catch (error) {
     return handleRouteError(error);
   }

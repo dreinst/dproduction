@@ -1,10 +1,11 @@
 "use client";
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/management/Sidebar";
 import AdminHeader from "@/components/management/Header";
 import { can, type Action, type Resource, type Role } from "@/lib/rbac";
+import { expiredLoginUrl } from "@/lib/admin-path";
 
 export type AdminUser = { id: number; username: string; alias: string | null; role: Role };
 
@@ -14,15 +15,11 @@ const AdminUserContext = createContext<AdminContext | null>(null);
 
 export function useAdminUser(): AdminContext {
   const ctx = useContext(AdminUserContext);
-  if (!ctx) throw new Error("useAdminUser hanya bisa dipakai di dalam halaman /management.");
+  if (!ctx) throw new Error("useAdminUser hanya bisa dipakai di dalam halaman admin.");
   return ctx;
 }
 
 export default function AdminShell({ children }: { children: ReactNode }) {
-  return usePathname() === "/management/login" ? <>{children}</> : <AuthedShell>{children}</AuthedShell>;
-}
-
-function AuthedShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [ctx, setCtx] = useState<AdminContext | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -56,7 +53,7 @@ function AuthedShell({ children }: { children: ReactNode }) {
         if (cancelled) return;
         if (res.status === 401) {
           const here = window.location.pathname + window.location.search;
-          router.replace(`/management/login?next=${encodeURIComponent(here)}&expired=1`);
+          router.replace(expiredLoginUrl(here));
           return;
         }
         if (!res.ok) throw new Error(`GET /api/auth/me ${res.status}`);

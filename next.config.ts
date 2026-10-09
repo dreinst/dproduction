@@ -26,7 +26,6 @@ const legacyRedirects: [string, string][] = [
   // Folder gambar situs lama tidak dibawa ke situs baru.
   ["/gbr/:path*", "/"],
   ["/images/:path*", "/"],
-  ["/login", "/management/login"],
   // Sebagian klien lama meminta path ini langsung tanpa membaca tag link di head.
   ["/apple-touch-icon.png", "/apple-icon.png"],
   ["/apple-touch-icon-precomposed.png", "/apple-icon.png"],

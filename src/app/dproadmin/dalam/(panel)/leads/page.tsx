@@ -9,6 +9,7 @@ import Pagination, { PageSizeSelect } from "@/components/management/Pagination";
 import { useAdminUser } from "@/components/management/AdminShell";
 import { LEAD_STATUS, LEAD_STATUS_LABELS, type LeadStatus } from "@/lib/rbac";
 import { EVENT_OPTIONS, WHATSAPP_PATTERN, eventLabel, normalizeWhatsapp } from "@/lib/site";
+import { ADMIN_BASE } from "@/lib/admin-path";
 
 interface Lead {
   id: number;
@@ -28,7 +29,7 @@ type LeadPage = { items: Lead[]; total: number; page: number; pageSize: number }
 type Option = { id: number; label: string };
 type Grade = { id: number; grade: string };
 
-const WORKSPACE_EVENT_HREF = "/management/workspace/event";
+const WORKSPACE_EVENT_HREF = `${ADMIN_BASE}/workspace/event`;
 const LOAD_ERROR = "Gagal memuat lead. Coba muat ulang halaman.";
 
 const dateFormat = new Intl.DateTimeFormat("id-ID", {
