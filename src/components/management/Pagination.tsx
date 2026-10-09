@@ -1,45 +1,45 @@
 "use client";
 
 import { useId } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PAGE_SIZES, type PaginationState } from "@/hooks/usePagination";
 
-type Props = { pagination: Pick<PaginationState, "page" | "totalPages" | "total" | "from" | "to" | "setPage"> };
+type Props = {
+  pagination: Pick<PaginationState, "page" | "totalPages" | "total" | "from" | "to" | "setPage">;
+  // Kata benda datanya, misalnya "item" atau "event". Kalau diisi, kalimatnya mengikuti desain v2: "Menampilkan 7 dari 22 item".
+  noun?: string;
+};
 
-export default function Pagination({ pagination: p }: Props) {
-  const button =
-    "inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600 hover:bg-slate-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50";
+export default function Pagination({ pagination: p, noun }: Props) {
+  const button = "adm-btn adm-btn--sm adm-btn--outline";
+  const summary = !p.total
+    ? "Tidak ada data untuk ditampilkan"
+    : noun
+      ? `Menampilkan ${p.to - p.from + 1} dari ${p.total} ${noun}`
+      : `Menampilkan ${p.from} sampai ${p.to} dari ${p.total}`;
 
   return (
     <nav aria-label="Navigasi halaman tabel" className="flex flex-wrap items-center justify-between gap-3">
-      <p className="text-sm text-slate-600" aria-live="polite">
-        {p.total ? `Menampilkan ${p.from} sampai ${p.to} dari ${p.total}` : "Tidak ada data untuk ditampilkan"}
+      <p className="adm-count" aria-live="polite">
+        {summary}
       </p>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className={button}
-          onClick={() => p.setPage(p.page - 1)}
-          aria-disabled={p.page <= 1}
-          aria-label="Halaman sebelumnya"
-        >
-          <ChevronLeft className="h-4 w-4" aria-hidden />
-          <span className="hidden sm:inline">Sebelumnya</span>
-        </button>
-        <span className="whitespace-nowrap text-sm text-slate-600">
-          Halaman {p.page} dari {p.totalPages}
-        </span>
-        <button
-          type="button"
-          className={button}
-          onClick={() => p.setPage(p.page + 1)}
-          aria-disabled={p.page >= p.totalPages}
-          aria-label="Halaman berikutnya"
-        >
-          <span className="hidden sm:inline">Berikutnya</span>
-          <ChevronRight className="h-4 w-4" aria-hidden />
-        </button>
-      </div>
+      {p.totalPages > 1 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" className={button} onClick={() => p.setPage(p.page - 1)} aria-disabled={p.page <= 1}>
+            Sebelumnya
+          </button>
+          <span className="adm-count whitespace-nowrap">
+            Halaman {p.page} dari {p.totalPages}
+          </span>
+          <button
+            type="button"
+            className={button}
+            onClick={() => p.setPage(p.page + 1)}
+            aria-disabled={p.page >= p.totalPages}
+          >
+            Berikutnya
+          </button>
+        </div>
+      )}
     </nav>
   );
 }
