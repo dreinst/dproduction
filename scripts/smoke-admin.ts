@@ -11,7 +11,7 @@ const PASSWORD = process.env.SEED_PASSWORD;
 const SECRET = process.env.JWT_SECRET;
 
 if (!['localhost', '127.0.0.1'].includes(new URL(BASE_URL).hostname)) {
-  throw new Error('BASE_URL hanya boleh localhost atau 127.0.0.1, karena skrip ini membuat dan menghapus user uji.');
+  throw new Error('BASE_URL hanya boleh localhost atau 127.0.0.1, karena skrip ini membuat dan menghapus data uji.');
 }
 if (!PASSWORD || !SECRET) throw new Error('Isi SEED_PASSWORD dan JWT_SECRET yang sama dengan server.');
 
@@ -188,18 +188,17 @@ async function proxyChecks(owner: string, known: string) {
 
   // Halaman 404 tidak boleh dibuat ulang saat server berjalan: Next menyimpan alamat permintaan pemicunya di dalam HTML
   // 404 yang lalu disajikan ke semua orang. Simpan konten (memanggil revalidateLanding), minta alamat admin tanpa sesi,
-  // lalu pastikan 404 untuk alamat lain tidak berubah.
-  const kantor = ((await (await get('/api/kantor-settings', owner)).json()) as Record<string, unknown>[])[0];
-  if (kantor) {
-    const data = { ...kantor };
-    for (const key of ['id', 'createdAt', 'updatedAt']) delete data[key];
-    check((await send('PUT', '/api/kantor-settings/1', owner, data)).status === 200, 'simpan ulang Setting Kantor (memicu revalidateLanding)');
-    await (await get(`${ADMIN_BASE}/setting/kantor`)).text();
-    const sesudah = await (await get(`/acak-sesudah-${runId}`)).text();
-    check(sesudah === acakBody && !sesudah.includes(ADMIN_BASE.slice(1)), 'halaman 404 tidak dibuat ulang dan tidak memuat alamat admin setelah konten disimpan');
-  } else {
-    console.log('LEWAT cek 404 setelah revalidasi: belum ada baris Setting Kantor');
+  // lalu pastikan 404 untuk alamat lain tidak berubah. Kontennya album uji nonaktif yang langsung dihapus, supaya cek
+  // ini juga jalan di database kosong (CI), yang belum punya Setting Kantor sah untuk disimpan ulang.
+  const album = await send('POST', '/api/galeri-albums', owner, { name: `smoke_${runId}`, active: false });
+  check(album.status === 201, 'owner membuat album uji (memicu revalidateLanding)');
+  if (album.status === 201) {
+    const { id } = (await album.json()) as { id: number };
+    check((await send('DELETE', `/api/galeri-albums/${id}`, owner)).status === 200, 'album uji dihapus');
   }
+  await (await get(`${ADMIN_BASE}/setting/kantor`)).text();
+  const sesudah = await (await get(`/acak-sesudah-${runId}`)).text();
+  check(sesudah === acakBody && !sesudah.includes(ADMIN_BASE.slice(1)), 'halaman 404 tidak dibuat ulang dan tidak memuat alamat admin setelah konten disimpan');
 
   // nofollow hanya dipasang proxy; noindex saja juga datang dari next.config.ts untuk host selain domain resmi.
   const loginPage = await get(ADMIN_LOGIN, 'auth_token=abc');
