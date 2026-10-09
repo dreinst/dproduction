@@ -123,8 +123,14 @@ export default function Footer({ kantor }: Props) {
           <p className="text-sm text-slate-400">
             © 2026 <span className="text-slate-300 font-semibold">{kantor.companyName}</span>. All Rights Reserved.
           </p>
-          <p className="text-xs text-slate-400 mt-2">
-            Made by dreinst, organized by D&apos;Production Event Organizer
+          <p className="mt-4 flex items-center gap-4 text-xs text-slate-400">
+            <span>Made by dreinst</span>
+            <span aria-hidden="true" className="h-4 w-px bg-slate-600" />
+            <span className="flex items-center gap-2.5">
+              Organized by
+              {/* eslint-disable-next-line @next/next/no-img-element -- SVG statis, tanpa optimasi */}
+              <img src="/logo-dpro-ringkas.svg" alt="D'PRO" className="h-5 w-auto shrink-0" />
+            </span>
           </p>
         </div>
       </div>
