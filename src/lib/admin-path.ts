@@ -15,7 +15,16 @@ export function isInnerPath(pathname: string) {
   return path.toLowerCase().startsWith(ADMIN_DALAM);
 }
 
-export const ADMIN_BASE = '/dproadmin';
+// Repo ini publik, jadi alamat admin di server bisa dibedakan dari bawaan lewat env NEXT_PUBLIC_ADMIN_BASE. Isi saat
+// build: Next menanam nilainya ke kode server dan berkas JS admin hanya kalau env itu sudah ada waktu build dan
+// ditulis utuh seperti di bawah. Kalau baru diisi saat server jalan, proxy memakainya tetapi berkas JS admin tidak.
+// Yang diterima satu segmen huruf kecil, angka, atau strip. /api ditolak karena ditangani proxy lebih dulu (halaman
+// login tidak akan terjangkau), /media dan /assets karena berisi gambar yang dimuat halaman admin. Nilai yang tidak
+// sah diabaikan dan alamat bawaan dipakai.
+const RESERVED = ['/api', '/media', '/assets'];
+const fromEnv = process.env.NEXT_PUBLIC_ADMIN_BASE ?? '';
+export const ADMIN_BASE =
+  /^\/[a-z0-9-]{3,40}$/.test(fromEnv) && !isInnerPath(fromEnv) && !RESERVED.includes(fromEnv) ? fromEnv : '/dproadmin';
 export const ADMIN_LOGIN = `${ADMIN_BASE}/login`;
 
 export function isAdminPath(pathname: string) {

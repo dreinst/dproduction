@@ -1,6 +1,7 @@
 // Uji cepat hak akses dan sesi dashboard terhadap server yang sedang jalan.
 // Jalankan: SEED_PASSWORD=... JWT_SECRET=... BASE_URL=http://localhost:3000 npx tsx scripts/smoke-admin.ts
 // SEED_PASSWORD harus sama dengan password akun seed, JWT_SECRET sama dengan milik server.
+// Kalau server dibangun dengan NEXT_PUBLIC_ADMIN_BASE, pasang nilai yang sama saat menjalankan skrip ini.
 import { SignJWT } from 'jose';
 import { API_ACCESS, ROLES, type Resource, type Role } from '../src/lib/rbac';
 import { ADMIN_BASE, ADMIN_DALAM, ADMIN_LOGIN } from '../src/lib/admin-path';
