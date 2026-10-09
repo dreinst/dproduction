@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, type FormEvent, type ReactNode } from "react";
 
 type ModalProps = {
+  // Hanya satu Modal yang boleh terbuka. Tutup dialog pertama sebelum membuka yang kedua, misalnya drawer sebelum konfirmasi hapus.
   open: boolean;
   title: string;
   onClose: () => void;
@@ -69,6 +70,7 @@ function ModalDialog({
   }, []);
 
   // Dipasang di document karena fokus bisa lepas ke body saat tombol yang sedang difokus menjadi disabled.
+  // Pendengar ini tidak tahu dialog mana yang paling atas, jadi dua Modal yang terbuka bersamaan berebut Tab dan Escape.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const dialog = dialogRef.current;

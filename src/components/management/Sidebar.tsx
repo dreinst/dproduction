@@ -17,15 +17,17 @@ export default function Sidebar({ onClose, user }: SidebarProps) {
   const groupId = useId();
   const navRef = useRef<HTMLElement>(null);
 
-  // Grup selalu terbuka, jadi daftar menu bisa lebih tinggi dari layar. Butir aktif digulir sampai terlihat.
+  // Grup selalu terbuka, jadi daftar menu bisa lebih tinggi dari layar. Butir aktif digulir sampai terlihat, dengan
+  // sela setengah butir dari tepi supaya latarnya tidak menutup bayangan penanda gulir di tepi daftar.
   // scrollTop dihitung sendiri: scrollIntoView ikut memindahkan titik awal Tab ke butir itu, sehingga tautan lompat terlewati.
   useEffect(() => {
     const nav = navRef.current;
     const active = nav?.querySelector('[aria-current="page"]')?.getBoundingClientRect();
     if (!nav || !active) return;
     const box = nav.getBoundingClientRect();
-    if (active.top < box.top) nav.scrollTop -= box.top - active.top;
-    else if (active.bottom > box.bottom) nav.scrollTop += active.bottom - box.bottom;
+    const gap = active.height / 2;
+    if (active.top - gap < box.top) nav.scrollTop -= box.top - active.top + gap;
+    else if (active.bottom + gap > box.bottom) nav.scrollTop += active.bottom - box.bottom + gap;
   }, [pathname]);
 
   // Sama dengan canAccessPath: halaman anak ikut menandai menu induknya, kecuali Dashboard yang hanya cocok persis.

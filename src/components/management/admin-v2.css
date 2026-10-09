@@ -52,7 +52,8 @@
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 .admin-v2 :is(h1, h2, h3, h4) { font-family: inherit; }
-.admin-v2 main h1 { font-size: 32px; line-height: 1.12; letter-spacing: -0.02em; font-weight: 600; }
+/* Judul di kartu galat panel (role="alert" di error.tsx) memakai ukurannya sendiri. */
+.admin-v2 main h1:not([role="alert"] h1) { font-size: 32px; line-height: 1.12; letter-spacing: -0.02em; font-weight: 600; }
 
 /* Cincin fokus navy untuk semua yang belum punya cincin sendiri. Sasaran fokus lewat skrip (tabindex -1) dilewati. */
 .admin-v2 :focus-visible:not([tabindex="-1"], [class*="focus:ring"], [class*="focus-visible:ring"]) {
@@ -67,12 +68,20 @@
 /* Tombol menjadi pil. Hover tombol biru lama (bg-blue-700) terpetakan ke navy yang sama, jadi hover diberi di sini. */
 .admin-v2 :is(main, [role="dialog"]) :is(button, a.inline-flex) { border-radius: 999px; }
 .admin-v2 :is(main, [role="dialog"]) button.bg-blue-600:hover:not(:disabled) { background-color: var(--adm-navy-hover); }
-/* Tombol abu lama (Batal, Tutup) hampir tidak terlihat di atas kaca, jadi diberi garis seperti tombol garis v2. */
-.admin-v2 :is(main, [role="dialog"]) button.bg-slate-100 { background-color: transparent; box-shadow: inset 0 0 0 1px var(--adm-outline); }
-.admin-v2 :is(main, [role="dialog"]) button.bg-slate-100:hover:not(:disabled) { background-color: rgb(29 29 31 / 0.05); }
+/* Tombol abu lama (Batal, Tutup) hampir tidak terlihat di atas kaca, jadi diberi garis seperti tombol garis v2.
+   Batal polos di form lama (hover:text-slate-900) ikut, supaya semua tombol Batal sama rupanya. */
+.admin-v2 :is(main, [role="dialog"]) button:is(.bg-slate-100, .hover\:text-slate-900) { background-color: transparent; box-shadow: inset 0 0 0 1px var(--adm-outline); }
+.admin-v2 :is(main, [role="dialog"]) button:is(.bg-slate-100, .hover\:text-slate-900):hover:not(:disabled) { background-color: rgb(29 29 31 / 0.05); }
+/* Tautan teks lama hanya dibedakan lewat warna biru. Setelah biru dipetakan ke navy warnanya hampir sama dengan
+   teks biasa, jadi garis bawahnya selalu tampil. */
+.admin-v2 main a.hover\:underline { text-decoration-line: underline; text-underline-offset: 2px; }
+/* Pratinjau motto baris 2 di Setting Kantor berlabel "teks biru", jadi tidak ikut dipetakan ke navy. */
+.admin-v2 main p.text-blue-600 { color: #0052cd; }
 
-/* Kartu putih tanpa garis tepi dan bayangan. Tabel: kepala polos, garis #E5E5EA di bawah kepala dan di antara baris. */
-.admin-v2 main :is(.rounded-xl, .rounded-2xl).bg-white { border-color: transparent; box-shadow: none; }
+/* Kartu putih tanpa garis tepi dan bayangan. Kartu galat panel (role="alert") tetap bergaris merah.
+   Tabel: kepala polos, garis #E5E5EA di bawah kepala dan di antara baris. */
+.admin-v2 main :is(.rounded-xl, .rounded-2xl).bg-white { box-shadow: none; }
+.admin-v2 main :is(.rounded-xl, .rounded-2xl).bg-white:not([role="alert"]) { border-color: transparent; }
 .admin-v2 main thead tr,
 .admin-v2 main thead th { background-color: #fff; color: var(--adm-mute); font-weight: 500; font-size: 13px; }
 .admin-v2 main thead tr { border-bottom: 1px solid var(--adm-line); }
@@ -82,7 +91,9 @@
 /* Tabel di dalam dialog diberi latar putih supaya barisnya sama dengan kepala dan kolom Aksi yang menempel. */
 .admin-v2 [role="dialog"] table { background-color: #fff; }
 
-/* Tab filter lama (Workspace Event dan Report) menjadi baris pil seperti filter v2. */
+/* Tab filter lama (Workspace Event dan Report) menjadi baris pil seperti filter v2. Nilainya sama dengan .adm-pill dan
+   harus diubah bersama: aturan ini di luar layer supaya menang atas utilitas tab lama, .adm-pill di dalam layer
+   supaya utilitas masih bisa menyetelnya. */
 .admin-v2 main [role="group"]:has(> button[aria-pressed]) { gap: 8px; border: 0; border-radius: 0; overflow: visible; }
 .admin-v2 main [role="group"] > button[aria-pressed] { flex: 0 0 auto; min-width: 0; padding: 9px 16px; font-size: 13px; line-height: 1.2; font-weight: 500; background-color: #fff; color: var(--adm-ink); }
 .admin-v2 main [role="group"] > button[aria-pressed="true"] { background-color: var(--adm-navy); color: #fff; }
@@ -100,7 +111,16 @@
   .adm-side__brand { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 4px 12px 24px; }
   .adm-brand { font-size: 18px; line-height: 1.2; font-weight: 600; color: var(--adm-ink); }
   .adm-brand__note { margin-top: 2px; font-size: 13px; line-height: 1.3; color: var(--adm-mute); }
-  .adm-nav { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+  /* Daftar menu biasanya lebih tinggi dari layar. Bayangan di tepi atas atau bawah menandai masih ada menu di arah
+     itu: dua lapis putih ikut bergulir bersama isi (local) dan menutup bayangan saat daftar sudah sampai ujung. */
+  .adm-nav {
+    flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;
+    background:
+      linear-gradient(#fff 40%, rgb(255 255 255 / 0)) top / 100% 28px no-repeat local,
+      linear-gradient(rgb(255 255 255 / 0), #fff 60%) bottom / 100% 28px no-repeat local,
+      radial-gradient(farthest-side at 50% 0, rgb(29 29 31 / 0.22), rgb(29 29 31 / 0)) top / 100% 14px no-repeat scroll,
+      radial-gradient(farthest-side at 50% 100%, rgb(29 29 31 / 0.22), rgb(29 29 31 / 0)) bottom / 100% 14px no-repeat scroll;
+  }
   .adm-nav [role="group"] { display: flex; flex-direction: column; gap: 4px; }
   .adm-nav__group { padding: 16px 12px 6px; font-size: 12px; line-height: 1.2; font-weight: 500; color: var(--adm-mute); }
   .adm-nav__item { display: flex; align-items: center; width: 100%; min-height: 40px; border-radius: 12px; padding: 0 12px; font-size: 14px; line-height: 1.2; text-align: left; color: rgb(29 29 31 / 0.8); }
@@ -193,12 +213,18 @@
 
   /* ===== Tabel ===== */
   /* position: relative supaya teks sr-only di dalam sel ikut terpotong di sini dan tidak melebarkan halaman. */
-  .adm-table-card { position: relative; background: #fff; border-radius: 24px; padding: 8px 0; overflow-x: auto; }
-  .adm-table { width: 100%; min-width: 760px; border-collapse: collapse; }
+  .adm-table-card { position: relative; background: #fff; border-radius: 24px; padding: 8px 0; overflow-x: auto; container-type: inline-size; }
+  /* border-collapse: separate, karena pada collapse Chrome tidak menggambar bayangan sel yang menempel. */
+  .adm-table { width: 100%; min-width: 760px; border-collapse: separate; border-spacing: 0; }
   .adm-table th { text-align: left; padding: 14px 0; font-size: 13px; line-height: 1.2; font-weight: 500; color: var(--adm-mute); }
   .adm-table td { padding: 12px 16px 12px 0; height: 81px; vertical-align: middle; font-size: 15px; line-height: 1.3; color: var(--adm-ink); border-top: 1px solid var(--adm-line); }
   .adm-table :is(th, td):first-child { padding-left: 24px; }
-  .adm-table :is(th, td):last-child { padding-right: 24px; }
+  /* Sel terakhir (kolom aksi) menempel di kanan, jadi Edit tetap terjangkau saat tabel lebih lebar dari kartunya.
+     Selama kartu lebih sempit dari lebar minimal tabel, bayangan di kiri sel itu menandai ada isi yang bisa digeser. */
+  .adm-table :is(th, td):last-child { padding-right: 24px; position: sticky; right: 0; background: #fff; }
+  @container (max-width: 759px) {
+    .adm-table :is(th, td):last-child { padding-left: 16px; box-shadow: 0 0 12px rgb(29 29 31 / 0.2); clip-path: inset(0 0 0 -12px); }
+  }
   .adm-table tbody tr:hover td { background: #fafafc; }
   .adm-table .adm-name { font-weight: 600; }
   .adm-table .adm-sub { display: block; margin-top: 2px; font-size: 12px; color: var(--adm-mute); }
@@ -235,18 +261,30 @@
   .adm-option__title { display: block; font-size: 14px; line-height: 1.3; font-weight: 500; color: var(--adm-ink); }
   .adm-option__hint { display: block; margin-top: 2px; font-size: 12px; line-height: 1.4; color: var(--adm-mute); max-width: 300px; }
 
-  /* Area unggah */
-  .adm-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; height: 168px; border-radius: 18px; background: rgb(255 255 255 / 0.7); border: 1.5px dashed rgb(29 29 31 / 0.3); padding: 0 16px; text-align: center; }
-  .adm-drop[data-over="true"] { border-color: var(--adm-navy); background: #fff; }
+  /* Area unggah. Garis putusnya digambar SVG (6 isi, 6 kosong, tebal 1,5 seperti desain) karena pola border dashed
+     ditentukan peramban. Garis SVG setebal 3 berpusat di tepi kotak, jadi yang terlihat separuhnya. Border bening
+     tetap dipasang karena mode kontras tinggi mewarnainya, sedangkan gambar latar tidak. */
+  .adm-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; height: 168px; border: 1.5px dashed transparent; border-radius: 18px; background: rgb(255 255 255 / 0.7) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100%25' height='100%25' rx='18' fill='none' stroke='%231d1d1f' stroke-opacity='.3' stroke-width='3' stroke-dasharray='6 6'/%3E%3C/svg%3E") border-box; padding: 0 16px; text-align: center; }
+  .adm-drop[data-over="true"] { background: #fff; box-shadow: inset 0 0 0 1.5px var(--adm-navy); }
   .adm-drop__title { font-size: 15px; font-weight: 500; line-height: 1.3; }
   .adm-drop__hint { font-size: 13px; line-height: 1.3; color: var(--adm-mute); }
   .adm-photo { display: block; width: 100%; height: 176px; border-radius: 18px; object-fit: cover; background: var(--adm-empty); }
 
+  /* Layar pendek: butir menu dirapatkan supaya lebih banyak yang terlihat tanpa menggulir. */
+  @media (max-height: 900px) {
+    .adm-nav, .adm-nav [role="group"] { gap: 2px; }
+    .adm-nav__item { min-height: 36px; }
+    .adm-nav__group { padding-top: 12px; }
+  }
   /* Layar sentuh: isian 16 px supaya iOS tidak memperbesar halaman, tombol dan butir menu minimal 44 px. */
   @media (pointer: coarse) {
     .adm-input, .adm-search { font-size: 16px; }
     .adm-btn, .adm-pill, .adm-nav__item { min-height: 44px; }
     .adm-link { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
+    /* Tombol halaman lama ikut 44 px, kecuali sakelar (punya bidang sentuh sendiri) dan tombol di sel tabel. Tombol
+       ikon di sel tabel dibiarkan: kalau dibesarkan, baris jadi lebih tinggi dan kolom Aksi mendorong tombol Hapus
+       keluar layar di HP (terlihat di Head Home pada lebar 390). */
+    .admin-v2 :is(main, [role="dialog"]) button:not(td button, [role="switch"]) { min-height: 44px; }
   }
   @media (max-width: 639px) {
     .adm-search { width: 100%; }

@@ -18,7 +18,7 @@ export default function Pagination({ pagination: p, noun }: Props) {
       : `Menampilkan ${p.from} sampai ${p.to} dari ${p.total}`;
 
   return (
-    <nav aria-label="Navigasi halaman tabel" className="flex flex-wrap items-center justify-between gap-3">
+    <nav aria-label="Navigasi halaman tabel" className="flex flex-wrap items-start justify-between gap-3">
       <p className="adm-count" aria-live="polite">
         {summary}
       </p>
