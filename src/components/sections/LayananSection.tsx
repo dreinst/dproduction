@@ -136,7 +136,7 @@ export default function LayananSection({ whatsapp, wedding, rentals }: Props) {
                     </div>
                     <h4 className="font-bold text-lg mb-2">{item.name}</h4>
                     <p className="text-sm text-slate-400 font-medium">
-                      {item.price ? `Mulai Rp ${rupiah(item.price)}${item.unit ? `/${item.unit}` : ""}` : "Hubungi Kami"}
+                      {item.price ? `${item.priceFrom ? "Mulai " : ""}Rp ${rupiah(item.price)}${item.unit ? ` ${item.unit}` : ""}` : "Hubungi Kami"}
                     </p>
                   </div>
                 );

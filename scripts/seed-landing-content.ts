@@ -39,7 +39,7 @@ async function fillIfEmpty(table: string, count: () => Promise<number>, fill: ()
 
 async function main() {
   assertLocalDatabase()
-  const { kantor, hero, events, weddingPoints, rentals, photos } = FALLBACK
+  const { kantor, hero, events, weddingPoints, rentalCategories, rentals, klien, photos } = FALLBACK
 
   const hasKantor = await prisma.kantorSetting.findUnique({ where: { id: 1 }, select: { id: true } })
   if (!hasKantor) {
@@ -67,10 +67,28 @@ async function main() {
     async () => (await prisma.wedding.createMany({ data: weddingPoints.map((name) => ({ name })) })).count,
   )
 
+  // Kategori dan item katalog diisi bersamaan, hanya kalau keduanya kosong. Urutan di FALLBACK menjadi sortIndex.
   await fillIfEmpty(
-    'Rental',
-    () => prisma.rental.count(),
-    async () => (await prisma.rental.createMany({ data: rentals })).count,
+    'RentalCategory dan Rental',
+    async () => (await prisma.rentalCategory.count()) + (await prisma.rental.count()),
+    () =>
+      prisma.$transaction(async (tx) => {
+        const categories = await tx.rentalCategory.createManyAndReturn({
+          data: rentalCategories.map((c, i) => ({ ...c, sortIndex: i + 1 })),
+          select: { id: true, name: true },
+        })
+        const categoryId = new Map(categories.map((c) => [c.name, c.id]))
+        const { count } = await tx.rental.createMany({
+          data: rentals.map(({ category, ...r }, i) => ({ ...r, categoryId: categoryId.get(category) as number, sortIndex: i + 1 })),
+        })
+        return categories.length + count
+      }),
+  )
+
+  await fillIfEmpty(
+    'Klien',
+    () => prisma.klien.count(),
+    async () => (await prisma.klien.createMany({ data: klien })).count,
   )
 
   // Album dan foto diisi bersamaan, hanya kalau keduanya kosong.

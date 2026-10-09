@@ -2,7 +2,8 @@
 //
 //   npx tsx --env-file=.env.local scripts/impor-situs-lama.ts <file.json>
 //
-// Aman dijalankan berulang: baris dicocokkan lewat id lama (legacyId, legacyKey) atau nama.
+// Aman dijalankan berulang: baris dicocokkan lewat id lama (legacyId, legacyKey) atau nama. Klien hanya diisi kalau
+// tabelnya masih kosong.
 // Password crew lama disimpan sebagai hash scrypt (Crew.passwordHash); login admin lama tidak diimpor. Database selain localhost butuh ALLOW_REMOTE_SEED=1.
 import { readFileSync, existsSync } from 'node:fs'
 import prisma from '../src/lib/prisma'
@@ -66,16 +67,19 @@ async function main() {
   }
   console.log(`Master: ${grade.size} level, ${job.size} JobDesc, ${tarif.size} tarif.`)
 
-  // Klien.
+  // Klien. Tabel yang sudah berisi tidak disentuh, supaya nama, logo, dan status hasil kurasi atau suntingan admin
+  // tidak tertimpa data lama. Peta id ke nama tetap diisi karena dipakai Workspace Event di bawah.
+  const klienTerisi = (await prisma.klien.count()) > 0
   const klien = new Map<number, string>()
   for (const k of data.klien) {
     const name = clean(k.nama)
+    klien.set(Number(k.id), name)
+    if (klienTerisi) continue
     const logo = str(k.foto) && existsSync(`public/assets/klien/${str(k.foto)}`) ? `/assets/klien/${str(k.foto)}` : null
     const values = { address: stripHtml(k.alamat), phone: whatsapp(k.hp) ?? orNull(str(k.hp).trim()), logo, active: Number(k.aktif) !== 0 }
     await prisma.klien.upsert({ where: { name }, update: values, create: { name, ...values } })
-    klien.set(Number(k.id), name)
   }
-  console.log(`Klien: ${klien.size}.`)
+  console.log(klienTerisi ? 'Klien: dilewati, tabel sudah berisi.' : `Klien: ${klien.size}.`)
 
   // Crew. Password lama di-hash sekali saja, crew yang sudah punya hash tidak diubah.
   const crew = new Map<number, number>()

@@ -47,7 +47,7 @@ Butuh Node.js 20.19, 22.12, atau 24 ke atas (syarat Prisma 7) dan PostgreSQL (CI
    ```bash
    npx tsx --env-file=.env.local scripts/seed-landing-content.ts
    ```
-   Skrip ini mengisi Setting Kantor id 1 dan tabel konten landing (HeadHome, Wedding, Rental, GaleriAlbum dan GaleriFoto, Event) dengan isi `FALLBACK`, sehingga tampilan tidak berubah dan konten tinggal diedit dari dashboard. Tabel yang sudah berisi dilewati, dan skrip mencetak ringkasan per tabel. Dengan `--awal`, baris Setting Kantor id 1 yang sudah ada juga ditimpa data resmi, dan 4 event dokumentasi di Master Event dinonaktifkan (dicocokkan lewat nama atau fotonya, lalu namanya diseragamkan ke versi tanda kurung). Skrip lalu mencetak jumlah event aktif, yang seharusnya 10. Pengaman host-nya sama dengan seed.
+   Skrip ini mengisi Setting Kantor id 1 dan tabel konten landing (HeadHome, Wedding, RentalCategory dan Rental, Klien, GaleriAlbum dan GaleriFoto, Event) dengan isi `FALLBACK`, sehingga tampilan tidak berubah dan konten tinggal diedit dari dashboard. Tabel yang sudah berisi dilewati, dan skrip mencetak ringkasan per tabel. Dengan `--awal`, baris Setting Kantor id 1 yang sudah ada juga ditimpa data resmi, dan 4 event dokumentasi di Master Event dinonaktifkan (dicocokkan lewat nama atau fotonya, lalu namanya diseragamkan ke versi tanda kurung). Skrip lalu mencetak jumlah event aktif, yang seharusnya 10. Pengaman host-nya sama dengan seed.
 7. Jalankan server pengembangan:
    ```bash
    npm run dev
