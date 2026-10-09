@@ -2,18 +2,17 @@
 
 import Image, { type ImageProps } from "next/image";
 import { useState } from "react";
+import FotoKosong from "@/components/site/FotoKosong";
 
 type Props = Omit<ImageProps, "src" | "alt" | "fill" | "unoptimized" | "onError"> & { src: string; alt: string };
 
 // Gambar landing yang bisa berasal dari database, selalu mode fill di dalam wadah relative.
 // Path di situs ini (/assets, /media) dioptimasi; URL https dimuat apa adanya supaya tidak perlu remotePatterns.
-// Kalau gagal dimuat, diganti kotak bergradasi netral yang tetap terbaca pembaca layar.
+// Kalau gagal dimuat, diganti kotak "Foto menyusul" yang tetap membawa alt-nya untuk pembaca layar.
 export default function LandingImage({ src, alt, className, ...props }: Props) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
-  if (failedSrc === src) {
-    return <div role="img" aria-label={alt} className="absolute inset-0 bg-gradient-to-br from-slate-200 to-slate-400" />;
-  }
+  if (failedSrc === src) return <FotoKosong alt={alt} />;
 
   return (
     <Image
