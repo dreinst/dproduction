@@ -82,7 +82,11 @@ const redirectsTo = (res: Response, path: string) =>
 
 async function accessMatrix() {
   const entries = Object.entries(ENDPOINTS) as [ReadResource, string][];
-  for (const [, path] of entries) check((await get(path)).status === 401, `anonim GET ${path} -> 401`);
+  // Tanpa cookie sesi, jawaban 401 tidak boleh membawa Set-Cookie: nama cookie tidak perlu diketahui orang asing.
+  for (const path of [...entries.map(([, path]) => path), '/api/auth/me']) {
+    const res = await get(path);
+    check(res.status === 401 && !res.headers.has('set-cookie'), `anonim GET ${path} -> 401 tanpa Set-Cookie`);
+  }
 
   const cookies = {} as Record<Role, string>;
   for (const role of ROLES) {
@@ -161,7 +165,8 @@ async function proxyChecks(owner: string, known: string) {
     check(await sama(await get(path, 'auth_token=abc')), `cookie rusak di ${path} sama dengan 404 biasa`);
   }
   check(await sama(await get('/login')), '/login sama dengan 404 biasa');
-  check((await get('/api/users', `auth_token=${forged}`)).status === 401, 'role tidak dikenal ditolak API (401)');
+  const ditolak = await get('/api/users', `auth_token=${forged}`);
+  check(ditolak.status === 401 && clearsCookie(ditolak), 'role tidak dikenal ditolak API (401) dan cookie-nya dihapus');
 
   // Folder dalam tidak pernah terbuka lewat alamatnya sendiri, juga untuk sesi sah.
   for (const path of [ADMIN_DALAM, `${ADMIN_DALAM}/login`, `${ADMIN_DALAM}/master/event`]) {
