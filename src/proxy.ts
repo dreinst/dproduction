@@ -67,10 +67,14 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith('/api/')) return guardApi(request);
   // Folder dalam tidak boleh dibuka lewat alamatnya sendiri oleh siapa pun, juga oleh sesi yang sah.
   if (isInnerPath(pathname)) return NextResponse.rewrite(new URL('/_tidak-ada', request.url));
-  if (!isAdminPath(pathname)) return NextResponse.next();
 
+  // Kedua token diperiksa sebelum alamatnya dilihat, supaya pekerjaannya sama untuk alamat admin dan alamat lain.
+  // Kalau baru diperiksa di alamat admin, permintaan yang membawa cookie ini dijawab sedikit lebih lambat di sana, dan
+  // beda waktu itu cukup untuk mengenali alamat admin. Permintaan tanpa cookie tidak menghitung apa pun.
   const token = request.cookies.get(AUTH_COOKIE)?.value;
   const session = await verifySession(token);
+  const known = !session && (await verifyKnown(request.cookies.get(KNOWN_COOKIE)?.value));
+  if (!isAdminPath(pathname)) return NextResponse.next();
 
   if (pathname === ADMIN_LOGIN) {
     if (session) {
@@ -83,7 +87,7 @@ export async function proxy(request: NextRequest) {
 
   if (!session) {
     // Orang asing: diteruskan tanpa diubah. Jangan memasang header atau cookie apa pun pada jawaban ini.
-    if (!(await verifyKnown(request.cookies.get(KNOWN_COOKIE)?.value))) return NextResponse.next();
+    if (!known) return NextResponse.next();
     // Peramban yang pernah masuk (cookie kenal sah) dialihkan ke login, supaya sesi yang habis tidak berujung di 404.
     const login = new URL(ADMIN_LOGIN, request.url);
     login.searchParams.set('next', pathname + search);
@@ -101,6 +105,8 @@ export const config = {
   // /_next/static/<buildId>/_clientMiddlewareManifest.js. Yang dikecualikan hanya berkas statis Next dan berkas
   // metadata di akar situs (anjuran dokumentasi Next untuk proxy). Kalau daftar pengecualian ini diubah, salin juga ke
   // SKIPPED_BY_PROXY di src/lib/admin-path.ts.
+  // Akibat matcher umum: permintaan TRACE ke alamat mana pun yang lewat sini dijawab 500, karena Next gagal membuat
+  // objek Request untuk metode itu sebelum proxy() dipanggil. Tidak bisa ditangani di berkas ini, hanya di reverse proxy.
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png|opengraph-image|twitter-image|robots.txt|sitemap.xml|manifest.webmanifest).*)',
   ],
