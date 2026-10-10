@@ -44,10 +44,10 @@ export function pageMetadata({ title, description, path, absoluteTitle }: PageSe
   };
 }
 
-// whatsapp2 opsional supaya tetap cocok sebelum dan sesudah kolom itu ada di LandingKantor.
-type Kantor = Pick<LandingKantor, "companyName" | "address" | "whatsapp" | "email" | "socials" | "googleMapsUrl" | "foundedYear"> & {
-  whatsapp2?: string | null;
-};
+type Kantor = Pick<
+  LandingKantor,
+  "companyName" | "address" | "whatsapp" | "whatsapp2" | "email" | "socials" | "googleMapsUrl" | "foundedYear"
+>;
 
 // Tautan Google Maps biasa (bukan embed) untuk hasMap dan tombol "Buka di Google Maps".
 export function mapsLink(kantor: Pick<Kantor, "googleMapsUrl" | "address">) {

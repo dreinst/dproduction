@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import TautanWhatsApp from "@/components/site/TautanWhatsApp";
 import { tombol } from "@/components/site/tombol";
+import { formatWhatsapp } from "@/lib/site";
 
 const MENU = [
   { href: "/", label: "Beranda" },
@@ -30,8 +31,8 @@ const tutupLembar = (el: HTMLDialogElement | null) => {
   el?.hidePopover?.();
 };
 
-// whatsapp: nomor WhatsApp 1 berformat 62xxx dari Setting Kantor.
-export default function Navigasi({ whatsapp }: { whatsapp: string }) {
+// whatsapp dan whatsapp2: nomor berformat 62xxx dari Setting Kantor. WhatsApp 2 null kalau dikosongkan di sana.
+export default function Navigasi({ whatsapp, whatsapp2 }: { whatsapp: string; whatsapp2: string | null }) {
   const pathname = usePathname();
   const header = useRef<HTMLElement>(null);
   const lembar = useRef<HTMLDialogElement>(null);
@@ -224,6 +225,19 @@ export default function Navigasi({ whatsapp }: { whatsapp: string }) {
         <TautanWhatsApp nomor={whatsapp} className={`${tombol("putih")} mt-auto w-full`}>
           Konsultasi Gratis
         </TautanWhatsApp>
+        {/* Kedua nomor ditulis berlabel, tanpa nama pemiliknya. */}
+        <ul className="-mt-4 flex flex-wrap justify-center gap-x-6 text-isi-sm text-white/85">
+          {[whatsapp, whatsapp2].map(
+            (nomor, i) =>
+              nomor && (
+                <li key={i}>
+                  <TautanWhatsApp nomor={nomor} className="inline-block py-3 hover:text-white">
+                    WhatsApp {i + 1}: <span className="font-medium text-white">{formatWhatsapp(nomor)}</span>
+                  </TautanWhatsApp>
+                </li>
+              ),
+          )}
+        </ul>
       </dialog>
     </>
   );

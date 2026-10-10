@@ -3,7 +3,7 @@ import Footer from "@/components/site/Footer";
 import Navigasi from "@/components/site/Navigasi";
 import type { LandingKantor } from "@/lib/landing-content";
 
-type Props = { kantor: Pick<LandingKantor, "companyName" | "whatsapp" | "socials">; children: ReactNode };
+type Props = { kantor: Pick<LandingKantor, "companyName" | "whatsapp" | "whatsapp2" | "socials">; children: ReactNode };
 
 // Kerangka semua halaman publik: tautan lompat, navigasi, isi, dan footer. Dipakai layout grup (site) dan halaman 404
 // di akar app (yang berada di luar grup itu).
@@ -17,7 +17,7 @@ export default function Kerangka({ kantor, children }: Props) {
       >
         Langsung ke konten
       </a>
-      <Navigasi whatsapp={kantor.whatsapp} />
+      <Navigasi whatsapp={kantor.whatsapp} whatsapp2={kantor.whatsapp2} />
       <main id="konten" tabIndex={-1} className="grow overflow-x-clip focus:outline-hidden">
         {children}
       </main>
