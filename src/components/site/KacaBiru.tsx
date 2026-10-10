@@ -2,6 +2,10 @@
 
 import { useEffect } from "react";
 
+// Bilah navigasi hanya dilayani selama berwujud kaca (Navigasi menulis data-terang="false"). Di varian terang cahayanya
+// tidak tampak, jadi tidak perlu ditulisi.
+const PERMUKAAN = '.kaca-biru:not(.nav-situs:not([data-terang="false"]) > .nav-bilah)';
+
 // Interaksi kaca biru untuk semua elemen .kaca-biru: cahaya mengikuti kursor (--mx, --my), data-sorot saat kursor di
 // atasnya, data-tekan dan riak saat ditekan. Gayanya di src/app/globals.css. Dirender satu kali di layout situs.
 // Listener dipasang sekali di dokumen, jadi permukaan kaca yang muncul belakangan ikut terlayani.
@@ -11,7 +15,7 @@ export default function KacaBiru() {
     const kurangiGerak = matchMedia("(prefers-reduced-motion: reduce)");
     const lepasListener = new AbortController();
     const opsi = { passive: true, signal: lepasListener.signal };
-    const cari = (target: EventTarget | null) => (target instanceof Element ? target.closest<HTMLElement>(".kaca-biru") : null);
+    const cari = (target: EventTarget | null, pilih = PERMUKAAN) => (target instanceof Element ? target.closest<HTMLElement>(pilih) : null);
     let antre = 0;
     let terakhir: HTMLElement | null = null;
     let x = 0;
@@ -44,7 +48,10 @@ export default function KacaBiru() {
       "pointermove",
       (e) => {
         const el = cari(e.target);
-        if (el && e.pointerType !== "touch") posisi(el, e, false);
+        if (!el || e.pointerType === "touch") return;
+        // Bilah navigasi bisa berganti ke wujud kaca saat kursor sudah di atasnya, tanpa pointerover baru.
+        el.toggleAttribute("data-sorot", true);
+        posisi(el, e, false);
       },
       opsi,
     );
@@ -61,7 +68,8 @@ export default function KacaBiru() {
     document.addEventListener(
       "pointerout",
       (e) => {
-        const el = cari(e.target);
+        // Semua permukaan, termasuk bilah yang sudah berganti ke varian terang selagi disorot.
+        const el = cari(e.target, ".kaca-biru");
         if (el && !(e.relatedTarget instanceof Node && el.contains(e.relatedTarget))) el.removeAttribute("data-sorot");
       },
       opsi,

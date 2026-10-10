@@ -282,9 +282,10 @@ body {
   .kaca--navy {
     --kaca-isi: linear-gradient(180deg, rgb(11 33 68 / 0.42), rgb(11 33 68 / 0.3));
   }
-  /* Panel lokasi. */
+  /* Panel lokasi. Ujung bawahnya lebih pekat dari nilai Figma (0,62): di atas peta yang terang, teks kecil dan
+     tombol garis di dasar panel tidak lolos kontras AA dengan nilai itu. */
   .kaca--navy-tebal {
-    --kaca-isi: linear-gradient(180deg, rgb(11 33 68 / 0.78), rgb(11 33 68 / 0.62));
+    --kaca-isi: linear-gradient(180deg, rgb(11 33 68 / 0.78), rgb(11 33 68 / 0.75));
     --kaca-dasar: transparent;
   }
 
@@ -471,6 +472,12 @@ body {
     opacity: 0.5;
     pointer-events: none;
   }
+  /* Di mode warna paksa latar tombol diganti warna kanvas, jadi tepinya digaris supaya tetap tampak sebagai tombol. */
+  @media (forced-colors: active) {
+    .tombol {
+      border: 1px solid ButtonText;
+    }
+  }
   /* Ditekan mengecil ke 97% lalu kembali dalam 300 ms. Tombol kaca diatur .kaca-biru. */
   @media (prefers-reduced-motion: no-preference) {
     .tombol:not(.kaca) {
@@ -544,6 +551,16 @@ body {
   .situs:has([data-hero-beranda]) .nav-situs:not([data-terang="true"]) .nav-bilah::before,
   .situs:has([data-hero-beranda]) .nav-situs:not([data-terang="true"]) .nav-bilah::after {
     content: "";
+  }
+  /* Begitu foto hero mulai tergulir (Navigasi menulis data-pekat="true"), judul dan tombol putih hero lewat di
+     belakang bilah, jadi kacanya diberi lapisan navy supaya menu dan logo tetap terbaca. Lapisan itu ditaruh di
+     ::before, yang dibuang di varian terang: yang memudar hanya pergantian antara kaca tipis dan pekat, dan saat
+     bilah kembali dari varian terang lapisannya langsung penuh. */
+  .situs:has([data-hero-beranda]) .nav-situs:not([data-terang="true"]) .nav-bilah::before {
+    transition: background-color 200ms ease-out;
+  }
+  .situs:has([data-hero-beranda]) .nav-situs[data-pekat="true"]:not([data-terang="true"]) .nav-bilah::before {
+    background-color: rgb(11 33 68 / 0.7);
   }
 
   /* Lembar menu HP: <dialog> layar penuh berkaca navy. Lebih pekat dari .kaca--navy-tebal supaya teks putih tetap

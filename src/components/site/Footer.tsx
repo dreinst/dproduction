@@ -40,8 +40,9 @@ const SOSIAL = [
 ] as const;
 
 // Warna teks footer diwarisi dari <footer>; saat disorot tautan memakai warna penuh. Di layar sentuh tinggi tautan
-// dinaikkan sampai 44 px.
-const tautan = "transition-colors duration-200 hover:text-ink pointer-coarse:py-3.5 footer-navy:hover:text-white";
+// dinaikkan sampai 44 px dan lebarnya minimal 44 px (tautan pendek seperti FAQ).
+const tautan =
+  "text-center transition-colors duration-200 hover:text-ink pointer-coarse:min-w-11 pointer-coarse:py-3.5 footer-navy:hover:text-white";
 
 type Props = { kantor: Pick<LandingKantor, "companyName" | "socials"> };
 
@@ -114,10 +115,15 @@ export default function Footer({ kantor }: Props) {
 
         <div className="h-px bg-ink/10 footer-navy:bg-white/14" />
 
-        <div className="flex flex-wrap items-center justify-center gap-x-3.5 gap-y-2 text-[13px]">
+        {/* Kredit berbahasa Inggris, jadi diberi lang supaya pembaca layar melafalkannya dengan benar. Di bawah 384 px
+            huruf, jarak, dan logonya dikecilkan supaya tetap sebaris. */}
+        <div
+          lang="en"
+          className="flex flex-wrap items-center justify-center gap-x-3.5 gap-y-2 text-[13px] max-[384px]:gap-x-2 max-[384px]:text-xs"
+        >
           <p>Made by dreinst</p>
           <span aria-hidden="true" className="h-4 w-px bg-ink/25 footer-navy:bg-white/25" />
-          <p className="flex items-center gap-2.5">
+          <p className="flex items-center gap-2.5 max-[384px]:gap-1.5">
             Organized by
             {/* Logo vektor satu warna: biru di varian putih, diputihkan lewat filter di varian navy. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -127,7 +133,7 @@ export default function Footer({ kantor }: Props) {
               width={523}
               height={106}
               loading="lazy"
-              className="h-[23px] w-auto footer-navy:brightness-0 footer-navy:invert"
+              className="h-[23px] w-auto max-[384px]:h-[17px] footer-navy:brightness-0 footer-navy:invert"
             />
           </p>
         </div>
