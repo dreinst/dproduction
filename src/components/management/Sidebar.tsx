@@ -1,48 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import NextImage from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
-import {
-  LayoutDashboard,
-  Inbox,
-  Package,
-  Settings,
-  LogOut,
-  Building2,
-  Image,
-  X,
-  FileText,
-  ChevronDown,
-  type LucideIcon,
-} from "lucide-react";
-import { navFor, type NavIcon, type NavItem, type Role } from "@/lib/rbac";
-import { ADMIN_LOGIN } from "@/lib/admin-path";
-
-const ICONS: Record<NavIcon, LucideIcon> = {
-  dashboard: LayoutDashboard,
-  leads: Inbox,
-  database: FileText,
-  galeri: Image,
-  master: Package,
-  setting: Settings,
-  workspace: Building2,
-};
+import { useEffect, useId, useRef } from "react";
+import { navFor, ROLE_LABELS, type NavLink, type Role } from "@/lib/rbac";
+import { ADMIN_BASE, ADMIN_LOGIN } from "@/lib/admin-path";
 
 interface SidebarProps {
-  onClose?: () => void;
-  role: Role;
+  onClose: () => void;
+  user: { username: string; alias: string | null; role: Role };
 }
 
-export default function Sidebar({ onClose, role }: SidebarProps) {
+export default function Sidebar({ onClose, user }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [toggled, setToggled] = useState<Record<string, boolean>>({});
-  const navItems = navFor(role);
+  const groupId = useId();
+  const navRef = useRef<HTMLElement>(null);
 
-  const isActive = (href: string) => pathname === href;
-  const isGroupActive = (item: NavItem) => item.children?.some((child) => isActive(child.href)) ?? false;
+  // Grup selalu terbuka, jadi daftar menu bisa lebih tinggi dari layar. Butir aktif digulir sampai terlihat, dengan
+  // sela setengah butir dari tepi supaya latarnya tidak menutup bayangan penanda gulir di tepi daftar.
+  // scrollTop dihitung sendiri: scrollIntoView ikut memindahkan titik awal Tab ke butir itu, sehingga tautan lompat terlewati.
+  useEffect(() => {
+    const nav = navRef.current;
+    const active = nav?.querySelector('[aria-current="page"]')?.getBoundingClientRect();
+    if (!nav || !active) return;
+    const box = nav.getBoundingClientRect();
+    const gap = active.height / 2;
+    if (active.top - gap < box.top) nav.scrollTop -= box.top - active.top + gap;
+    else if (active.bottom + gap > box.bottom) nav.scrollTop += active.bottom - box.bottom + gap;
+  }, [pathname]);
+
+  // Sama dengan canAccessPath: halaman anak ikut menandai menu induknya, kecuali Dashboard yang hanya cocok persis.
+  const isActive = (href: string) => pathname === href || (href !== ADMIN_BASE && pathname.startsWith(`${href}/`));
 
   const handleLogout = async () => {
     try {
@@ -54,104 +43,53 @@ export default function Sidebar({ onClose, role }: SidebarProps) {
     router.refresh();
   };
 
+  const link = (item: NavLink) => (
+    <Link
+      key={item.href}
+      href={item.href}
+      onClick={onClose}
+      aria-current={isActive(item.href) ? "page" : undefined}
+      className="adm-nav__item"
+    >
+      {item.name}
+    </Link>
+  );
+
   return (
-    <aside className="w-64 bg-white h-full flex flex-col border-r border-slate-200 shadow-sm">
-      <div className="p-5 flex items-center justify-between border-b border-slate-100">
-        <div className="flex items-center gap-3">
-          <NextImage src="/logo-dpro.png" alt="" width={44} height={44} className="h-11 w-11 rounded-xl object-contain" />
-          <div>
-            <div className="text-slate-800 font-bold text-sm tracking-tight">D&apos;Production</div>
-            <div className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Manajemen</div>
-          </div>
+    <aside className="adm-side">
+      <div className="adm-side__brand">
+        <div>
+          <p className="adm-brand">D&apos;Production</p>
+          <p className="adm-brand__note">Panel pengelola</p>
         </div>
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Tutup menu"
-            className="lg:hidden p-1 text-slate-500 hover:text-slate-700 transition-colors"
-          >
-            <X className="w-5 h-5" aria-hidden />
-          </button>
-        )}
+        <button type="button" onClick={onClose} className="adm-btn adm-btn--sm adm-btn--outline lg:hidden">
+          Tutup
+        </button>
       </div>
 
-      <nav aria-label="Menu admin" className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
-          const Icon = ICONS[item.icon];
-
-          if (!item.children) {
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={onClose}
-                aria-current={isActive(item.href) ? "page" : undefined}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  isActive(item.href) ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                }`}
-              >
-                <Icon className="w-[18px] h-[18px]" aria-hidden />
+      {/* Menu dirender apa adanya dari NAV di rbac.ts: tautan lepas jadi butir, grup jadi label dan butir di bawahnya. */}
+      <nav ref={navRef} aria-label="Menu admin" className="adm-nav">
+        {navFor(user.role).map((item, i) =>
+          item.children ? (
+            <div key={item.name} role="group" aria-labelledby={`${groupId}-${i}`}>
+              <p id={`${groupId}-${i}`} className="adm-nav__group">
                 {item.name}
-              </Link>
-            );
-          }
-
-          const groupActive = isGroupActive(item);
-          const expanded = toggled[item.name] ?? groupActive;
-          const listId = `nav-${item.icon}`;
-          return (
-            <div key={item.name}>
-              <button
-                type="button"
-                onClick={() => setToggled((prev) => ({ ...prev, [item.name]: !expanded }))}
-                aria-expanded={expanded}
-                aria-controls={listId}
-                className={`flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  groupActive ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                }`}
-              >
-                <span className="flex items-center gap-3">
-                  <Icon className="w-[18px] h-[18px]" aria-hidden />
-                  {item.name}
-                </span>
-                <ChevronDown
-                  className={`w-4 h-4 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
-                  aria-hidden
-                />
-              </button>
-              {expanded && (
-                <div id={listId} className="ml-8 mt-1 space-y-0.5 border-l-2 border-slate-100 pl-3">
-                  {item.children.map((child) => (
-                    <Link
-                      key={child.href}
-                      href={child.href}
-                      onClick={onClose}
-                      aria-current={isActive(child.href) ? "page" : undefined}
-                      className={`block px-3 py-2 rounded-lg text-sm transition-all ${
-                        isActive(child.href)
-                          ? "text-blue-700 bg-blue-50/50 font-medium"
-                          : "text-slate-600 hover:text-slate-800 hover:bg-slate-50"
-                      }`}
-                    >
-                      {child.name}
-                    </Link>
-                  ))}
-                </div>
-              )}
+              </p>
+              {item.children.map(link)}
             </div>
-          );
-        })}
+          ) : (
+            link(item)
+          ),
+        )}
       </nav>
 
-      <div className="p-3 border-t border-slate-100">
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-sm text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all font-medium"
-        >
-          <LogOut className="w-[18px] h-[18px]" aria-hidden />
-          Keluar Sistem
+      <div className="adm-side__user">
+        <div className="adm-side__who">
+          <p className="adm-side__alias">{user.alias || user.username}</p>
+          <p className="adm-side__role">{ROLE_LABELS[user.role]}</p>
+        </div>
+        <button type="button" onClick={handleLogout} className="adm-nav__item">
+          Keluar
         </button>
       </div>
     </aside>
