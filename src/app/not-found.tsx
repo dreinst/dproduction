@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import NotFoundView from "@/components/NotFoundView";
+import Kerangka from "@/components/site/Kerangka";
 import { KANTOR_CADANGAN } from "@/lib/landing-content";
 
 export const metadata: Metadata = {
@@ -12,12 +11,8 @@ export const metadata: Metadata = {
 // navigasi dan footer memakai data kantor dari konten kode, jadi halaman ini tetap tampil saat database mati.
 export default function NotFound() {
   return (
-    <>
-      <Navbar whatsapp={KANTOR_CADANGAN.whatsapp} />
-      <main className="flex-grow bg-slate-50 pt-24">
-        <NotFoundView />
-      </main>
-      <Footer kantor={KANTOR_CADANGAN} />
-    </>
+    <Kerangka kantor={KANTOR_CADANGAN}>
+      <NotFoundView />
+    </Kerangka>
   );
 }

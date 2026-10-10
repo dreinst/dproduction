@@ -1,32 +1,635 @@
 @import "tailwindcss";
 
+/* Token desain v2 (Figma "Draft Website dpro.events v2"). Nama memakai bahasa Indonesia supaya searah dengan nama
+   layer di Figma. */
 @theme {
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
+  /* warna */
+  --color-ink: #1d1d1f;
+  --color-mute: #6e6e73;
+  --color-latar: #f5f5f7;
+  --color-navy: #0b2144;
+  --color-navy-2: #0a2c63;
+  --color-navy-bayang: #050f29;
+  --color-merah: #ca1e1e;
+  --color-biru: #0052cd;
+  --color-biru-muda: #80a8ff;
+  --color-langit: #eef3fb;
+  --color-langit-2: #e9f0fb;
+  --color-garis: #e5e5ea;
+  --color-kosong: #e8e8ed;
+  --color-peta: #e8eaed;
+  --color-mati: #d1d1d6;
+  --color-hijau: #34c759;
+  --color-hijau-teks: #1e7b3c;
+
+  /* radius */
+  --radius-isian: 12px;
+  --radius-kotak: 14px;
+  --radius-pilihan: 16px;
+  --radius-wa: 18px;
+  --radius-produk: 24px;
+  --radius-kartu: 28px;
+  --radius-besar: 32px;
+  --radius-pintu: 36px;
+  --radius-hero: 40px;
+  --radius-raksasa: 44px;
+
+  /* bayangan */
+  --shadow-kaca: 0 18px 44px -8px rgb(5 15 41 / 0.28);
+  --shadow-panel: 0 24px 64px -10px rgb(5 15 41 / 0.24);
+
+  /* tipografi: ukuran, tinggi baris, jarak huruf, ketebalan */
+  --text-display: clamp(2.5rem, 6.4vw, 5.75rem);
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.035em;
+  --text-display--font-weight: 600;
+  --text-display-2: clamp(2.375rem, 5.56vw, 5rem);
+  --text-display-2--line-height: 1;
+  --text-display-2--letter-spacing: -0.035em;
+  --text-display-2--font-weight: 600;
+  --text-h2: clamp(1.875rem, 3.62vw, 3.25rem);
+  --text-h2--line-height: 1.08;
+  --text-h2--letter-spacing: -0.025em;
+  --text-h2--font-weight: 600;
+  --text-h3: clamp(1.625rem, 2.37vw, 2.125rem);
+  --text-h3--line-height: 1.13;
+  --text-h3--letter-spacing: -0.025em;
+  --text-h3--font-weight: 600;
+  --text-kategori: clamp(1.5rem, 2.23vw, 2rem);
+  --text-kategori--line-height: 1.15;
+  --text-kategori--letter-spacing: -0.025em;
+  --text-kategori--font-weight: 600;
+  --text-klien: clamp(1.375rem, 1.95vw, 1.75rem);
+  --text-klien--line-height: 1.2;
+  --text-klien--font-weight: 600;
+  --text-angka: clamp(1.75rem, 2.78vw, 2.5rem);
+  --text-angka--line-height: 1.1;
+  --text-angka--letter-spacing: -0.025em;
+  --text-angka--font-weight: 600;
+  --text-kartu-xl: clamp(1.375rem, 1.81vw, 1.625rem);
+  --text-kartu-xl--line-height: 1.2;
+  --text-kartu-xl--letter-spacing: -0.015em;
+  --text-kartu-xl--font-weight: 600;
+  --text-kartu-lg: clamp(1.25rem, 1.67vw, 1.5rem);
+  --text-kartu-lg--line-height: 1.2;
+  --text-kartu-lg--letter-spacing: -0.015em;
+  --text-kartu-lg--font-weight: 600;
+  --text-kartu-md: clamp(1.25rem, 1.53vw, 1.375rem);
+  --text-kartu-md--line-height: 1.25;
+  --text-kartu-md--letter-spacing: -0.01em;
+  --text-kartu-md--font-weight: 600;
+  --text-kartu-sm: 1.1875rem;
+  --text-kartu-sm--line-height: 1.3;
+  --text-kartu-sm--letter-spacing: -0.01em;
+  --text-kartu-sm--font-weight: 600;
+  --text-lead: clamp(1.0625rem, 1.39vw, 1.25rem);
+  --text-lead--line-height: 1.5;
+  --text-sub: clamp(1.0625rem, 1.32vw, 1.1875rem);
+  --text-sub--line-height: 1.5;
+  --text-isi: 1rem;
+  --text-isi--line-height: 1.5;
+  --text-isi-sm: 0.9375rem;
+  --text-isi-sm--line-height: 1.5;
+  --text-eyebrow: 0.9375rem;
+  --text-eyebrow--line-height: 1.2;
+  --text-eyebrow--font-weight: 500;
+  --text-tombol: 0.9375rem;
+  --text-tombol--line-height: 1.2;
+  --text-tombol--font-weight: 500;
+  --text-tombol-sm: 0.875rem;
+  --text-tombol-sm--line-height: 1.2;
+  --text-tombol-sm--font-weight: 500;
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.3;
+  --text-label--font-weight: 500;
+  --text-mini: 0.75rem;
+  --text-mini--line-height: 1.3;
+
+  /* tata letak */
+  --container-konten: 80rem;
+  --container-nav: 75rem;
+  --breakpoint-xs: 30rem;
+
+  /* jarak: nilai di frame 1440, mengecil di layar sempit lewat blok di bawah */
+  --spacing-tepi: 5rem;
+  --spacing-section: 7.5rem;
+  --spacing-kepala: 3.5rem;
+  --spacing-kisi: 1.5rem;
 }
 
-/* Font variables are set by next/font on <body>, so they must be inlined
-   into the utilities instead of referenced from :root. */
+/* Variabel font dipasang next/font di <body>, jadi nilainya harus ditanam langsung ke utilitas, tidak bisa dirujuk
+   dari :root. */
 @theme inline {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  /* Kelas font-heading di berkas lama tetap jalan dan sekarang ikut memakai Inter. */
+  --font-heading: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
+
+/* Jarak dan radius besar mengecil di layar sempit. Utilitasnya membaca variabel ini, jadi px-tepi, py-section,
+   mt-kepala, gap-kisi, rounded-kartu, dan sejenisnya ikut menyesuaikan tanpa awalan md: atau lg:. */
+@layer theme {
+  @media (width < 80rem) {
+    :root {
+      --spacing-tepi: 3rem;
+    }
+  }
+  @media (width < 64rem) {
+    :root {
+      --spacing-tepi: 2rem;
+      --spacing-section: 6rem;
+      --spacing-kepala: 2.5rem;
+      --spacing-kisi: 1.25rem;
+    }
+  }
+  @media (width < 48rem) {
+    :root {
+      --spacing-tepi: 1.25rem;
+      --spacing-section: 4.5rem;
+      --spacing-kepala: 2rem;
+      --spacing-kisi: 1rem;
+      --radius-kartu: 22px;
+      --radius-besar: 24px;
+      --radius-pintu: 28px;
+      --radius-hero: 28px;
+      --radius-raksasa: 28px;
+    }
+  }
+}
+
+/* Aktif di halaman yang foto heronya bertanda data-hero-beranda: nav-kaca selama navigasi masih di atas foto itu,
+   footer-navy untuk footernya. Peramban tanpa :has() mengabaikan keduanya dan memakai tampilan terang. */
+@custom-variant nav-kaca (.situs:has([data-hero-beranda]) .nav-situs:not([data-terang="true"]) &);
+@custom-variant footer-navy (.situs:has([data-hero-beranda]) &);
 
 @layer base {
-  h1, h2, h3, h4 {
-    @apply font-heading;
+  /* Bawaan halaman publik v2, dipasang di pembungkus .situs (src/components/site/Kerangka.tsx). Bawaan body di bawah
+     masih dipakai halaman admin, jadi tidak diganti. */
+  .situs {
+    /* Navigasi menempel: jarak dari tepi atas layar, tinggi bilah, dan ruang yang dipakainya di puncak halaman. */
+    --nav-atas: 0.75rem;
+    --nav-tinggi: 3.5rem;
+    --nav-ruang: calc(var(--nav-atas) * 2 + var(--nav-tinggi));
+    /* Lapisan ber-z-index negatif di dalam halaman (foto latar hero) tetap tergambar di atas latar putih ini. */
+    isolation: isolate;
+    background-color: #fff;
+    color: var(--color-ink);
+    @variant md {
+      --nav-atas: 1.5rem;
+    }
+    @variant lg {
+      --nav-tinggi: 4rem;
+    }
+  }
+  .situs > main {
+    padding-top: var(--nav-ruang);
+  }
+  /* Hero Beranda mulai dari tepi atas layar, navigasi menumpang di atas fotonya. */
+  .situs:has([data-hero-beranda]) > main {
+    padding-top: 0;
+  }
+  .situs :is(h1, h2, h3) {
+    text-wrap: balance;
+  }
+  .situs p {
+    text-wrap: pretty;
+  }
+  /* Tujuan tautan jangkar (/#kontak, /tentang#faq) tidak tertutup navigasi. */
+  .situs [id] {
+    scroll-margin-top: var(--nav-ruang);
+  }
+  .situs :focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
   }
 }
 
-@layer utilities {
-  .glass-panel {
-    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-xl;
+body {
+  @apply text-slate-700 bg-slate-50 antialiased;
+}
+
+/* ===== Resep kaca v2 (dicocokkan dengan Figma lewat sampel piksel) ===== */
+@property --tepi-1 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(255 255 255 / 0.75);
+}
+@property --tepi-2 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(255 255 255 / 0.12);
+}
+@property --tepi-3 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(255 255 255 / 0.35);
+}
+@property --cahaya-r {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 95px;
+}
+@property --cahaya-a {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+@property --cahaya-w {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+@layer components {
+  /* Radius, ukuran, dan padding diberikan pemakainya. Jangan beri overflow: hidden pada elemen .kaca. */
+  .kaca {
+    --kaca-isi: linear-gradient(180deg, rgb(255 255 255 / 0.04), rgb(255 255 255 / 0.016));
+    /* Pengganti bayangan Figma yang ikut tampil di balik kaca. */
+    --kaca-dasar: rgb(5 15 41 / 0.16);
+    --kaca-buram: 9px;
+    --kaca-jenuh: 1.2;
+    --kaca-bayang: 0 18px 44px -8px rgb(5 15 41 / 0.28);
+    --kaca-kilau: inset 0 1.5px 1px rgb(255 255 255 / 0.45);
+    --kaca-pendar: 0 0 0 0 rgb(0 82 205 / 0);
+    --kaca-pendar-dalam: inset 0 0 0 0 rgb(0 82 205 / 0);
+    --tepi-tebal: 1px;
+    --mx: 50%;
+    --my: 50%;
+    position: relative;
+    isolation: isolate;
+    background: var(--kaca-isi), var(--kaca-dasar);
+    -webkit-backdrop-filter: blur(var(--kaca-buram)) saturate(var(--kaca-jenuh));
+    backdrop-filter: blur(var(--kaca-buram)) saturate(var(--kaca-jenuh));
+    box-shadow: var(--kaca-bayang), var(--kaca-kilau), var(--kaca-pendar), var(--kaca-pendar-dalam);
   }
+  /* Garis tepi gradasi di dalam. border-image tidak dipakai karena mengabaikan border-radius. */
+  .kaca::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: var(--tepi-tebal);
+    background: linear-gradient(180deg, var(--tepi-1), var(--tepi-2) 50%, var(--tepi-3));
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    pointer-events: none;
+  }
+  /* Label pintu acara. Lebih pekat dari nilai Figma (navy 0,084 ke 0,06), yang terlalu bening untuk teks putih. */
+  .kaca--navy {
+    --kaca-isi: linear-gradient(180deg, rgb(11 33 68 / 0.42), rgb(11 33 68 / 0.3));
+  }
+  /* Panel lokasi. Ujung bawahnya lebih pekat dari nilai Figma (0,62): di atas peta yang terang, teks kecil dan
+     tombol garis di dasar panel tidak lolos kontras AA dengan nilai itu. */
+  .kaca--navy-tebal {
+    --kaca-isi: linear-gradient(180deg, rgb(11 33 68 / 0.78), rgb(11 33 68 / 0.75));
+    --kaca-dasar: transparent;
+  }
+
+  /* Peramban tanpa backdrop-filter: warna dasar dinaikkan supaya teks putih tetap terbaca. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .kaca {
+      --kaca-dasar: rgb(11 33 68 / 0.62);
+    }
+    .kaca--navy-tebal {
+      --kaca-isi: linear-gradient(180deg, rgb(11 33 68 / 0.94), rgb(11 33 68 / 0.9));
+      --kaca-dasar: transparent;
+    }
+  }
+  /* Pengguna meminta transparansi dikurangi: permukaan padat tanpa buram. */
+  @media (prefers-reduced-transparency: reduce) {
+    .kaca {
+      --kaca-isi: linear-gradient(#0b2144, #0b2144);
+      --kaca-dasar: transparent;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+  @media (forced-colors: active) {
+    .kaca {
+      border: 1px solid CanvasText;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    .kaca::after,
+    .kaca-biru::before {
+      content: none;
+    }
+  }
+
+  /* ===== Interaksi kaca biru (papan Figma 1212:1397) =====
+     Penuh (.kaca-biru): cahaya mengikuti kursor, tepi biru, mengecil ke 97%, riak. Untuk tombol kaca dan kartu pintu.
+     Diam (.kaca-biru--diam): cahaya dan tepi saja. Untuk wadah besar: navigasi, pita angka, form kontak, panel peta.
+     data-sorot, data-tekan, --mx, dan --my ditulis src/components/site/KacaBiru.tsx. Tanpa skrip permukaan tetap
+     kaca biasa dan keadaan sorot hanya muncul saat mendapat fokus papan ketik. */
+  .kaca-biru {
+    transition:
+      --tepi-1 300ms ease-out,
+      --tepi-2 300ms ease-out,
+      --tepi-3 300ms ease-out,
+      --cahaya-a 300ms ease-out,
+      --cahaya-w 300ms ease-out,
+      --cahaya-r 300ms ease-out,
+      box-shadow 300ms ease-out,
+      transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  /* Render Figma membasuh seluruh permukaan dengan biru, puncaknya di kursor. */
+  .kaca-biru::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(
+      circle at var(--mx) var(--my),
+      rgb(0 82 205 / var(--cahaya-a)) 0,
+      rgb(0 82 205 / var(--cahaya-a)) calc(var(--cahaya-r) * 0.5),
+      rgb(0 82 205 / var(--cahaya-w)) calc(var(--cahaya-r) * 2)
+    );
+  }
+  .kaca-biru:is([data-sorot], :focus-visible) {
+    --tepi-1: rgb(128 168 255 / 0.95);
+    --tepi-2: rgb(0 82 205 / 0.7);
+    --tepi-3: rgb(128 168 255 / 0.85);
+    --tepi-tebal: 1.5px;
+    --cahaya-a: 0.78;
+    --cahaya-w: 0.4;
+    --cahaya-r: 95px;
+    --kaca-pendar: 0 0 36px 0 rgb(0 82 205 / 0.55);
+    transition-duration: 200ms;
+  }
+  .kaca-biru[data-tekan] {
+    --tepi-1: rgb(128 168 255 / 0.95);
+    --tepi-2: rgb(0 82 205 / 0.7);
+    --tepi-3: rgb(128 168 255 / 0.85);
+    --tepi-tebal: 1.5px;
+    --cahaya-a: 0.92;
+    --cahaya-w: 0.75;
+    --cahaya-r: 150px;
+    --kaca-pendar: 0 0 22px 2px rgb(0 82 205 / 0.8);
+    --kaca-pendar-dalam: inset 0 0 28px 0 rgb(0 82 205 / 0.55);
+    transform: scale(0.97);
+    transition-duration: 200ms;
+  }
+  .kaca-biru--diam[data-tekan] {
+    transform: none;
+  }
+  .kaca-biru:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 3px;
+  }
+  /* Riak klik, disisipkan skrip di titik tekan. */
+  .kaca-riak {
+    position: absolute;
+    left: var(--mx);
+    top: var(--my);
+    width: 120px;
+    height: 120px;
+    margin: -60px 0 0 -60px;
+    border: 1.5px solid rgb(255 255 255 / 0.7);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: -1;
+    animation: kaca-riak 500ms ease-out forwards;
+  }
+  .kaca-biru:has(> .kaca-riak) {
+    overflow: clip;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .kaca-biru {
+      transition-property: --tepi-1, --tepi-2, --tepi-3, --cahaya-a, --cahaya-w, box-shadow;
+    }
+    .kaca-biru[data-tekan] {
+      transform: none;
+      --cahaya-r: 95px;
+    }
+    .kaca-riak {
+      display: none;
+    }
+  }
+
+  /* ===== Tombol pil. Pakai lewat tombol() di src/components/site/tombol.ts ===== */
+  .tombol {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    height: 3rem;
+    padding-inline: 26px;
+    border-radius: 999px;
+    font-size: var(--text-tombol);
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .tombol--kecil {
+    height: 37px;
+    padding-inline: 18px;
+    font-size: var(--text-tombol-sm);
+  }
+  @media (pointer: coarse) {
+    .tombol--kecil {
+      height: 2.75rem;
+    }
+  }
+  /* outline-color: warna garis fokus mengikuti latar tempat tombol biasa berada (putih di gelap, biru di terang). */
+  .tombol--putih {
+    background-color: #fff;
+    color: var(--color-ink);
+    outline-color: #fff;
+  }
+  .tombol--navy {
+    background-color: var(--color-navy);
+    color: #fff;
+    outline-color: var(--color-biru);
+  }
+  /* Untuk latar navy. */
+  .tombol--garis {
+    background-color: rgb(255 255 255 / 0.12);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.55);
+    color: #fff;
+    outline-color: #fff;
+  }
+  .tombol--kaca {
+    color: #fff;
+  }
+  @media (hover: hover) {
+    .tombol--putih:hover {
+      background-color: var(--color-latar);
+    }
+    .tombol--navy:hover {
+      background-color: var(--color-navy-2);
+    }
+    .tombol--garis:hover {
+      background-color: rgb(255 255 255 / 0.2);
+    }
+  }
+  .tombol:is(:disabled, [aria-disabled="true"]) {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  /* Di mode warna paksa latar tombol diganti warna kanvas, jadi tepinya digaris supaya tetap tampak sebagai tombol. */
+  @media (forced-colors: active) {
+    .tombol {
+      border: 1px solid ButtonText;
+    }
+  }
+  /* Ditekan mengecil ke 97% lalu kembali dalam 300 ms. Tombol kaca diatur .kaca-biru. */
+  @media (prefers-reduced-motion: no-preference) {
+    .tombol:not(.kaca) {
+      transition:
+        background-color 200ms ease-out,
+        scale 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .tombol:not(.kaca):active {
+      scale: 0.97;
+      transition-duration: 200ms;
+    }
+  }
+
+  /* ===== Navigasi publik (src/components/site/Navigasi.tsx) =====
+     Bawaan: varian terang yang menempel di atas layar. Di halaman ber-hero Beranda bilahnya memakai resep kaca selama
+     masih di atas foto, lalu Navigasi menulis data-terang="true" saat foto lewat. Sebelum skrip jalan (data-terang
+     belum ada) bilah ikut tergulir bersama hero, supaya tidak pernah tertinggal sebagai kaca berteks putih di atas
+     section terang. */
+  .nav-situs {
+    position: fixed;
+    top: var(--nav-atas);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .nav-situs {
+      transition: top 200ms ease-out;
+    }
+  }
+  .situs:has([data-hero-beranda]) .nav-situs:not([data-terang]) {
+    position: absolute;
+  }
+  /* Foto hero berjarak 12, 16, lalu 24 px dari tepi layar (HP, tablet, desktop). Selama di atasnya, bilah turun
+     sejauh itu supaya tetap 12 sampai 24 px di dalam foto, seperti di Figma (y 48 pada frame 1440). */
+  .situs:has([data-hero-beranda]) .nav-situs:not([data-terang="true"]) {
+    top: 1.5rem;
+    @variant md {
+      top: 2.5rem;
+    }
+    @variant lg {
+      top: 3rem;
+    }
+  }
+  /* Varian terang: #F5F5F7 alfa 0,82 dengan blur, tanpa garis tepi kaca, tanpa bayangan, tanpa cahaya biru. Garis
+     tipis menjaga bentuk bilah tetap terlihat di atas section berlatar #F5F5F7. */
+  .nav-bilah {
+    --kaca-buram: 15px;
+    --kaca-jenuh: 1.8;
+    background: rgb(245 245 247 / 0.82);
+    box-shadow: 0 0 0 1px rgb(29 29 31 / 0.06);
+  }
+  .nav-bilah::before,
+  .nav-bilah::after {
+    content: none;
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .nav-bilah {
+      background: rgb(245 245 247 / 0.97);
+    }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .nav-bilah {
+      background: #f5f5f7;
+    }
+  }
+  /* Di atas foto hero: kembali ke resep .kaca. */
+  .situs:has([data-hero-beranda]) .nav-situs:not([data-terang="true"]) .nav-bilah {
+    --kaca-buram: 9px;
+    --kaca-jenuh: 1.2;
+    background: var(--kaca-isi), var(--kaca-dasar);
+    box-shadow: var(--kaca-bayang), var(--kaca-kilau), var(--kaca-pendar), var(--kaca-pendar-dalam);
+  }
+  .situs:has([data-hero-beranda]) .nav-situs:not([data-terang="true"]) .nav-bilah::before,
+  .situs:has([data-hero-beranda]) .nav-situs:not([data-terang="true"]) .nav-bilah::after {
+    content: "";
+  }
+  /* Begitu foto hero mulai tergulir (Navigasi menulis data-pekat="true"), judul dan tombol putih hero lewat di
+     belakang bilah, jadi kacanya diberi lapisan navy supaya menu dan logo tetap terbaca. Lapisan itu ditaruh di
+     ::before, yang dibuang di varian terang: yang memudar hanya pergantian antara kaca tipis dan pekat, dan saat
+     bilah kembali dari varian terang lapisannya langsung penuh. */
+  .situs:has([data-hero-beranda]) .nav-situs:not([data-terang="true"]) .nav-bilah::before {
+    transition: background-color 200ms ease-out;
+  }
+  .situs:has([data-hero-beranda]) .nav-situs[data-pekat="true"]:not([data-terang="true"]) .nav-bilah::before {
+    background-color: rgb(11 33 68 / 0.7);
+  }
+
+  /* Lembar menu HP: <dialog> layar penuh berkaca navy. Lebih pekat dari .kaca--navy-tebal supaya teks putih tetap
+     kontras saat halaman di belakangnya putih. Muncul dan hilang dalam 200 ms di peramban yang mendukung transisi
+     display; di peramban lain langsung tampil. */
+  .nav-lembar {
+    --kaca-isi: linear-gradient(180deg, rgb(11 33 68 / 0.92), rgb(11 33 68 / 0.82));
+    --kaca-dasar: transparent;
+    --kaca-buram: 22px;
+    opacity: 0;
+    translate: 0 -8px;
+    transition:
+      opacity 200ms ease-out,
+      translate 200ms ease-out,
+      overlay 200ms allow-discrete,
+      display 200ms allow-discrete;
+  }
+  .nav-lembar:is([open], :popover-open) {
+    opacity: 1;
+    translate: 0 0;
+  }
+  @starting-style {
+    .nav-lembar:is([open], :popover-open) {
+      opacity: 0;
+      translate: 0 -8px;
+    }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .nav-lembar {
+      --kaca-isi: linear-gradient(#0b2144, #0b2144);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nav-lembar {
+      translate: none;
+    }
+    @starting-style {
+      .nav-lembar:is([open], :popover-open) {
+        translate: none;
+      }
+    }
+  }
+  /* Garis tepi kaca ikut tergulir bersama isi lembar, jadi dibuang. */
+  .nav-lembar::after {
+    content: none;
+  }
+  /* Halaman di belakang lembar tidak ikut tergulir. */
+  html:has(.nav-lembar:is([open], :popover-open)) {
+    overflow: hidden;
+  }
+}
+
+@keyframes kaca-riak {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+/* Utilitas situs v1. Masih dipakai section Beranda lama di src/components/sections, hapus bersama berkas itu. */
+@layer utilities {
   .glass-card {
     @apply bg-white/80 backdrop-blur-sm border border-slate-100 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl;
   }
@@ -36,11 +639,4 @@
   .gradient-bg {
     @apply bg-gradient-to-br from-blue-600 to-blue-800 text-white;
   }
-  .soft-shadow {
-    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08);
-  }
-}
-
-body {
-  @apply text-slate-700 bg-slate-50 antialiased;
 }
