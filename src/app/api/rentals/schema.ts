@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
-import { HttpError, NO_NUL, zName, zRupiah, zSortIndex, zText, zUrl } from '@/lib/api';
+import { HttpError, INT4_MAX, NO_NUL, zName, zRupiah, zSortIndex, zText, zUrl } from '@/lib/api';
 
 const CATEGORY_NOT_FOUND = 'Kategori tidak ditemukan. Pilih kategori dari daftar Kategori Katalog.';
 const EXTRA_UNIT = 'Keterangan harga tambahan wajib diisi, misalnya "per 2 momen".';
@@ -35,7 +35,7 @@ const fields = {
     .number({ error: CATEGORY_NOT_FOUND })
     .int(CATEGORY_NOT_FOUND)
     .positive(CATEGORY_NOT_FOUND)
-    .max(2147483647, CATEGORY_NOT_FOUND)
+    .max(INT4_MAX, CATEGORY_NOT_FOUND)
     .nullable()
     .optional(),
   priceHidden: z.boolean({ error: 'Pilihan "Harga lewat WhatsApp saja" harus ya atau tidak.' }),
@@ -61,9 +61,13 @@ export const createSchema = z.object({
 });
 export const updateSchema = z.object(fields).partial();
 
-// Kategori dicek dulu supaya pesan 400-nya jelas. Kalau kategori terhapus di antara cek dan simpan, foreign key menolak
-// dengan P2003 yang dipetakan ke pesan yang sama.
-export const MESSAGES = { P2025: 'Item katalog tidak ditemukan.', P2003: CATEGORY_NOT_FOUND };
+// Kategori yang tidak ada ditolak assertCategoryExists dengan 400. Yang tersisa untuk foreign key (P2003) hanya kategori
+// yang terhapus tepat di antara cek itu dan simpan. handleRouteError menjawab P2003 dengan 409 seperti benturan lain,
+// jadi pesannya dibedakan supaya "Kategori tidak ditemukan" selalu berarti 400.
+export const MESSAGES = {
+  P2025: 'Item katalog tidak ditemukan.',
+  P2003: 'Kategori yang dipilih baru saja dihapus. Muat ulang halaman, lalu pilih kategori lain.',
+};
 
 export async function assertCategoryExists(categoryId: number | null | undefined) {
   if (categoryId == null) return;

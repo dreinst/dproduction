@@ -32,7 +32,19 @@ export async function PUT(req: Request, { params }: Params) {
     const input = updateSchema.parse(await readJson(req));
     const before = await prisma.event.findUnique({ where: { id }, select: { photo: true, active: true, featured: true } });
     if (!before) return apiError(404, MESSAGES.P2025);
-    const event = await prisma.event.update({ where: { id }, data: applyMasterpieceRule(input, before) });
+    // Aturan Masterpiece dihitung dari nilai before, jadi nilai itu ikut menjadi syarat simpan. Kalau baris berubah di
+    // antara cek dan simpan (misalnya satu permintaan menyalakan Masterpiece dan permintaan lain melepas fotonya), tidak
+    // ada yang tersimpan, sehingga dua permintaan bersamaan tidak bisa menghasilkan Masterpiece tanpa foto.
+    const [event] = await prisma.event.updateManyAndReturn({
+      where: { id, ...before },
+      data: applyMasterpieceRule(input, before),
+    });
+    if (!event) {
+      return apiError(
+        409,
+        'Event ini berubah tepat saat Anda menyimpan, jadi perubahan Anda belum tersimpan. Muat ulang halaman, lalu coba lagi.',
+      );
+    }
     await audit(auth.user, 'ubah', 'Event', id, event.name);
     revalidateLanding();
     await removeUnusedImages(before.photo);

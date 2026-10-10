@@ -66,10 +66,26 @@ const page = (name: string, href: string, resource: Resource): NavLink => ({
   roles: API_ACCESS[resource].read,
 });
 
+// Di luar grup Workspace, label butir menu sama dengan judul halamannya (h1). Kalau salah satunya diganti, ganti juga
+// yang lain.
 export const NAV: NavItem[] = [
   { ...page('Dashboard', ADMIN_BASE, 'dashboard'), icon: 'dashboard' },
-  { ...page('Lead Masuk', `${ADMIN_BASE}/leads`, 'leads'), icon: 'leads' },
+  { ...page('Leads', `${ADMIN_BASE}/leads`, 'leads'), icon: 'leads' },
   { ...page('Database', `${ADMIN_BASE}/database`, 'database'), icon: 'database' },
+  {
+    name: 'Master',
+    icon: 'master',
+    children: [
+      page('Event', `${ADMIN_BASE}/master/event`, 'events'),
+      page('Wedding', `${ADMIN_BASE}/master/wedding`, 'weddings'),
+      page('Katalog', `${ADMIN_BASE}/master/rental`, 'rentals'),
+      page('Kategori Katalog', `${ADMIN_BASE}/master/kategori-katalog`, 'rentalCategories'),
+      page('Klien', `${ADMIN_BASE}/master/klien`, 'klien'),
+      page('Grade Event', `${ADMIN_BASE}/master/grade-event`, 'gradeEvents'),
+      page('JobDesc', `${ADMIN_BASE}/master/jobdesc`, 'jobdescs'),
+      page('Tarif', `${ADMIN_BASE}/master/tarif`, 'tarif'),
+    ],
+  },
   {
     name: 'Galeri',
     icon: 'galeri',
@@ -79,26 +95,12 @@ export const NAV: NavItem[] = [
     ],
   },
   {
-    name: 'Master',
-    icon: 'master',
-    children: [
-      page('Master Event', `${ADMIN_BASE}/master/event`, 'events'),
-      page('Master Wedding', `${ADMIN_BASE}/master/wedding`, 'weddings'),
-      page('Katalog', `${ADMIN_BASE}/master/rental`, 'rentals'),
-      page('Kategori Katalog', `${ADMIN_BASE}/master/kategori-katalog`, 'rentalCategories'),
-      page('Klien', `${ADMIN_BASE}/master/klien`, 'klien'),
-      page('Master Grade Event', `${ADMIN_BASE}/master/grade-event`, 'gradeEvents'),
-      page('Master JobDesc', `${ADMIN_BASE}/master/jobdesc`, 'jobdescs'),
-      page('Master Tarif', `${ADMIN_BASE}/master/tarif`, 'tarif'),
-    ],
-  },
-  {
     name: 'Setting',
     icon: 'setting',
     children: [
+      page('Head Home', `${ADMIN_BASE}/setting/head-home`, 'headHome'),
       page('Kantor', `${ADMIN_BASE}/setting/kantor`, 'kantorSettings'),
       page('Login', `${ADMIN_BASE}/setting/login`, 'users'),
-      page('Head Home', `${ADMIN_BASE}/setting/head-home`, 'headHome'),
     ],
   },
   {

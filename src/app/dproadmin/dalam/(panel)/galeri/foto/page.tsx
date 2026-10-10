@@ -205,7 +205,7 @@ export default function GaleriFotoPage() {
 
   return (
     <div className="space-y-10">
-      <h1 className="text-2xl font-bold text-slate-800">Galeri Foto</h1>
+      <h1 className="text-2xl font-bold text-slate-800">Foto</h1>
       <AlbumSection albums={albums} photos={photos.data} canWrite={canWrite} onSaved={photos.fetchAll} />
       <FotoSection photos={photos} albums={albums.data} canWrite={canWrite} />
     </div>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { RequestError, useApiRequest } from "@/hooks/useCrud";
 
-// Dipakai bersama halaman Workspace dan Master Tarif. WIB selalu UTC+7 tanpa jam musim panas.
+// Dipakai bersama halaman Workspace dan halaman Tarif. WIB selalu UTC+7 tanpa jam musim panas.
 export const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 
 const RUPIAH = new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 });

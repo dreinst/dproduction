@@ -74,7 +74,7 @@ export default function MasterJobDescPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-slate-800">Master JobDesc</h1>
+        <h1 className="text-2xl font-bold text-slate-800">JobDesc</h1>
         {canWrite && (
           <button
             type="button"
@@ -243,7 +243,7 @@ export default function MasterJobDescPage() {
         {errorBox}
         <p className="text-sm text-slate-700">
           JobDesc <span className="font-semibold text-slate-900">{deleteTarget?.name}</span> akan dihapus permanen dan
-          tidak bisa dikembalikan. Tarif JobDesc ini di Master Tarif ikut terhapus permanen, dan kalau masih ada tarifnya hanya
+          tidak bisa dikembalikan. Tarif JobDesc ini di menu Tarif ikut terhapus permanen, dan kalau masih ada tarifnya hanya
           Pemilik atau Super Admin yang bisa menghapus. JobDesc yang masih dipakai di penugasan crew tidak bisa dihapus.
         </p>
       </Modal>

@@ -80,7 +80,7 @@ export default function MasterTarifPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Master Tarif</h1>
+        <h1 className="text-2xl font-bold text-slate-800">Tarif</h1>
         <p className="mt-2 text-sm text-slate-700">
           Tarif honor per JobDesc untuk setiap Grade Event. Honor penugasan baru diisi otomatis dari tabel ini.
         </p>
@@ -97,7 +97,7 @@ export default function MasterTarifPage() {
           <div className="p-8 text-center text-slate-600">Memuat data tarif...</div>
         ) : !data.jobdescs.length || !data.grades.length ? (
           <p className="p-8 text-center text-sm text-slate-600">
-            Tarif bisa diisi setelah ada minimal satu JobDesc di Master JobDesc dan satu grade di Master Grade Event.
+            Tarif bisa diisi setelah ada minimal satu JobDesc di menu JobDesc dan satu grade di menu Grade Event.
           </p>
         ) : (
           <table className="w-full text-sm">

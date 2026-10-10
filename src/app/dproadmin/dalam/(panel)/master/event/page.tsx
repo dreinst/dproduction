@@ -108,7 +108,7 @@ export default function MasterEventPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-800">Master Event</h1>
+      <h1 className="text-2xl font-bold text-slate-800">Event</h1>
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>

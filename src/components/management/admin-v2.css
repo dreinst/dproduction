@@ -269,6 +269,14 @@
   .adm-drop__title { font-size: 15px; font-weight: 500; line-height: 1.3; }
   .adm-drop__hint { font-size: 13px; line-height: 1.3; color: var(--adm-mute); }
   .adm-photo { display: block; width: 100%; height: 176px; border-radius: 18px; object-fit: cover; background: var(--adm-empty); }
+  /* Tambahan untuk PhotoField. Logo tampil utuh di atas putih, sedangkan foto dipotong mengisi kotak. Cincin navy
+     menandai foto akan diganti berkas yang sedang diseret di atasnya. */
+  .adm-photo--contain { object-fit: contain; padding: 16px; background: #fff; border: 1px solid var(--adm-line); }
+  .adm-photo[data-over="true"] { box-shadow: 0 0 0 2px var(--adm-navy); }
+  .adm-photo__note { font-size: 12px; line-height: 1.2; color: var(--adm-mute); }
+  /* Kotak galat di dalam kaca: di bagian bawah kaca latar merah mudanya lebih gelap, dan merah #CA1E1E di atasnya
+     terukur 4,45 banding 1. Merah yang lebih gelap lolos AA di seluruh tinggi drawer. */
+  .adm-glass .adm-alert { color: #a81818; }
 
   /* Layar pendek: butir menu dirapatkan supaya lebih banyak yang terlihat tanpa menggulir. */
   @media (max-height: 900px) {

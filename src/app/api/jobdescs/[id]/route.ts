@@ -59,7 +59,7 @@ export async function DELETE(_req: Request, { params }: Params) {
     if (!count) {
       return ownsTarif
         ? apiError(404, MESSAGES.P2025)
-        : apiError(409, 'Masih ada tarif untuk JobDesc ini. Minta Pemilik atau Super Admin menghapus tarifnya dulu di Master Tarif.');
+        : apiError(409, 'Masih ada tarif untuk JobDesc ini. Minta Pemilik atau Super Admin menghapus tarifnya dulu di menu Tarif.');
     }
     const tarif = jobdesc._count.tarif;
     await audit(auth.user, 'hapus', 'JobDesc', id, tarif ? `${jobdesc.name}, ${tarif} tarif ikut terhapus` : jobdesc.name);

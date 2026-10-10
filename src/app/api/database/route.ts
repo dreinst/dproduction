@@ -7,15 +7,15 @@ import { ADMIN_BASE } from '@/lib/admin-path';
 
 // href null berarti tabel tidak punya halaman sendiri (hanya ditampilkan jumlahnya).
 const TABLES: readonly (readonly [table: string, name: string, href: string | null])[] = [
-  ['Client', 'Lead Masuk', `${ADMIN_BASE}/leads`],
-  ['Event', 'Master Event', `${ADMIN_BASE}/master/event`],
-  ['Wedding', 'Master Wedding', `${ADMIN_BASE}/master/wedding`],
+  ['Client', 'Leads', `${ADMIN_BASE}/leads`],
+  ['Event', 'Event', `${ADMIN_BASE}/master/event`],
+  ['Wedding', 'Wedding', `${ADMIN_BASE}/master/wedding`],
   ['Rental', 'Katalog', `${ADMIN_BASE}/master/rental`],
   ['RentalCategory', 'Kategori Katalog', `${ADMIN_BASE}/master/kategori-katalog`],
   ['Klien', 'Klien', `${ADMIN_BASE}/master/klien`],
-  ['GradeEvent', 'Master Grade Event', `${ADMIN_BASE}/master/grade-event`],
-  ['JobDesc', 'Master JobDesc', `${ADMIN_BASE}/master/jobdesc`],
-  ['Tarif', 'Master Tarif', `${ADMIN_BASE}/master/tarif`],
+  ['GradeEvent', 'Grade Event', `${ADMIN_BASE}/master/grade-event`],
+  ['JobDesc', 'JobDesc', `${ADMIN_BASE}/master/jobdesc`],
+  ['Tarif', 'Tarif', `${ADMIN_BASE}/master/tarif`],
   ['GaleriAlbum', 'Galeri Album', `${ADMIN_BASE}/galeri/foto`],
   ['GaleriFoto', 'Galeri Foto', `${ADMIN_BASE}/galeri/foto`],
   ['GaleriVideo', 'Galeri Video', `${ADMIN_BASE}/galeri/video`],

@@ -74,7 +74,7 @@ export default function MasterGradeEventPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-slate-800">Master Grade Event</h1>
+        <h1 className="text-2xl font-bold text-slate-800">Grade Event</h1>
         {canWrite && (
           <button
             type="button"
@@ -243,7 +243,7 @@ export default function MasterGradeEventPage() {
         {errorBox}
         <p className="text-sm text-slate-700">
           Grade <span className="font-semibold text-slate-900">{deleteTarget?.grade}</span> akan dihapus permanen dan
-          tidak bisa dikembalikan. Tarif untuk grade ini di Master Tarif ikut terhapus permanen, dan kalau masih ada tarifnya
+          tidak bisa dikembalikan. Tarif untuk grade ini di menu Tarif ikut terhapus permanen, dan kalau masih ada tarifnya
           hanya Pemilik atau Super Admin yang bisa menghapus. Grade yang masih dipakai Workspace Event tidak bisa dihapus.
         </p>
       </Modal>

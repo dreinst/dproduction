@@ -270,7 +270,7 @@ export default function SettingKantorPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-slate-800">Setting Kantor</h1>
+        <h1 className="text-2xl font-bold text-slate-800">Kantor</h1>
         <button
           type="button"
           onClick={openForm}

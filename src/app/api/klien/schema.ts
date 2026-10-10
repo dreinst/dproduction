@@ -19,7 +19,9 @@ export const klienSelect = { id: true, name: true, logo: true, active: true, cre
 export const MESSAGES = { P2025: 'Klien tidak ditemukan.', P2002: 'Klien dengan nama ini sudah ada.' };
 
 // Nama dicek dulu tanpa membedakan huruf besar dan kecil supaya pesan 400-nya jelas dan satu klien tidak terhitung dua
-// kali. Kalau nama yang sama masuk di antara cek dan simpan, indeks unik menolak dengan P2002 yang pesannya sama.
+// kali. Cek ini tidak dikunci. Kalau dua permintaan bernama sama datang bersamaan, indeks unik di tabel hanya menolak
+// nama yang sama persis (P2002, dijawab 409 dengan pesan yang sama). Nama yang hanya berbeda huruf besar dan kecil
+// lolos keduanya, karena indeks itu membedakan huruf.
 export async function assertNameFree(name: string | undefined, exceptId?: number) {
   if (name === undefined) return;
   const taken = await prisma.klien.findFirst({

@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { apiError, handleRouteError, parseId, readJson } from '@/lib/api';
 import { requireAccess } from '@/lib/auth';
 import { audit } from '@/lib/audit';
+import { revalidateLanding } from '@/lib/revalidate';
 import { changedFields } from '../../workspace-events/shared';
 import { MESSAGES, selectFor, stripBank, updateSchema } from '../schema';
 
@@ -35,6 +36,8 @@ export async function PUT(req: Request, { params }: Params) {
     // Hanya nama field, tanpa isinya, karena nama dan nomor WhatsApp crew termasuk data pribadi.
     const changed = changedFields(data, current);
     await audit(auth.user, 'ubah', 'Crew', id, changed.length ? `field diubah: ${changed.join(', ')}` : 'tanpa perubahan');
+    // Angka kru di situs dihitung dari jumlah crew aktif, jadi hanya perubahan status aktif yang perlu sampai ke sana.
+    if (changed.includes('active')) revalidateLanding();
     return NextResponse.json(crew);
   } catch (error) {
     return handleRouteError(error, MESSAGES);
@@ -49,6 +52,7 @@ export async function DELETE(_req: Request, { params }: Params) {
     if (!id) return apiError(400, INVALID_ID);
     await prisma.crew.delete({ where: { id } });
     await audit(auth.user, 'hapus', 'Crew', id);
+    revalidateLanding();
     return NextResponse.json({ message: 'Crew dihapus permanen.' });
   } catch (error) {
     return handleRouteError(error, MESSAGES);

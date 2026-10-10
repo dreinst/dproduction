@@ -330,7 +330,7 @@ export default function LeadsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Lead Masuk</h1>
+        <h1 className="text-2xl font-bold text-slate-800">Leads</h1>
         <p className="mt-1 text-sm text-slate-600">Pesan dari form kontak website, yang terbaru di atas.</p>
       </div>
 
@@ -526,20 +526,23 @@ export default function LeadsPage() {
                 <dt className="text-slate-600">Waktu masuk</dt>
                 <dd className="font-medium text-slate-800">{formatDate(detail.createdAt)}</dd>
               </div>
-              <div className="sm:col-span-2">
-                <dt className="text-slate-600">Pesan asli (tidak bisa diubah)</dt>
-                <dd className="mt-1">
-                  {/* Bisa difokus supaya pesan panjang bisa digulir dengan keyboard; juga fokus awal modal ini. */}
-                  <div
-                    role="region"
-                    aria-label="Pesan asli"
-                    tabIndex={0}
-                    className="max-h-60 overflow-y-auto rounded-lg bg-slate-50 p-3 text-slate-800 whitespace-pre-wrap wrap-anywhere focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-600"
-                  >
-                    {detail.message}
-                  </div>
-                </dd>
-              </div>
+              {/* Pesan dan tanggal acara opsional di form kontak. Lead tanpa keduanya tidak punya isi untuk ditampilkan. */}
+              {detail.message.trim() && (
+                <div className="sm:col-span-2">
+                  <dt className="text-slate-600">Pesan asli (tidak bisa diubah)</dt>
+                  <dd className="mt-1">
+                    {/* Bisa difokus supaya pesan panjang bisa digulir dengan keyboard; juga fokus awal modal ini. */}
+                    <div
+                      role="region"
+                      aria-label="Pesan asli"
+                      tabIndex={0}
+                      className="max-h-60 overflow-y-auto rounded-lg bg-slate-50 p-3 text-slate-800 whitespace-pre-wrap wrap-anywhere focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-600"
+                    >
+                      {detail.message}
+                    </div>
+                  </dd>
+                </div>
+              )}
             </dl>
 
             <section aria-labelledby="lead-follow-title" className="border-t border-slate-100 pt-5">

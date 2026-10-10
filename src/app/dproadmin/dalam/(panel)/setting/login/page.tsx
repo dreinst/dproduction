@@ -94,7 +94,7 @@ export default function SettingLoginPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-800">Setting Login</h1>
+      <h1 className="text-2xl font-bold text-slate-800">Login</h1>
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>

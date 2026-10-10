@@ -19,8 +19,10 @@ export const MESSAGES = { P2025: 'Kategori tidak ditemukan.', P2002: 'Kategori d
 // Jumlah item ikut dikirim supaya halaman admin bisa menampilkannya dan tahu kategori mana yang belum bisa dihapus.
 export const includeCount = { _count: { select: { rentals: true } } } as const;
 
-// Nama dicek dulu tanpa membedakan huruf besar dan kecil supaya pesan 400-nya jelas. Kalau nama yang sama masuk di
-// antara cek dan simpan, indeks unik menolak dengan P2002 yang pesannya sama.
+// Nama dicek dulu tanpa membedakan huruf besar dan kecil supaya pesan 400-nya jelas. Cek ini tidak dikunci. Kalau dua
+// permintaan bernama sama datang bersamaan, indeks unik di tabel hanya menolak nama yang sama persis (P2002, dijawab
+// 409 dengan pesan yang sama). Nama yang hanya berbeda huruf besar dan kecil lolos keduanya, karena indeks itu
+// membedakan huruf.
 export async function assertNameFree(name: string | undefined, exceptId?: number) {
   if (name === undefined) return;
   const taken = await prisma.rentalCategory.findFirst({
