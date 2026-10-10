@@ -40,14 +40,14 @@ const checks = [
     return res.status === 200 && (await res.text()).includes("<urlset");
   }],
   // Path gambar OG diambil dari meta og:image, karena Next memberi sufiks hash kalau file ada di route group.
-  ["og:image di beranda 200 image/png", async () => {
+  ["og:image di beranda 200 image/jpeg", async () => {
     const html = await (await fetch(`${BASE_URL}/`)).text();
     const content = html.match(/<meta property="og:image" content="([^"]+)"/)?.[1];
     if (!content) return false;
     const { pathname, search } = new URL(content.replaceAll("&amp;", "&"), BASE_URL);
     const res = await fetch(`${BASE_URL}${pathname}${search}`);
     await res.arrayBuffer();
-    return res.status === 200 && res.headers.get("content-type")?.startsWith("image/png");
+    return res.status === 200 && res.headers.get("content-type")?.startsWith("image/jpeg");
   }],
   ["GET /api/health 200 ok:true", async () => {
     const res = await fetch(`${BASE_URL}/api/health`);

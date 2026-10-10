@@ -1,0 +1,83 @@
+/* Pita logo klien (catatan pola di Figma). Kotak logo setinggi 56 px dan selebar perbandingan gambarnya, paling lebar
+   168 px. Di layar sempit semuanya mengecil. */
+.pita {
+  --tinggi: 44px;
+  --maks: 132px;
+  --jarak: 48px;
+  --pudar: 48px;
+  max-width: 1920px;
+  margin-inline: auto;
+  padding-block: 8px;
+}
+@media (min-width: 48rem) {
+  .pita {
+    --tinggi: 56px;
+    --maks: 168px;
+    --jarak: 80px;
+    --pudar: 120px;
+  }
+}
+@media (min-width: 64rem) {
+  .pita {
+    --pudar: 220px;
+  }
+}
+
+/* Bawaan: baris diam di tengah, untuk logo yang sedikit. Latarnya sama dengan latar section: jalur yang bergerak
+   menjadi lapisan tersendiri, jadi mix-blend-mode pada logo hanya bisa berbaur dengan latar di dalam jalur ini. */
+.jalur {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 24px var(--jarak);
+  padding-inline: var(--spacing-tepi);
+  background-color: var(--color-langit);
+}
+.logo {
+  position: relative;
+  flex: none;
+  height: var(--tinggi);
+  width: min(var(--maks), var(--tinggi) * var(--rasio, 3));
+}
+
+/* Berjalan: tepi kiri dan kanan memudar. Jalur berisi dua salinan daftar yang sama, jadi bergeser separuh lebarnya
+   (ditambah setengah jarak) tepat satu putaran dan sambungannya tidak terlihat. */
+.berjalan {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--pudar), #000 calc(100% - var(--pudar)), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 var(--pudar), #000 calc(100% - var(--pudar)), transparent);
+}
+.berjalan .jalur {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  width: max-content;
+  padding-inline: 0;
+  animation: pita-jalan var(--durasi) linear infinite;
+}
+.berjalan:hover .jalur,
+.berjalan:focus-within .jalur {
+  animation-play-state: paused;
+}
+@keyframes pita-jalan {
+  to {
+    transform: translateX(calc(-50% - var(--jarak) / 2));
+  }
+}
+
+/* Gerak dikurangi: baris diam yang bisa digeser, tanpa salinan. */
+@media (prefers-reduced-motion: reduce) {
+  .berjalan {
+    overflow-x: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
+    scrollbar-width: thin;
+  }
+  .berjalan .jalur {
+    padding-inline: var(--spacing-tepi);
+    animation: none;
+  }
+  .berjalan li[aria-hidden="true"] {
+    display: none;
+  }
+}
