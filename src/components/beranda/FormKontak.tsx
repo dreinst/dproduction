@@ -93,11 +93,14 @@ export default function FormKontak({ whatsapp1, whatsapp2 }: { whatsapp1: string
   }, []);
 
   const ubah = (nama: Kolom, nilai: string) => {
+    // Selama kiriman berjalan isian dikunci. Yang terkirim nilai saat tombol ditekan dan form dikosongkan begitu jawaban
+    // berhasil tiba, jadi perubahan di tengah jalan akan hilang tanpa tanda.
+    if (status === "loading") return;
     const baru = { ...isian, [nama]: nilai };
     setIsian(baru);
     simpanDraf(baru);
     setSalah((daftar) => daftar.filter((k) => k !== nama));
-    if (status !== "idle" && status !== "loading") setStatus("idle");
+    if (status !== "idle") setStatus("idle");
   };
 
   const kosongkan = () => {
@@ -180,7 +183,7 @@ export default function FormKontak({ whatsapp1, whatsapp2 }: { whatsapp1: string
       {dipulihkan && status !== "success" && (
         <p className={`${kotakPesan} mb-3.5`}>
           Isian terakhir Anda kami pulihkan dari perangkat ini.{" "}
-          <button type="button" onClick={kosongkan} className="-my-3 py-3 font-medium underline underline-offset-4">
+          <button type="button" disabled={sibuk} onClick={kosongkan} className="-my-3 py-3 font-medium underline underline-offset-4">
             Kosongkan
           </button>
         </p>
@@ -195,6 +198,7 @@ export default function FormKontak({ whatsapp1, whatsapp2 }: { whatsapp1: string
             autoComplete="name"
             required
             maxLength={100}
+            readOnly={sibuk}
             aria-invalid={keliru("name")}
             value={isian.name}
             onChange={(e) => ubah("name", e.target.value)}
@@ -210,6 +214,7 @@ export default function FormKontak({ whatsapp1, whatsapp2 }: { whatsapp1: string
             autoComplete="tel"
             required
             maxLength={20}
+            readOnly={sibuk}
             aria-invalid={keliru("whatsapp")}
             value={isian.whatsapp}
             onChange={(e) => ubah("whatsapp", e.target.value)}
@@ -218,9 +223,11 @@ export default function FormKontak({ whatsapp1, whatsapp2 }: { whatsapp1: string
         </label>
         <label className="flex w-full flex-col gap-1.5">
           Jenis acara
+          {/* select tidak mengenal readOnly, jadi keadaan terkuncinya diberitahukan lewat aria-disabled. */}
           <select
             name="eventType"
             required
+            aria-disabled={sibuk || undefined}
             aria-invalid={keliru("eventType")}
             value={isian.eventType}
             onChange={(e) => ubah("eventType", e.target.value)}
@@ -246,6 +253,7 @@ export default function FormKontak({ whatsapp1, whatsapp2 }: { whatsapp1: string
             name="eventDate"
             type="date"
             min={hariIni || undefined}
+            readOnly={sibuk}
             value={isian.eventDate}
             onChange={(e) => ubah("eventDate", e.target.value)}
             className={`${kolom} scheme-dark`}
@@ -292,7 +300,7 @@ export default function FormKontak({ whatsapp1, whatsapp2 }: { whatsapp1: string
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={trackWhatsAppClick}
-                        className={tombol(i ? "garis" : "putih", "kecil")}
+                        className={tombol("putih", "kecil")}
                       >
                         Kirim lewat WhatsApp {i + 1}
                       </a>

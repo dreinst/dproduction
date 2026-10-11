@@ -48,7 +48,9 @@ export default function Hero({ hero, angka, whatsapp }: Props) {
 
         <div className="flex max-w-[900px] flex-col items-start gap-6">
           <h1 className="flex flex-col gap-6">
-            <span className="text-base/[1.2] font-medium text-white/85">Event Organizer dan Wedding Organizer Malang</span>
+            {/* Spasi di antara kedua span memisahkan "Malang" dari "Acara" bagi pembaca tanpa CSS. Di layar spasi itu tidak
+                tampil karena keduanya butir flex. */}
+            <span className="text-base/[1.2] font-medium text-white/85">Event Organizer dan Wedding Organizer Malang</span>{" "}
             <span className="text-display">
               Acara Anda,
               <br />

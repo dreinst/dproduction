@@ -25,7 +25,9 @@ export default function PilihAcara({ fotoPernikahan }: { fotoPernikahan: Landing
     <section aria-labelledby="judul-pilih-acara" className="bg-white px-tepi py-section">
       <div className="mx-auto max-w-konten">
         <KepalaSection id="judul-pilih-acara" label="Mulai dari sini" judul="Acara apa yang sedang Anda siapkan?" />
-        <ul className="mt-kepala grid gap-kisi lg:grid-cols-2">
+        {/* grid-cols-1: tanpa lebar kolom, min-h butir diterjemahkan lewat rasio 4/5 menjadi lebar kolom paling sedikit
+            336 px dan kartu melewati wadahnya di layar yang lebih sempit dari 376 px. */}
+        <ul className="mt-kepala grid grid-cols-1 gap-kisi lg:grid-cols-2">
           {pintu.map((p) => (
             <li key={p.href} className="relative aspect-[4/5] min-h-[420px] w-full md:aspect-auto md:h-[440px] lg:h-[520px]">
               <div className="absolute inset-0 overflow-hidden rounded-pintu bg-latar">
