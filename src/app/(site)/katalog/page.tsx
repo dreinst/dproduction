@@ -1,8 +1,8 @@
 import PenandaKonten from "@/components/PenandaKonten";
+import Ajakan from "@/components/halaman/Ajakan";
+import KepalaHalaman from "@/components/halaman/KepalaHalaman";
 import KartuKatalog from "@/components/katalog/KartuKatalog";
 import PenyaringKatalog from "@/components/katalog/PenyaringKatalog";
-import TautanWhatsApp from "@/components/site/TautanWhatsApp";
-import { tombol } from "@/components/site/tombol";
 import { getLandingKantor, getLandingKatalog } from "@/lib/landing-content";
 import { JsonLd, pageMetadata } from "@/lib/seo";
 import { idItem, katalogLd } from "./ld";
@@ -33,19 +33,13 @@ export default async function Katalog() {
 
   return (
     <>
-      {/* scroll-mt: saat tautan Katalog Harga diklik selagi sebuah kategori dipilih, hanya hash alamat yang berganti
-          dan Next menggulir section ini ke tepi atas layar. Tanpa jarak ini labelnya berhenti di balik navigasi. */}
-      <section aria-labelledby="judul-halaman" className="scroll-mt-(--nav-ruang) px-tepi py-12 lg:py-18">
-        <div className="mx-auto flex max-w-konten flex-col gap-4">
-          <p className="text-eyebrow text-merah">Katalog harga</p>
-          <h1 id="judul-halaman" className="max-w-[1000px] text-display-2">
-            Sewa peralatan event.
-          </h1>
-          <p className="max-w-[680px] text-lead text-mute">
-            Harga per mesin, per titik, atau per paket. Item yang harganya belum tercantum bisa ditanyakan lewat WhatsApp.
-          </p>
-        </div>
-      </section>
+      {/* Kepala halaman ber-scroll-mt: saat tautan Katalog Harga diklik selagi sebuah kategori dipilih, hanya hash alamat
+          yang berganti dan Next menggulir section pertama ini ke tepi atas layar. */}
+      <KepalaHalaman
+        label="Katalog harga"
+        judul="Sewa peralatan event."
+        keterangan="Harga per mesin, per titik, atau per paket. Item yang harganya belum tercantum bisa ditanyakan lewat WhatsApp."
+      />
 
       <section aria-label="Daftar harga" className="px-tepi pt-6 pb-16 lg:pb-24">
         {categories.length > 0 ? (
@@ -81,21 +75,13 @@ export default async function Katalog() {
         )}
       </section>
 
-      <section aria-labelledby="judul-ajakan" className="px-tepi pt-6 pb-18">
-        <div className="mx-auto flex max-w-konten flex-col items-start gap-6 rounded-pintu bg-latar px-6 py-8 md:flex-row md:items-center md:justify-between md:px-14 md:py-12">
-          <div className="flex max-w-[640px] flex-col gap-2">
-            <h2 id="judul-ajakan" className="text-h3 leading-[1.15]">
-              Tidak menemukan yang Anda cari?
-            </h2>
-            <p className="text-[1.0625rem]/[1.5] text-mute">
-              Kirim kebutuhan, tanggal, dan lokasi acara. Kami balas dengan ketersediaan dan penawarannya.
-            </p>
-          </div>
-          <TautanWhatsApp nomor={kantor.whatsapp} teks={PESAN_AJAKAN} className={tombol("navy")}>
-            Chat lewat WhatsApp
-          </TautanWhatsApp>
-        </div>
-      </section>
+      <Ajakan
+        judul="Tidak menemukan yang Anda cari?"
+        keterangan="Kirim kebutuhan, tanggal, dan lokasi acara. Kami balas dengan ketersediaan dan penawarannya."
+        nomor={kantor.whatsapp}
+        teks={PESAN_AJAKAN}
+        className="pt-6"
+      />
 
       <JsonLd data={katalogLd(categories)} />
       {/* Menandai halaman yang dirender tanpa data database, supaya tidak tersimpan di cache selama masa revalidate penuh. */}
