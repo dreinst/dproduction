@@ -67,6 +67,9 @@ export default async function PortofolioPage() {
                         src={event.photo}
                         alt={`Dokumentasi ${event.name}`}
                         sizes="(min-width: 1280px) 411px, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        // Di lebar HP foto pertama adalah elemen terbesar di layar pertama, jadi tidak dimuat malas.
+                        loading={index === 0 ? "eager" : undefined}
+                        fetchPriority={index === 0 ? "high" : undefined}
                         className="object-cover"
                       />
                     </div>

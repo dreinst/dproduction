@@ -4,7 +4,9 @@ type Props = { label: string; judul: string; keterangan: string };
 // halaman Katalog Harga di Figma.
 export default function KepalaHalaman({ label, judul, keterangan }: Props) {
   return (
-    <section className="px-tepi py-10 md:py-14 lg:py-18">
+    // scroll-mt: saat tautan menu ke halaman ini diklik dari alamat berjangkar (misalnya /tentang#faq), Next menggulir
+    // section pertama ini ke tepi atas layar. Tanpa jarak ini labelnya berhenti di balik bilah navigasi.
+    <section className="scroll-mt-(--nav-ruang) px-tepi py-10 md:py-14 lg:py-18">
       <div className="mx-auto flex max-w-konten flex-col gap-4">
         <p className="text-eyebrow text-merah">{label}</p>
         <h1 className="max-w-[1000px] text-display-2">{judul}</h1>

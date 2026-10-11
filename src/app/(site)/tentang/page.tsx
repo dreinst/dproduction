@@ -111,7 +111,7 @@ export default async function TentangPage() {
             )}
 
             {galeri.photos.length > 0 && (
-              <ul className="grid grid-cols-2 gap-x-kisi gap-y-8 lg:grid-cols-3 lg:gap-y-12">
+              <ul className="grid gap-x-kisi gap-y-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-y-12">
                 {galeri.photos.map((photo, index) => (
                   <li key={index}>
                     <figure>
@@ -119,7 +119,7 @@ export default async function TentangPage() {
                         <LandingImage
                           src={photo.image}
                           alt={photo.caption ? `${photo.album}, ${photo.caption}` : photo.album}
-                          sizes="(min-width: 1280px) 411px, (min-width: 1024px) 33vw, 50vw"
+                          sizes="(min-width: 1280px) 411px, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                           className="object-cover"
                         />
                       </div>
