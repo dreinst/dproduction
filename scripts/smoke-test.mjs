@@ -20,7 +20,9 @@ function postContact(body) {
 
 const lead = { name: "Smoke Test CI", whatsapp: "081234567890", eventType: "corporate" };
 
-const PAGES = ["/", "/layanan", "/portofolio", "/katalog", "/tentang"];
+const PAGES_PUBLIK = ["/", "/layanan", "/portofolio", "/katalog", "/tentang"];
+const PAGES_LEGAL = ["/privasi", "/syarat", "/hapus-data"];
+const PAGES = [...PAGES_PUBLIK, ...PAGES_LEGAL];
 
 const checks = [
   ...PAGES.map((path) => [`GET ${path} 200 dan memuat h1`, async () => {
@@ -37,7 +39,7 @@ const checks = [
     const res = await fetch(`${BASE_URL}/robots.txt`);
     return res.status === 200 && (await res.text()).includes("Sitemap:");
   }],
-  ["GET /sitemap.xml 200 dan memuat kelima halaman publik", async () => {
+  ["GET /sitemap.xml 200 dan memuat delapan halaman publik", async () => {
     const res = await fetch(`${BASE_URL}/sitemap.xml`);
     const paths = [...(await res.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => new URL(match[1]).pathname);
     return res.status === 200 && paths.length === PAGES.length && PAGES.every((path) => paths.includes(path));
