@@ -41,11 +41,12 @@ export const FALLBACK = {
     statMembers: 200,
     statYears: 10,
   },
+  // Foto hero desain v2. Lapisan gelap hero disetel untuk foto ini (src/components/beranda/Hero.tsx).
   hero: {
-    image: "/assets/portfolio/temres-magelang-jeep-warna.jpg",
-    title: "Corporate Event",
-    caption: "Jeep adventure peserta Temu Responden Bank Indonesia di Magelang.",
-    alt: "Iring-iringan jeep dengan asap warna-warni di acara Temu Responden Bank Indonesia, Magelang",
+    image: "/assets/portfolio/qris-fun-run-start.jpg",
+    title: "QRIS Fun Run Bank Indonesia",
+    caption: "Pelari di garis start QRIS Fun Run Bank Indonesia di Malang.",
+    alt: "Pelari berkumpul di gerbang start QRIS Fun Run Bank Indonesia di Malang, dipotret dari udara",
   },
   // Semua event yang pernah ditangani (portofolio resmi, dokumentasi Drive, dan daftar situs lama). Isi dan urutannya
   // sama dengan Master Event: tahun terbaru dulu, lalu urutan baris di tabel.

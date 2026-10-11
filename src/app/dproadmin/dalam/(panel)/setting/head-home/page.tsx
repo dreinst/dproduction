@@ -7,7 +7,7 @@ import { usePagination } from "@/hooks/usePagination";
 import Modal from "@/components/management/Modal";
 import Pagination, { PageSizeSelect } from "@/components/management/Pagination";
 import AdminThumb from "@/components/management/AdminThumb";
-import ImageField from "@/components/management/ImageField";
+import ImageField, { DEFAULT_HINT } from "@/components/management/ImageField";
 
 interface HeadImage {
   id: number;
@@ -296,6 +296,7 @@ export default function HeadHomePage() {
             disabled={isSubmitting}
             onUploadingChange={setUploading}
             required
+            hint={`${DEFAULT_HINT} Pilih foto yang bagian atasnya gelap supaya menu di atasnya tetap terbaca.`}
           />
           <div>
             <label htmlFor="head-title" className="block text-sm font-medium text-slate-700 mb-1">
