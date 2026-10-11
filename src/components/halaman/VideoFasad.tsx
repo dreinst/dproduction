@@ -56,20 +56,18 @@ export default function VideoFasad({ id, title }: Props) {
       // scroll-mt menjaga kartu yang mendapat fokus papan ketik tidak berhenti di belakang bilah navigasi.
       className="group block scroll-mt-(--nav-ruang)"
     >
-      <span
-        className="relative flex aspect-video items-center justify-center overflow-hidden rounded-besar"
-        style={{ background: "linear-gradient(180deg, #0b2144, #0a2c63)" }}
-      >
+      <span className="relative flex aspect-video items-center justify-center overflow-hidden rounded-besar bg-navy">
         {/* Pratinjau diambil server lewat pengoptimasi gambar (butuh izin i.ytimg.com di images.remotePatterns), jadi
             peramban tidak menghubungi YouTube. Alt kosong karena judulnya sudah tertulis di bawah. Kalau gagal dimuat
-            gambarnya dibuang dan kotaknya tetap navy. */}
+            gambarnya dibuang dan kotaknya tetap navy. Tanpa JavaScript gambar yang gagal tidak bisa dibuang, jadi
+            lapisan after (hanya tergambar pada gambar yang gagal) menutupi ikon gambar rusak dari peramban. */}
         {gagalId !== id && (
           <Image
             src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`}
             alt=""
             fill
             sizes="(min-width: 1280px) 628px, (min-width: 768px) 50vw, 100vw"
-            className="object-cover"
+            className="object-cover after:absolute after:inset-0 after:bg-navy"
             onError={() => setGagalId(id)}
           />
         )}
