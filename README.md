@@ -142,7 +142,7 @@ Role resmi ada lima: `owner` (Pemilik), `superadmin` (Super Admin), `admin` (Adm
 | `npx tsx --env-file=.env.local scripts/seed-landing-content.ts` | Mengisi konten landing ke database (lihat Menjalankan di komputer lokal). |
 | `npx tsx --env-file=.env.local scripts/set-account.ts ...` | Membuat, mengganti, atau menghapus akun dashboard langsung di database (lihat Runbook akun). |
 
-Smoke test memeriksa `/` (termasuk header `X-Robots-Tag: noindex` di localhost), `/robots.txt`, `/sitemap.xml`, gambar Open Graph (path-nya diambil dari meta `og:image` di beranda), `/api/health`, serta `POST /api/contact` yang valid dan tidak valid. Alamat server diambil dari `BASE_URL` (default `http://localhost:3000`) dan hanya boleh `localhost` atau `127.0.0.1`, karena uji form kontak menyimpan satu lead ke database.
+Smoke test memeriksa kelima halaman publik (`/`, `/layanan`, `/portofolio`, `/katalog`, `/tentang`), header `X-Robots-Tag: noindex` di localhost, `/robots.txt`, `/sitemap.xml` (harus memuat kelima halaman itu), gambar Open Graph tiap halaman (path-nya diambil dari meta `og:image`), `/api/health`, `/api/health/live`, serta `POST /api/contact` yang valid dan tidak valid. Alamat server diambil dari `BASE_URL` (default `http://localhost:3000`) dan hanya boleh `localhost` atau `127.0.0.1`, karena uji form kontak menyimpan satu lead ke database.
 
 ## CI
 

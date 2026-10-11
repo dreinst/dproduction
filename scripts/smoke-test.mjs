@@ -20,11 +20,13 @@ function postContact(body) {
 
 const lead = { name: "Smoke Test CI", whatsapp: "081234567890", eventType: "corporate" };
 
+const PAGES = ["/", "/layanan", "/portofolio", "/katalog", "/tentang"];
+
 const checks = [
-  ["GET / 200 dan memuat h1", async () => {
-    const res = await fetch(`${BASE_URL}/`);
+  ...PAGES.map((path) => [`GET ${path} 200 dan memuat h1`, async () => {
+    const res = await fetch(`${BASE_URL}${path}`);
     return res.status === 200 && /<h1[\s>]/.test(await res.text());
-  }],
+  }]),
   // Host selain www.dpro.events (localhost, sslip.io, vercel.app) tidak boleh diindeks.
   ["GET / di localhost membawa X-Robots-Tag noindex", async () => {
     const res = await fetch(`${BASE_URL}/`);
@@ -35,23 +37,29 @@ const checks = [
     const res = await fetch(`${BASE_URL}/robots.txt`);
     return res.status === 200 && (await res.text()).includes("Sitemap:");
   }],
-  ["GET /sitemap.xml 200", async () => {
+  ["GET /sitemap.xml 200 dan memuat kelima halaman publik", async () => {
     const res = await fetch(`${BASE_URL}/sitemap.xml`);
-    return res.status === 200 && (await res.text()).includes("<urlset");
+    const paths = [...(await res.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => new URL(match[1]).pathname);
+    return res.status === 200 && paths.length === PAGES.length && PAGES.every((path) => paths.includes(path));
   }],
   // Path gambar OG diambil dari meta og:image, karena Next memberi sufiks hash kalau file ada di route group.
-  ["og:image di beranda 200 image/jpeg", async () => {
-    const html = await (await fetch(`${BASE_URL}/`)).text();
+  ...PAGES.map((path) => [`og:image di ${path} 200 image/jpeg`, async () => {
+    const html = await (await fetch(`${BASE_URL}${path}`)).text();
     const content = html.match(/<meta property="og:image" content="([^"]+)"/)?.[1];
     if (!content) return false;
     const { pathname, search } = new URL(content.replaceAll("&amp;", "&"), BASE_URL);
     const res = await fetch(`${BASE_URL}${pathname}${search}`);
     await res.arrayBuffer();
     return res.status === 200 && res.headers.get("content-type")?.startsWith("image/jpeg");
-  }],
+  }]),
   ["GET /api/health 200 ok:true", async () => {
     const res = await fetch(`${BASE_URL}/api/health`);
     return res.status === 200 && (await res.json()).ok === true;
+  }],
+  // Dipakai form kontak untuk memastikan server terjangkau, jadi HEAD juga harus dijawab.
+  ["HEAD /api/health/live 200", async () => {
+    const res = await fetch(`${BASE_URL}/api/health/live`, { method: "HEAD" });
+    return res.status === 200;
   }],
   // Bentuk kiriman form v2: tanpa pesan, dengan tanggal acara (di sini 30 hari dari sekarang).
   ["POST /api/contact valid tanpa pesan, dengan tanggal acara 201", async () => {
