@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { DIPERBARUI, HALAMAN_LEGAL } from "@/components/legal/HalamanLegal";
 import { readLanding } from "@/lib/landing-content";
 import prisma from "@/lib/prisma";
 import { absoluteUrl } from "@/lib/seo";
@@ -51,5 +52,9 @@ const tanpaData = (): Lastmod => ({ "/": null, "/layanan": null, "/portofolio": 
 // lastmod dibaca lewat readLanding, jadi saat database mati sitemap tetap terjawab dengan salinan data terakhir.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastmod = await readLanding("sitemap", bacaLastmod, tanpaData);
-  return HALAMAN.map((path) => ({ url: absoluteUrl(path), lastModified: lastmod[path] ?? LASTMOD_CADANGAN }));
+  return [
+    ...HALAMAN.map((path) => ({ url: absoluteUrl(path), lastModified: lastmod[path] ?? LASTMOD_CADANGAN })),
+    // Tiga halaman legal berisi teks tetap di kode. lastmod-nya tanggal teks itu terakhir diperbarui.
+    ...HALAMAN_LEGAL.map(({ path }) => ({ url: absoluteUrl(path), lastModified: new Date(`${DIPERBARUI}T00:00:00+07:00`) })),
+  ];
 }
