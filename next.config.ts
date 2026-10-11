@@ -11,17 +11,18 @@ const securityHeaders = [
 // Nilai host dibaca Next sebagai regex yang dijangkar penuh, jadi titiknya di-escape.
 const officialHost = [{ type: "host" as const, value: "www\\.dpro\\.events" }];
 
-// URL situs PHP lama yang masih terindeks Google dan tersebar di materi promosi.
+// URL situs PHP lama yang masih terindeks Google dan tersebar di materi promosi. Bagian setelah "#" ikut terkirim di
+// header Location dan dipakai browser. Query permintaan ikut terbawa.
 const legacyRedirects: [string, string][] = [
-  ["/tentang_kami", "/#tentang-kami"],
-  ["/team", "/#tentang-kami"],
+  ["/tentang_kami", "/tentang"],
+  ["/team", "/tentang#tim"],
   ["/masterpiece", "/#masterpiece"],
-  ["/rental", "/#layanan"],
-  ["/rental/detail", "/#layanan"],
+  // Termasuk /rental sendiri dan turunannya seperti /rental/detail/12.
+  ["/rental/:path*", "/katalog"],
   ["/event", "/#layanan"],
   ["/wedding", "/#layanan"],
-  ["/galeri_foto", "/#galeri"],
-  ["/galeri_video", "/#galeri"],
+  ["/galeri_foto", "/tentang#galeri"],
+  ["/galeri_video", "/tentang#galeri"],
   ["/kontak", "/#kontak"],
   // Folder gambar situs lama tidak dibawa ke situs baru.
   ["/gbr/:path*", "/"],
