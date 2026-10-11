@@ -33,7 +33,9 @@ export default async function Katalog() {
 
   return (
     <>
-      <section aria-labelledby="judul-halaman" className="px-tepi py-12 lg:py-18">
+      {/* scroll-mt: saat tautan Katalog Harga diklik selagi sebuah kategori dipilih, hanya hash alamat yang berganti
+          dan Next menggulir section ini ke tepi atas layar. Tanpa jarak ini labelnya berhenti di balik navigasi. */}
+      <section aria-labelledby="judul-halaman" className="scroll-mt-(--nav-ruang) px-tepi py-12 lg:py-18">
         <div className="mx-auto flex max-w-konten flex-col gap-4">
           <p className="text-eyebrow text-merah">Katalog harga</p>
           <h1 id="judul-halaman" className="max-w-[1000px] text-display-2">
