@@ -31,7 +31,7 @@ export function forgetHits(key: string, all = false): boolean {
 // Hitungan gagal login per username, dipakai sama untuk username yang ada maupun tidak.
 export const loginFailKey = (username: string) => `login-fail:${username}`;
 
-// x-real-ip diisi reverse proxy (Traefik di VPS, Vercel); entri pertama x-forwarded-for dipakai kalau tidak ada.
+// x-real-ip diisi reverse proxy (Traefik di VPS); entri pertama x-forwarded-for dipakai kalau tidak ada.
 export function clientIp(req: Request): string {
   return (
     req.headers.get('x-real-ip')?.trim() ||

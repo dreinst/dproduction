@@ -156,7 +156,7 @@ Auto deploy produksi hanya men-deploy SHA `main` yang check `ci`-nya hijau. Di G
 
 `next.config.ts` mengirim header keamanan dasar ke semua route (`X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Content-Security-Policy: frame-ancestors 'none'`, `Permissions-Policy`) dan mematikan header `X-Powered-By`. Semua respons `/api/*` dikirim dengan `Cache-Control: no-store` karena memuat data pribadi.
 
-- Host selain `www.dpro.events` (domain review sslip.io, apex `dpro.events`, `dproduction-iota.vercel.app`, localhost) mendapat `X-Robots-Tag: noindex`, supaya hanya domain resmi yang diindeks.
+- Host selain `www.dpro.events` (domain review sslip.io, apex `dpro.events`, localhost) mendapat `X-Robots-Tag: noindex`, supaya hanya domain resmi yang diindeks.
 - `www.dpro.events` mendapat `Strict-Transport-Security: max-age=86400`. Nilai ini sengaja pendek; setelah domain resmi stabil seminggu dengan sertifikat valid, naikkan ke `31536000` lewat commit biasa.
 - Redirect http ke https dan apex ke www diatur di Coolify, bukan di kode. Keduanya harus permanen (301 atau 308).
 
@@ -177,7 +177,7 @@ Garis miring di akhir URL dan query string (misalnya `/rental/detail/?id=1`) iku
 
 ## Deploy ke produksi
 
-Produksi adalah app Coolify `dproduction` (uuid `c7ezyfbcfz1buariz99ktals`) di VPS 187.53.129.205, dibangun dari `Dockerfile` di root repo dengan build pack Dockerfile. Database-nya container `dproduction-db-1` di VPS yang sama. PgBouncer di port 6433 hanya untuk keperluan operasional dan hanya boleh dibuka lewat Tailscale. Vercel tidak lagi membangun apa pun: `vercel.json` berisi `"ignoreCommand": "exit 0"`.
+Produksi adalah app Coolify `dproduction` (uuid `c7ezyfbcfz1buariz99ktals`) di VPS 187.53.129.205, dibangun dari `Dockerfile` di root repo dengan build pack Dockerfile. Database-nya container `dproduction-db-1` di VPS yang sama. PgBouncer di port 6433 hanya untuk keperluan operasional dan hanya boleh dibuka lewat Tailscale.
 
 ### Env dan volume di Coolify
 
@@ -408,4 +408,4 @@ Dump harian ada di `/root/backups/dproduction` di VPS (dan salinannya di NAS set
 - `src/hooks`: `useCrud` dan `usePagination` untuk halaman admin.
 - `prisma`: skema, migrasi, dan seed akun lokal.
 - `scripts`: pengaman host database, isi konten landing, akun dashboard, dan smoke test.
-- `deploy`: skrip auto deploy VPS. `Dockerfile` dan `.dockerignore`: image produksi. `vercel.json`: pembekuan build Vercel. `.github/workflows/ci.yml`: CI.
+- `deploy`: skrip auto deploy VPS. `Dockerfile` dan `.dockerignore`: image produksi. `.github/workflows/ci.yml`: CI.
