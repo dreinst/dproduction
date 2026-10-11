@@ -121,8 +121,6 @@
    dari :root. */
 @theme inline {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  /* Kelas font-heading di berkas lama tetap jalan dan sekarang ikut memakai Inter. */
-  --font-heading: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Jarak dan radius besar mengecil di layar sempit. Utilitasnya membaca variabel ini, jadi px-tepi, py-section,
@@ -625,18 +623,5 @@ body {
   100% {
     transform: scale(1.6);
     opacity: 0;
-  }
-}
-
-/* Utilitas situs v1. Masih dipakai section Beranda lama di src/components/sections, hapus bersama berkas itu. */
-@layer utilities {
-  .glass-card {
-    @apply bg-white/80 backdrop-blur-sm border border-slate-100 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl;
-  }
-  .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-800;
-  }
-  .gradient-bg {
-    @apply bg-gradient-to-br from-blue-600 to-blue-800 text-white;
   }
 }

@@ -2,7 +2,7 @@
 
 Situs company profile D'Production (event organizer di Malang) beserta dashboard manajemen internal.
 
-Teknologi: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, framer-motion, Prisma 7 dengan adapter `pg`, dan PostgreSQL.
+Teknologi: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Prisma 7 dengan adapter `pg`, dan PostgreSQL.
 
 ## Kondisi saat ini
 
