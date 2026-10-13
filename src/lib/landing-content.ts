@@ -438,7 +438,7 @@ function toAngka(row: StatRow | null, counts: Counts | null): Omit<LandingAngka,
     foundedYear: row?.foundedYear ?? f.foundedYear,
     events: angka(row ? row.statEvents : f.statEvents, counts?.eventRows ? counts.events : FALLBACK.events.length),
     clients: angka(row ? row.statClients : f.statClients, counts?.klienRows ? counts.clients : FALLBACK.klien.length),
-    members: angka(row ? row.statMembers : f.statMembers, counts?.crews ?? FALLBACK.kantor.statMembers ?? 0),
+    members: angka(row ? row.statMembers : f.statMembers, counts?.crews ?? 179),
   };
 }
 
