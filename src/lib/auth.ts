@@ -19,8 +19,11 @@ export async function getSessionUser() {
 
 export type SessionUser = NonNullable<Awaited<ReturnType<typeof getSessionUser>>>;
 
-export function unauthorizedResponse() {
-  return clearSessionCookie(apiError(401, 'Sesi Anda sudah berakhir. Silakan masuk lagi.'));
+// Cookie sesi yang tidak sah dihapus. Permintaan tanpa cookie tidak diberi Set-Cookie, supaya jawaban 401 untuk
+// orang asing tidak menyebut nama cookie sesi.
+export async function unauthorizedResponse() {
+  const res = apiError(401, 'Sesi Anda sudah berakhir. Silakan masuk lagi.');
+  return (await cookies()).has(AUTH_COOKIE) ? clearSessionCookie(res) : res;
 }
 
 export function forbiddenResponse() {
@@ -33,7 +36,7 @@ export type AuthResult =
 
 export async function requireRole(allowedRoles: readonly string[]): Promise<AuthResult> {
   const user = await getSessionUser();
-  if (!user) return { authorized: false, response: unauthorizedResponse(), user: null };
+  if (!user) return { authorized: false, response: await unauthorizedResponse(), user: null };
   if (!allowedRoles.includes(user.role)) return { authorized: false, response: forbiddenResponse(), user };
   return { authorized: true, response: null, user };
 }

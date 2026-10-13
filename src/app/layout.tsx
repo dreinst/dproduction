@@ -1,22 +1,26 @@
-import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
+import { SITE_NAME } from "@/lib/seo";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
-// Halaman 404 di-prerender saat build tanpa database, jadi ikut dirender ulang berkala supaya Setting Kantor di Navbar dan
-// Footer-nya pulih sendiri setelah deploy. Beranda memakai nilai yang sama.
-export const revalidate = 300;
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const plusJakartaSans = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-plus-jakarta" });
+// Inter variabel: satu berkas woff2 subset latin mencakup semua ketebalan yang dipakai desain v2 dan halaman admin.
+const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "D'Production",
-    template: "%s | D'Production",
+    default: SITE_NAME,
+    template: `%s | ${SITE_NAME}`,
   },
+  applicationName: SITE_NAME,
+  // Isi NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION dari Search Console (Pengaturan > Verifikasi kepemilikan > tag HTML).
+  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+    : undefined,
 };
+
+export const viewport: Viewport = { themeColor: "#0B2144" };
 
 export default function RootLayout({
   children,
@@ -24,8 +28,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className="scroll-smooth" data-scroll-behavior="smooth">
-      <body className={`${inter.variable} ${plusJakartaSans.variable} font-sans min-h-screen flex flex-col bg-slate-50`}>
+    <html lang="id" className="motion-safe:scroll-smooth" data-scroll-behavior="smooth">
+      <body className={`${inter.variable} font-sans min-h-screen flex flex-col bg-slate-50`}>
         {children}
       </body>
     </html>

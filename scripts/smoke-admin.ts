@@ -1,15 +1,17 @@
 // Uji cepat hak akses dan sesi dashboard terhadap server yang sedang jalan.
 // Jalankan: SEED_PASSWORD=... JWT_SECRET=... BASE_URL=http://localhost:3000 npx tsx scripts/smoke-admin.ts
 // SEED_PASSWORD harus sama dengan password akun seed, JWT_SECRET sama dengan milik server.
+// Kalau server dibangun dengan NEXT_PUBLIC_ADMIN_BASE, pasang nilai yang sama saat menjalankan skrip ini.
 import { SignJWT } from 'jose';
 import { API_ACCESS, ROLES, type Resource, type Role } from '../src/lib/rbac';
+import { ADMIN_BASE, ADMIN_DALAM, ADMIN_LOGIN } from '../src/lib/admin-path';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const PASSWORD = process.env.SEED_PASSWORD;
 const SECRET = process.env.JWT_SECRET;
 
 if (!['localhost', '127.0.0.1'].includes(new URL(BASE_URL).hostname)) {
-  throw new Error('BASE_URL hanya boleh localhost atau 127.0.0.1, karena skrip ini membuat dan menghapus user uji.');
+  throw new Error('BASE_URL hanya boleh localhost atau 127.0.0.1, karena skrip ini membuat dan menghapus data uji.');
 }
 if (!PASSWORD || !SECRET) throw new Error('Isi SEED_PASSWORD dan JWT_SECRET yang sama dengan server.');
 
@@ -25,6 +27,8 @@ const ENDPOINTS: Record<ReadResource, string> = {
   events: '/api/events',
   weddings: '/api/weddings',
   rentals: '/api/rentals',
+  rentalCategories: '/api/rental-categories',
+  klien: '/api/klien',
   gradeEvents: '/api/grade-events',
   jobdescs: '/api/jobdescs',
   galeriFoto: '/api/galeri-albums',
@@ -68,8 +72,8 @@ async function login(username: string, password: string) {
     headers: { 'Content-Type': 'application/json', 'x-real-ip': `smoke-${runId}-${ipCount++}` },
     body: JSON.stringify({ username, password }),
   });
-  const cookie = res.headers.getSetCookie().find((c) => c.startsWith('auth_token='))?.split(';')[0] ?? '';
-  return { status: res.status, cookie };
+  const pick = (name: string) => res.headers.getSetCookie().find((c) => c.startsWith(`${name}=`))?.split(';')[0] ?? '';
+  return { status: res.status, cookie: pick('auth_token'), known: pick('dpro_kenal') };
 }
 
 const clearsCookie = (res: Response) =>
@@ -80,7 +84,11 @@ const redirectsTo = (res: Response, path: string) =>
 
 async function accessMatrix() {
   const entries = Object.entries(ENDPOINTS) as [ReadResource, string][];
-  for (const [, path] of entries) check((await get(path)).status === 401, `anonim GET ${path} -> 401`);
+  // Tanpa cookie sesi, jawaban 401 tidak boleh membawa Set-Cookie: nama cookie tidak perlu diketahui orang asing.
+  for (const path of [...entries.map(([, path]) => path), '/api/auth/me']) {
+    const res = await get(path);
+    check(res.status === 401 && !res.headers.has('set-cookie'), `anonim GET ${path} -> 401 tanpa Set-Cookie`);
+  }
 
   const cookies = {} as Record<Role, string>;
   for (const role of ROLES) {
@@ -141,24 +149,62 @@ async function revocationAndLockout(owner: string) {
   }
 }
 
-async function proxyChecks(owner: string) {
+async function proxyChecks(owner: string, known: string) {
   const forged = await new SignJWT({ id: 1, role: 'Superuser', tokenVersion: 0 })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('5m')
     .sign(new TextEncoder().encode(SECRET));
-  for (const path of ['/management', '/management/setting/login', '/management/workspace/salary']) {
-    const res = await get(path, `auth_token=${forged}`);
-    check(redirectsTo(res, '/management/login') && clearsCookie(res), `role tidak dikenal di ${path} diarahkan ke login`);
+  const acak = await get(`/acak-${runId}`);
+  const sama = async (res: Response) => res.status === 404 && (await res.text()) === acakBody && !res.headers.has('set-cookie') && !res.headers.has('location');
+  const acakBody = await acak.text();
+  check(acak.status === 404, 'alamat acak 404');
+
+  // Tanpa sesi sah dan tanpa cookie kenal, alamat admin harus sama dengan alamat yang tidak ada.
+  for (const path of [ADMIN_BASE, `${ADMIN_BASE}/setting/login`, `${ADMIN_BASE}/workspace/salary`]) {
+    check(await sama(await get(path)), `tanpa cookie, ${path} sama dengan 404 biasa`);
+    check(await sama(await get(path, `auth_token=${forged}`)), `role tidak dikenal di ${path} sama dengan 404 biasa`);
+    check(await sama(await get(path, 'auth_token=abc')), `cookie rusak di ${path} sama dengan 404 biasa`);
   }
-  check((await get('/api/users', `auth_token=${forged}`)).status === 401, 'role tidak dikenal ditolak API (401)');
+  check(await sama(await get('/login')), '/login sama dengan 404 biasa');
+  const ditolak = await get('/api/users', `auth_token=${forged}`);
+  check(ditolak.status === 401 && clearsCookie(ditolak), 'role tidak dikenal ditolak API (401) dan cookie-nya dihapus');
 
-  check(redirectsTo(await get('/management/tidak-terdaftar', owner), '/management'), 'halaman tidak terdaftar ditolak (default deny)');
+  // Folder dalam tidak pernah terbuka lewat alamatnya sendiri, juga untuk sesi sah.
+  for (const path of [ADMIN_DALAM, `${ADMIN_DALAM}/login`, `${ADMIN_DALAM}/master/event`]) {
+    check((await get(path, owner)).status === 404, `${path} 404 walau sesi sah`);
+  }
 
-  const broken = await get('/management/master/event', 'auth_token=abc');
-  check(redirectsTo(broken, '/management/login') && clearsCookie(broken), 'cookie rusak dialihkan ke login dan dihapus');
-  const loginPage = await get('/management/login', 'auth_token=abc');
-  check(loginPage.status === 200, `halaman login tampil dengan cookie rusak, tanpa loop (${loginPage.status})`);
+  check(redirectsTo(await get(`${ADMIN_BASE}/tidak-terdaftar`, owner), ADMIN_BASE), 'halaman tidak terdaftar ditolak (default deny)');
+  check((await get(`${ADMIN_BASE}/master/event`, owner)).status === 200, 'sesi sah membuka halaman admin (200)');
+  check(redirectsTo(await get(ADMIN_LOGIN, owner), ADMIN_BASE), 'halaman login dengan sesi sah dialihkan ke dashboard');
+  const next = (path: string) => get(`${ADMIN_LOGIN}?next=${encodeURIComponent(path)}`, owner);
+  check(redirectsTo(await next(`${ADMIN_BASE}/master/event`), `${ADMIN_BASE}/master/event`), 'next ke halaman admin diikuti');
+  check(redirectsTo(await next(`${ADMIN_DALAM}/master/event`), ADMIN_BASE), 'next ke folder dalam ditolak');
+
+  // Peramban yang pernah masuk (cookie kenal sah) dialihkan ke login, bukan 404.
+  const dikenal = await get(`${ADMIN_BASE}/master/event`, known);
+  check(redirectsTo(dikenal, ADMIN_LOGIN) && dikenal.headers.get('location')!.includes('expired=1'), 'cookie kenal tanpa sesi dialihkan ke login');
+  const habis = await get(`${ADMIN_BASE}/master/event`, `${known}; auth_token=abc`);
+  check(redirectsTo(habis, ADMIN_LOGIN) && clearsCookie(habis), 'cookie kenal dengan sesi rusak dialihkan ke login dan cookie sesi dihapus');
+
+  // Halaman 404 tidak boleh dibuat ulang saat server berjalan: Next menyimpan alamat permintaan pemicunya di dalam HTML
+  // 404 yang lalu disajikan ke semua orang. Simpan konten (memanggil revalidateLanding), minta alamat admin tanpa sesi,
+  // lalu pastikan 404 untuk alamat lain tidak berubah. Kontennya album uji nonaktif yang langsung dihapus, supaya cek
+  // ini juga jalan di database kosong (CI), yang belum punya Setting Kantor sah untuk disimpan ulang.
+  const album = await send('POST', '/api/galeri-albums', owner, { name: `smoke_${runId}`, active: false });
+  check(album.status === 201, 'owner membuat album uji (memicu revalidateLanding)');
+  if (album.status === 201) {
+    const { id } = (await album.json()) as { id: number };
+    check((await send('DELETE', `/api/galeri-albums/${id}`, owner)).status === 200, 'album uji dihapus');
+  }
+  await (await get(`${ADMIN_BASE}/setting/kantor`)).text();
+  const sesudah = await (await get(`/acak-sesudah-${runId}`)).text();
+  check(sesudah === acakBody && !sesudah.includes(ADMIN_BASE.slice(1)), 'halaman 404 tidak dibuat ulang dan tidak memuat alamat admin setelah konten disimpan');
+
+  // nofollow hanya dipasang proxy; noindex saja juga datang dari next.config.ts untuk host selain domain resmi.
+  const loginPage = await get(ADMIN_LOGIN, 'auth_token=abc');
+  check(loginPage.status === 200 && /nofollow/.test(loginPage.headers.get('x-robots-tag') ?? ''), `halaman login tampil dengan cookie rusak dan membawa noindex, nofollow (${loginPage.status})`);
 }
 
 async function main() {
@@ -166,7 +212,9 @@ async function main() {
   if (!cookies.owner) throw new Error('Login owner gagal, uji berikutnya dilewati.');
   check((await get('/api/users', cookies.superadmin)).status === 200, 'superadmin GET /api/users -> 200 (setara owner)');
   await revocationAndLockout(cookies.owner);
-  await proxyChecks(cookies.owner);
+  const { known } = await login('owner', PASSWORD!);
+  check(!!known, 'login memasang cookie kenal');
+  await proxyChecks(cookies.owner, known);
   console.log(failures ? `\n${failures} pemeriksaan gagal.` : '\nSemua pemeriksaan lolos.');
   process.exit(failures ? 1 : 0);
 }

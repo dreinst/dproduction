@@ -33,6 +33,7 @@ export const kantorSchema = z.object({
   address: text(500, 'Alamat'),
   phone: text(50, 'Nomor telepon'),
   whatsapp: zWhatsapp('Nomor WhatsApp').nullable().optional(),
+  whatsapp2: zWhatsapp('Nomor WhatsApp 2').nullable().optional(),
   email: zText(200, 'Email').pipe(z.email({ error: 'Format email tidak valid.' })).nullable().optional(),
   website: httpsUrl('Website'),
   googleMapsUrl: zText(2000, 'URL Google Maps')

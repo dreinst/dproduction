@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { expiredLoginUrl } from '@/lib/admin-path';
 
 interface UseCrudOptions {
   endpoint: string;
@@ -34,7 +35,7 @@ export function useApiRequest() {
       }
       if (res.status === 401) {
         const here = window.location.pathname + window.location.search;
-        router.replace(`/management/login?next=${encodeURIComponent(here)}&expired=1`);
+        router.replace(expiredLoginUrl(here));
         throw new RequestError(SESSION_ENDED);
       }
       const body = await res.json().catch(() => null);

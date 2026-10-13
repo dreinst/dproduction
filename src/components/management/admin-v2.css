@@ -1,0 +1,304 @@
+/* Tampilan admin v2. Diimpor layout panel admin dan halaman login saja, jadi tidak ikut ke halaman publik.
+   Susunannya dua lapis:
+   1. Token dan penyesuaian halaman lama ditulis di luar @layer. CSS tanpa layer menang atas utilitas Tailwind tanpa
+      !important, jadi markup lama berganti rupa tanpa disentuh.
+   2. Kelas adm-* ada di @layer components, di bawah utilitas Tailwind, supaya utilitas di className masih bisa
+      menyetelnya (misalnya "adm-input w-[170px]" atau "adm-btn lg:hidden"). */
+@layer theme, base, components, utilities;
+
+/* ===== Token dan pemetaan palet ===== */
+.admin-v2 {
+  --adm-ink: #1d1d1f;
+  --adm-mute: #6e6e73;
+  --adm-bg: #f5f5f7;
+  --adm-line: #e5e5ea;
+  --adm-navy: #0b2144;
+  --adm-navy-hover: #16325f;
+  --adm-red: #ca1e1e;
+  --adm-on: #34c759;
+  --adm-on-text: #1e7b3c;
+  --adm-off: #d1d1d6;
+  --adm-empty: #e8e8ed;
+  --adm-outline: rgb(29 29 31 / 0.22);
+
+  /* Utilitas warna dan radius Tailwind membaca variabel ini, jadi halaman admin lama ikut berganti palet. */
+  --color-slate-50: #f5f5f7;
+  --color-slate-100: #f5f5f7;
+  --color-slate-200: #e5e5ea;
+  --color-slate-300: #e5e5ea;
+  --color-slate-400: #8e8e93;
+  --color-slate-500: #6e6e73;
+  --color-slate-600: #6e6e73;
+  --color-slate-700: #1d1d1f;
+  --color-slate-800: #1d1d1f;
+  --color-slate-900: #1d1d1f;
+  --color-blue-50: #f5f5f7;
+  --color-blue-500: #0b2144;
+  --color-blue-600: #0b2144;
+  --color-blue-700: #0b2144;
+  --color-teal-700: #0b2144;
+  --color-teal-800: #16325f;
+  --color-red-600: #ca1e1e;
+  --color-red-700: #a81818;
+  --color-yellow-50: #f5f5f7;
+  --color-yellow-700: #0b2144;
+  --color-yellow-800: #0b2144;
+  --radius-lg: 12px;
+  --radius-xl: 24px;
+  --radius-2xl: 24px;
+
+  background: var(--adm-bg);
+  color: var(--adm-ink);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+.admin-v2 :is(h1, h2, h3, h4) { font-family: inherit; }
+/* Judul di kartu galat panel (role="alert" di error.tsx) memakai ukurannya sendiri. */
+.admin-v2 main h1:not([role="alert"] h1) { font-size: 32px; line-height: 1.12; letter-spacing: -0.02em; font-weight: 600; }
+
+/* Cincin fokus navy untuk semua yang belum punya cincin sendiri. Sasaran fokus lewat skrip (tabindex -1) dilewati. */
+.admin-v2 :focus-visible:not([tabindex="-1"], [class*="focus:ring"], [class*="focus-visible:ring"]) {
+  outline: 2px solid var(--adm-navy);
+  outline-offset: 2px;
+}
+/* Butir menu: cincin di dalam supaya tidak terpotong tepi daftar yang bisa digulir. */
+.admin-v2 .adm-nav__item:focus-visible { outline-offset: -2px; }
+.admin-v2 .adm-input:focus-visible { outline-offset: 0; border-color: transparent; }
+
+/* ===== Halaman lama ===== */
+/* Tombol menjadi pil. Hover tombol biru lama (bg-blue-700) terpetakan ke navy yang sama, jadi hover diberi di sini. */
+.admin-v2 :is(main, [role="dialog"]) :is(button, a.inline-flex) { border-radius: 999px; }
+.admin-v2 :is(main, [role="dialog"]) button.bg-blue-600:hover:not(:disabled) { background-color: var(--adm-navy-hover); }
+/* Tombol abu lama (Batal, Tutup) hampir tidak terlihat di atas kaca, jadi diberi garis seperti tombol garis v2.
+   Batal polos di form lama (hover:text-slate-900) ikut, supaya semua tombol Batal sama rupanya. */
+.admin-v2 :is(main, [role="dialog"]) button:is(.bg-slate-100, .hover\:text-slate-900) { background-color: transparent; box-shadow: inset 0 0 0 1px var(--adm-outline); }
+.admin-v2 :is(main, [role="dialog"]) button:is(.bg-slate-100, .hover\:text-slate-900):hover:not(:disabled) { background-color: rgb(29 29 31 / 0.05); }
+/* Tautan teks lama hanya dibedakan lewat warna biru. Setelah biru dipetakan ke navy warnanya hampir sama dengan
+   teks biasa, jadi garis bawahnya selalu tampil. */
+.admin-v2 main a.hover\:underline { text-decoration-line: underline; text-underline-offset: 2px; }
+/* Pratinjau motto baris 2 di Setting Kantor berlabel "teks biru", jadi tidak ikut dipetakan ke navy. */
+.admin-v2 main p.text-blue-600 { color: #0052cd; }
+
+/* Kartu putih tanpa garis tepi dan bayangan. Kartu galat panel (role="alert") tetap bergaris merah.
+   Tabel: kepala polos, garis #E5E5EA di bawah kepala dan di antara baris. */
+.admin-v2 main :is(.rounded-xl, .rounded-2xl).bg-white { box-shadow: none; }
+.admin-v2 main :is(.rounded-xl, .rounded-2xl).bg-white:not([role="alert"]) { border-color: transparent; }
+.admin-v2 main thead tr,
+.admin-v2 main thead th { background-color: #fff; color: var(--adm-mute); font-weight: 500; font-size: 13px; }
+.admin-v2 main thead tr { border-bottom: 1px solid var(--adm-line); }
+.admin-v2 main tbody tr { border-color: var(--adm-line); }
+.admin-v2 main tbody tr:last-child { border-bottom-width: 0; }
+.admin-v2 main tbody td { font-size: 15px; }
+/* Tabel di dalam dialog diberi latar putih supaya barisnya sama dengan kepala dan kolom Aksi yang menempel. */
+.admin-v2 [role="dialog"] table { background-color: #fff; }
+
+/* Tab filter lama (Workspace Event dan Report) menjadi baris pil seperti filter v2. Nilainya sama dengan .adm-pill dan
+   harus diubah bersama: aturan ini di luar layer supaya menang atas utilitas tab lama, .adm-pill di dalam layer
+   supaya utilitas masih bisa menyetelnya. */
+.admin-v2 main [role="group"]:has(> button[aria-pressed]) { gap: 8px; border: 0; border-radius: 0; overflow: visible; }
+.admin-v2 main [role="group"] > button[aria-pressed] { flex: 0 0 auto; min-width: 0; padding: 9px 16px; font-size: 13px; line-height: 1.2; font-weight: 500; background-color: #fff; color: var(--adm-ink); }
+.admin-v2 main [role="group"] > button[aria-pressed="true"] { background-color: var(--adm-navy); color: #fff; }
+.admin-v2 main [role="group"] > button[aria-pressed="false"]:hover { background-color: #ececf0; }
+
+/* Isian */
+.admin-v2 :is(input:not([type="checkbox"], [type="radio"], [type="file"]), select, textarea) { background-color: #fff; color: var(--adm-ink); }
+.admin-v2 :is(input, select, textarea):disabled { background-color: var(--adm-bg); color: var(--adm-mute); }
+.admin-v2 :is(input, select, textarea)::placeholder { color: var(--adm-mute); }
+.admin-v2 input:is([type="checkbox"], [type="radio"]) { accent-color: var(--adm-navy); }
+
+@layer components {
+  /* ===== Kerangka ===== */
+  .adm-side { display: flex; flex-direction: column; width: 260px; max-width: 85vw; height: 100%; padding: 28px 16px; background: #fff; }
+  .adm-side__brand { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 4px 12px 24px; }
+  .adm-brand { font-size: 18px; line-height: 1.2; font-weight: 600; color: var(--adm-ink); }
+  .adm-brand__note { margin-top: 2px; font-size: 13px; line-height: 1.3; color: var(--adm-mute); }
+  /* Daftar menu biasanya lebih tinggi dari layar. Bayangan di tepi atas atau bawah menandai masih ada menu di arah
+     itu: dua lapis putih ikut bergulir bersama isi (local) dan menutup bayangan saat daftar sudah sampai ujung. */
+  .adm-nav {
+    flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;
+    background:
+      linear-gradient(#fff 40%, rgb(255 255 255 / 0)) top / 100% 28px no-repeat local,
+      linear-gradient(rgb(255 255 255 / 0), #fff 60%) bottom / 100% 28px no-repeat local,
+      radial-gradient(farthest-side at 50% 0, rgb(29 29 31 / 0.22), rgb(29 29 31 / 0)) top / 100% 14px no-repeat scroll,
+      radial-gradient(farthest-side at 50% 100%, rgb(29 29 31 / 0.22), rgb(29 29 31 / 0)) bottom / 100% 14px no-repeat scroll;
+  }
+  .adm-nav [role="group"] { display: flex; flex-direction: column; gap: 4px; }
+  .adm-nav__group { padding: 16px 12px 6px; font-size: 12px; line-height: 1.2; font-weight: 500; color: var(--adm-mute); }
+  .adm-nav__item { display: flex; align-items: center; width: 100%; min-height: 40px; border-radius: 12px; padding: 0 12px; font-size: 14px; line-height: 1.2; text-align: left; color: rgb(29 29 31 / 0.8); }
+  .adm-nav__item:hover { background: var(--adm-bg); }
+  .adm-nav__item[aria-current="page"] { background: var(--adm-bg); font-weight: 600; color: var(--adm-ink); }
+  .adm-side__user { flex-shrink: 0; margin-top: 12px; border-top: 1px solid var(--adm-line); padding-top: 16px; }
+  .adm-side__who { padding: 0 12px 8px; overflow-wrap: anywhere; }
+  .adm-side__alias { font-size: 14px; line-height: 1.3; font-weight: 500; color: var(--adm-ink); }
+  .adm-side__role { margin-top: 2px; font-size: 12px; line-height: 1.3; color: var(--adm-mute); }
+  .adm-topbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 20px; background: #fff; }
+  .adm-topbar__name { font-size: 16px; line-height: 1.2; font-weight: 600; color: var(--adm-ink); }
+
+  /* ===== Kaca, peredup, dan panel dialog ===== */
+  .adm-glass {
+    /* Di bagian bawah kaca, abu #6E6E73 terukur 4,4 banding 1 terhadap latarnya. Abu yang sedikit lebih gelap lolos AA. */
+    --adm-mute: #636366;
+    --color-slate-500: #636366;
+    --color-slate-600: #636366;
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.9) 0%, rgb(247 247 250 / 0.8) 100%);
+    -webkit-backdrop-filter: blur(22px) saturate(1.6);
+    backdrop-filter: blur(22px) saturate(1.6);
+    border-radius: 32px;
+    box-shadow:
+      0 24px 64px -10px rgb(5 15 41 / 0.24),
+      inset 0 1.5px 1px rgb(255 255 255 / 0.6),
+      inset 0 0 0 1px rgb(255 255 255 / 0.55);
+  }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .adm-glass { background: #fbfbfd; }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .adm-glass { background: #fbfbfd; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  }
+  .adm-scrim { position: fixed; inset: 0; z-index: 50; background: rgb(0 0 0 / 0.2); }
+  .adm-scrim--center { display: flex; align-items: center; justify-content: center; padding: 16px; }
+
+  /* Kepala dan baris aksi tetap, isi di tengah yang bergulir. */
+  .adm-panel { display: flex; flex-direction: column; overflow: hidden; padding: 28px; }
+  .adm-panel__head { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 16px; }
+  .adm-panel__title { font-size: 24px; line-height: 1.2; font-weight: 600; color: var(--adm-ink); overflow-wrap: anywhere; }
+  .adm-panel__body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin: 16px -28px 0; padding: 2px 28px 4px; }
+  .adm-panel__foot { display: flex; flex-shrink: 0; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 14px; }
+  .adm-dialog { width: 100%; max-height: 90vh; max-height: 90dvh; }
+
+  /* Drawer kanan. Di layar sempit menjadi lembar bawah. */
+  .adm-drawer {
+    position: fixed; top: 16px; right: 16px; bottom: 16px;
+    width: min(480px, calc(100vw - 32px));
+    animation: adm-drawer-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .adm-drawer .adm-panel__body { display: flex; flex-direction: column; gap: 18px; }
+  .adm-drawer .adm-panel__foot { justify-content: space-between; }
+  @keyframes adm-drawer-in { from { transform: translateX(24px); opacity: 0; } }
+  @keyframes adm-sheet-in { from { transform: translateY(24px); opacity: 0; } }
+  @media (max-width: 639px) {
+    .adm-panel { padding: 20px; border-radius: 28px; }
+    .adm-panel__body { margin: 14px -20px 0; padding: 2px 20px 4px; }
+    .adm-drawer { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px); animation-name: adm-sheet-in; }
+  }
+
+  /* ===== Tombol ===== */
+  .adm-btn { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; font-weight: 500; font-size: 14px; line-height: 1.2; padding: 13px 22px; white-space: nowrap; transition: background-color 0.15s, opacity 0.15s; min-height: 44px; }
+  .adm-btn--sm { font-size: 13px; padding: 10px 16px; }
+  .adm-btn--primary { background: var(--adm-navy); color: #fff; }
+  .adm-btn--primary:hover { background: var(--adm-navy-hover); }
+  .adm-btn--outline { box-shadow: inset 0 0 0 1px var(--adm-outline); color: var(--adm-ink); background: transparent; }
+  .adm-btn--outline:hover { background: rgb(29 29 31 / 0.05); }
+  .adm-btn--danger-text { color: var(--adm-red); background: transparent; }
+  .adm-btn--danger-text:hover { background: rgb(202 30 30 / 0.08); }
+  .adm-btn:is(:disabled, [aria-disabled="true"]) { opacity: 0.5; cursor: not-allowed; }
+  .adm-link { color: var(--adm-navy); font-weight: 500; font-size: 14px; line-height: 1.2; display: inline-flex; align-items: center; min-height: 44px; }
+  .adm-link:hover { text-decoration: underline; }
+  .adm-link--danger { color: var(--adm-red); font-size: 13px; }
+
+  /* ===== Pil filter: <button aria-pressed> ===== */
+  .adm-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .adm-pill { display: inline-flex; align-items: center; border-radius: 999px; background: #fff; color: var(--adm-ink); font-weight: 500; font-size: 13px; line-height: 1.2; padding: 9px 16px; white-space: nowrap; }
+  .adm-pill[aria-pressed="true"] { background: var(--adm-navy); color: #fff; }
+  .adm-pill:not([aria-pressed="true"]):hover { background: #ececf0; }
+  /* Mode kontras tinggi menghapus warna latar, padahal pil aktif hanya dibedakan lewat latarnya. */
+  @media (forced-colors: active) {
+    .adm-pill[aria-pressed="true"] { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+  }
+
+  /* ===== Kotak cari, teks pendamping, kotak galat ===== */
+  .adm-search { height: 44px; width: 240px; max-width: 100%; border-radius: 999px; background: #fff; border: 0; padding: 0 18px; font-size: 14px; color: var(--adm-ink); }
+  .adm-desc { font-size: 15px; line-height: 1.4; color: var(--adm-mute); }
+  .adm-count { font-size: 13px; line-height: 1.4; color: var(--adm-mute); }
+  .adm-alert { border-radius: 12px; background: rgb(202 30 30 / 0.08); padding: 12px 14px; font-size: 14px; line-height: 1.4; color: var(--adm-red); }
+
+  /* ===== Tabel ===== */
+  /* position: relative supaya teks sr-only di dalam sel ikut terpotong di sini dan tidak melebarkan halaman. */
+  .adm-table-card { position: relative; background: #fff; border-radius: 24px; padding: 8px 0; overflow-x: auto; container-type: inline-size; }
+  /* border-collapse: separate, karena pada collapse Chrome tidak menggambar bayangan sel yang menempel. */
+  .adm-table { width: 100%; min-width: 760px; border-collapse: separate; border-spacing: 0; }
+  .adm-table th { text-align: left; padding: 14px 0; font-size: 13px; line-height: 1.2; font-weight: 500; color: var(--adm-mute); }
+  .adm-table td { padding: 12px 16px 12px 0; height: 81px; vertical-align: middle; font-size: 15px; line-height: 1.3; color: var(--adm-ink); border-top: 1px solid var(--adm-line); }
+  .adm-table :is(th, td):first-child { padding-left: 24px; }
+  /* Sel terakhir (kolom aksi) menempel di kanan, jadi Edit tetap terjangkau saat tabel lebih lebar dari kartunya.
+     Selama kartu lebih sempit dari lebar minimal tabel, bayangan di kiri sel itu menandai ada isi yang bisa digeser. */
+  .adm-table :is(th, td):last-child { padding-right: 24px; position: sticky; right: 0; background: #fff; }
+  @container (max-width: 759px) {
+    .adm-table :is(th, td):last-child { padding-left: 16px; box-shadow: 0 0 12px rgb(29 29 31 / 0.2); clip-path: inset(0 0 0 -12px); }
+  }
+  .adm-table tbody tr:hover td { background: #fafafc; }
+  .adm-table .adm-name { font-weight: 600; }
+  .adm-table .adm-sub { display: block; margin-top: 2px; font-size: 12px; color: var(--adm-mute); }
+  .adm-table .adm-sub--warn { color: var(--adm-red); }
+  .adm-thumb { display: block; flex-shrink: 0; width: 56px; height: 56px; border-radius: 12px; object-fit: cover; background: var(--adm-empty); }
+
+  /* ===== Sakelar: <button role="switch" aria-checked> ===== */
+  .adm-switch { position: relative; display: block; flex-shrink: 0; width: 46px; height: 28px; border-radius: 999px; background: var(--adm-off); transition: background-color 0.2s; }
+  /* Memperluas bidang sentuh menjadi 46 x 44 tanpa mengubah tampilan. */
+  .adm-switch::before { content: ""; position: absolute; inset: -8px 0; }
+  .adm-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.2); transition: transform 0.2s; }
+  .adm-switch[aria-checked="true"] { background: var(--adm-on); }
+  .adm-switch[aria-checked="true"]::after { transform: translateX(18px); }
+  .adm-switch:disabled { opacity: 0.5; cursor: not-allowed; }
+  .adm-switch[aria-busy="true"] { opacity: 0.6; cursor: progress; }
+  /* Mode kontras tinggi menghapus warna latar, jadi nyala dan mati dibedakan dengan menukar warna sistem tombol. */
+  @media (forced-colors: active) {
+    .adm-switch { border: 1px solid ButtonText; }
+    .adm-switch::after { top: 2px; left: 2px; background: ButtonText; box-shadow: none; }
+    .adm-switch[aria-checked="true"] { background: ButtonText; }
+    .adm-switch[aria-checked="true"]::after { background: ButtonFace; }
+  }
+  .adm-status { display: flex; align-items: center; gap: 10px; font-size: 13px; line-height: 1.2; color: var(--adm-mute); }
+  .adm-status[data-on="true"] { color: var(--adm-on-text); }
+
+  /* ===== Isian ===== */
+  .adm-field { display: flex; flex-direction: column; gap: 6px; }
+  .adm-label { font-size: 13px; line-height: 1.3; font-weight: 500; color: var(--adm-ink); }
+  .adm-input { width: 100%; height: 44px; border-radius: 12px; background: #fff; border: 1px solid var(--adm-line); padding: 0 14px; font-size: 15px; color: var(--adm-ink); }
+  textarea.adm-input { height: 96px; padding: 12px 14px; line-height: 1.3; resize: vertical; }
+
+  /* Kartu pilihan: teks di kiri, sakelar di kanan. */
+  .adm-option { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: #fff; border: 1px solid var(--adm-line); border-radius: 16px; padding: 12px 16px; }
+  .adm-option__title { display: block; font-size: 14px; line-height: 1.3; font-weight: 500; color: var(--adm-ink); }
+  .adm-option__hint { display: block; margin-top: 2px; font-size: 12px; line-height: 1.4; color: var(--adm-mute); max-width: 300px; }
+
+  /* Area unggah. Garis putusnya digambar SVG (6 isi, 6 kosong, tebal 1,5 seperti desain) karena pola border dashed
+     ditentukan peramban. Garis SVG setebal 3 berpusat di tepi kotak, jadi yang terlihat separuhnya. Border bening
+     tetap dipasang karena mode kontras tinggi mewarnainya, sedangkan gambar latar tidak. */
+  .adm-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; height: 168px; border: 1.5px dashed transparent; border-radius: 18px; background: rgb(255 255 255 / 0.7) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100%25' height='100%25' rx='18' fill='none' stroke='%231d1d1f' stroke-opacity='.3' stroke-width='3' stroke-dasharray='6 6'/%3E%3C/svg%3E") border-box; padding: 0 16px; text-align: center; }
+  .adm-drop[data-over="true"] { background: #fff; box-shadow: inset 0 0 0 1.5px var(--adm-navy); }
+  .adm-drop__title { font-size: 15px; font-weight: 500; line-height: 1.3; }
+  .adm-drop__hint { font-size: 13px; line-height: 1.3; color: var(--adm-mute); }
+  .adm-photo { display: block; width: 100%; height: 176px; border-radius: 18px; object-fit: cover; background: var(--adm-empty); }
+  /* Logo tampil utuh di atas putih, sedangkan foto dipotong mengisi kotak. Cincin navy menandai foto akan diganti
+     berkas yang sedang diseret di atasnya. */
+  .adm-photo--contain { object-fit: contain; padding: 16px; background: #fff; border: 1px solid var(--adm-line); }
+  .adm-photo[data-over="true"] { box-shadow: 0 0 0 2px var(--adm-navy); }
+  .adm-photo__note { font-size: 12px; line-height: 1.2; color: var(--adm-mute); }
+  /* Kotak galat di dalam kaca: di bagian bawah kaca latar merah mudanya lebih gelap, dan merah #CA1E1E di atasnya
+     terukur 4,45 banding 1. Merah yang lebih gelap lolos AA di seluruh tinggi drawer. */
+  .adm-glass .adm-alert { color: #a81818; }
+
+  /* Layar pendek: butir menu dirapatkan supaya lebih banyak yang terlihat tanpa menggulir. */
+  @media (max-height: 900px) {
+    .adm-nav, .adm-nav [role="group"] { gap: 2px; }
+    .adm-nav__item { min-height: 36px; }
+    .adm-nav__group { padding-top: 12px; }
+  }
+  /* Layar sentuh: isian 16 px supaya iOS tidak memperbesar halaman, tombol dan butir menu minimal 44 px. */
+  @media (pointer: coarse) {
+    .adm-input, .adm-search { font-size: 16px; }
+    .adm-btn, .adm-pill, .adm-nav__item { min-height: 44px; }
+    .adm-link { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
+    /* Tombol halaman lama ikut 44 px, kecuali sakelar (punya bidang sentuh sendiri) dan tombol di sel tabel. Tombol
+       ikon di sel tabel dibiarkan: kalau dibesarkan, baris jadi lebih tinggi dan kolom Aksi mendorong tombol Hapus
+       keluar layar di HP (terlihat di Head Home pada lebar 390). */
+    .admin-v2 :is(main, [role="dialog"]) button:not(td button, [role="switch"]) { min-height: 44px; }
+  }
+  @media (max-width: 639px) {
+    .adm-search { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .adm-drawer { animation: none; }
+    .adm-switch, .adm-switch::after { transition: none; }
+  }
+}

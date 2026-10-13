@@ -2,7 +2,7 @@
 
 Situs company profile D'Production (event organizer di Malang) beserta dashboard manajemen internal.
 
-Teknologi: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, framer-motion, Prisma 7 dengan adapter `pg`, dan PostgreSQL.
+Teknologi: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Prisma 7 dengan adapter `pg`, dan PostgreSQL.
 
 ## Kondisi saat ini
 
@@ -47,7 +47,7 @@ Butuh Node.js 20.19, 22.12, atau 24 ke atas (syarat Prisma 7) dan PostgreSQL (CI
    ```bash
    npx tsx --env-file=.env.local scripts/seed-landing-content.ts
    ```
-   Skrip ini mengisi Setting Kantor id 1 dan tabel konten landing (HeadHome, Wedding, Rental, GaleriAlbum dan GaleriFoto, Event) dengan isi `FALLBACK`, sehingga tampilan tidak berubah dan konten tinggal diedit dari dashboard. Tabel yang sudah berisi dilewati, dan skrip mencetak ringkasan per tabel. Dengan `--awal`, baris Setting Kantor id 1 yang sudah ada juga ditimpa data resmi, dan 4 event dokumentasi di Master Event dinonaktifkan (dicocokkan lewat nama atau fotonya, lalu namanya diseragamkan ke versi tanda kurung). Skrip lalu mencetak jumlah event aktif, yang seharusnya 10. Pengaman host-nya sama dengan seed.
+   Skrip ini mengisi Setting Kantor id 1 dan tabel konten landing (HeadHome, Wedding, RentalCategory dan Rental, Klien, GaleriAlbum dan GaleriFoto, Event) dengan isi `FALLBACK`, sehingga tampilan tidak berubah dan konten tinggal diedit dari dashboard. Tabel yang sudah berisi dilewati, dan skrip mencetak ringkasan per tabel. Dengan `--awal`, baris Setting Kantor id 1 yang sudah ada juga ditimpa data resmi, dan 4 event dokumentasi di Master Event dinonaktifkan (dicocokkan lewat nama atau fotonya, lalu namanya diseragamkan ke versi tanda kurung). Skrip lalu mencetak jumlah event aktif, yang seharusnya 10. Pengaman host-nya sama dengan seed.
 7. Jalankan server pengembangan:
    ```bash
    npm run dev
@@ -85,7 +85,7 @@ Role resmi ada lima: `owner` (Pemilik), `superadmin` (Super Admin), `admin` (Adm
 | Workspace Report | `/management/workspace/report` | owner, superadmin | owner, superadmin |
 | Workspace Salary | `/management/workspace/salary` | owner, superadmin | owner, superadmin |
 | Master Tarif | `/management/master/tarif` | owner, superadmin | owner, superadmin |
-| Master Event, Wedding, Rental, Grade Event, JobDesc | `/management/master/*` selain Tarif | owner, superadmin, admin | owner, superadmin, admin |
+| Master Event, Wedding, Katalog, Kategori Katalog, Klien, Grade Event, JobDesc | `/management/master/*` selain Tarif | owner, superadmin, admin | owner, superadmin, admin |
 | Galeri Foto dan Video | `/management/galeri/foto`, `/management/galeri/video` | owner, superadmin, admin | owner, superadmin, admin |
 | Lead Masuk (tabel `Client`) | `/management/leads` | owner, superadmin, admin | owner, superadmin, admin |
 | Setting Kantor dan Head Home | `/management/setting/kantor`, `/management/setting/head-home` | owner, superadmin | owner, superadmin |
@@ -125,7 +125,7 @@ Role resmi ada lima: `owner` (Pemilik), `superadmin` (Super Admin), `admin` (Adm
 - Ukuran maksimal 5 MB. Format yang diterima JPG, PNG, dan WebP, dicek dari isi file, bukan dari nama atau tipe yang dikirim browser.
 - Gambar di-encode ulang dengan `sharp` sebelum disimpan, sehingga metadata EXIF dan XMP (koordinat GPS, model HP, waktu foto) ikut terbuang. Orientasi foto HP tetap benar. Resolusi maksimal 60 megapiksel.
 - File disimpan di `UPLOAD_DIR` dengan nama acak dan disajikan publik di `/media/<nama>` dengan cache satu hari. Di produksi folder ini adalah volume persisten `/app/uploads`.
-- Saat baris dengan kolom gambar dihapus atau gambarnya diganti, file `/media` lama ikut dihapus kalau tidak dipakai kolom gambar lain (Master Event, Wedding, Rental, Galeri Foto, Head Home). Salinan di cache browser dan cache `/_next/image` kedaluwarsa paling lama satu hari kemudian. File yang diunggah tetapi formnya tidak jadi disimpan tetap ada di folder, tetapi alamatnya acak dan tidak pernah tampil di mana pun.
+- Saat baris dengan kolom gambar dihapus atau gambarnya diganti, file `/media` lama ikut dihapus kalau tidak dipakai kolom gambar lain (Master Event, Wedding, Katalog, logo Klien, Galeri Foto, Head Home). Salinan di cache browser dan cache `/_next/image` kedaluwarsa paling lama satu hari kemudian. File yang diunggah tetapi formnya tidak jadi disimpan tetap ada di folder, tetapi alamatnya acak dan tidak pernah tampil di mana pun.
 - Kolom gambar tetap menerima path di situs ini (misalnya `/assets/...` atau `/media/...`) atau URL `https://`.
 
 ## Perintah
@@ -142,7 +142,7 @@ Role resmi ada lima: `owner` (Pemilik), `superadmin` (Super Admin), `admin` (Adm
 | `npx tsx --env-file=.env.local scripts/seed-landing-content.ts` | Mengisi konten landing ke database (lihat Menjalankan di komputer lokal). |
 | `npx tsx --env-file=.env.local scripts/set-account.ts ...` | Membuat, mengganti, atau menghapus akun dashboard langsung di database (lihat Runbook akun). |
 
-Smoke test memeriksa `/` (termasuk header `X-Robots-Tag: noindex` di localhost), `/robots.txt`, `/sitemap.xml`, gambar Open Graph (path-nya diambil dari meta `og:image` di beranda), `/api/health`, serta `POST /api/contact` yang valid dan tidak valid. Alamat server diambil dari `BASE_URL` (default `http://localhost:3000`) dan hanya boleh `localhost` atau `127.0.0.1`, karena uji form kontak menyimpan satu lead ke database.
+Smoke test memeriksa kelima halaman publik (`/`, `/layanan`, `/portofolio`, `/katalog`, `/tentang`), header `X-Robots-Tag: noindex` di localhost, `/robots.txt`, `/sitemap.xml` (harus memuat kelima halaman itu), gambar Open Graph tiap halaman (path-nya diambil dari meta `og:image`), `/api/health`, `/api/health/live`, serta `POST /api/contact` yang valid dan tidak valid. Alamat server diambil dari `BASE_URL` (default `http://localhost:3000`) dan hanya boleh `localhost` atau `127.0.0.1`, karena uji form kontak menyimpan satu lead ke database.
 
 ## CI
 

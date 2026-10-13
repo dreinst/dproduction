@@ -1,0 +1,376 @@
+"use client";
+
+import { useState } from "react";
+import { Plus, Pencil, Trash2, Search, CheckSquare, Square } from "lucide-react";
+import { useCrud } from "@/hooks/useCrud";
+import { usePagination } from "@/hooks/usePagination";
+import Modal from "@/components/management/Modal";
+import Pagination, { PageSizeSelect } from "@/components/management/Pagination";
+import { useAdminUser } from "@/components/management/AdminShell";
+
+interface Video {
+  id: number;
+  url: string;
+  title: string | null;
+  active: boolean;
+  sortIndex: number;
+}
+
+const EMPTY_FORM = { url: "", title: "", sortIndex: "0", active: true };
+const SAFE_HREF = /^https:\/\//i;
+const inputClass =
+  "w-full px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600 disabled:bg-slate-100";
+
+export default function GaleriVideoPage() {
+  const canWrite = useAdminUser().can("galeriVideo", "write");
+  const { data, loading, error, saveError, clearSaveError, createItem, updateItem, deleteItem } = useCrud<Video>({
+    endpoint: "/api/galeri-video",
+  });
+  const [statusFilter, setStatusFilter] = useState<"aktif" | "semua">("aktif");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Video | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Video | null>(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const q = searchQuery.trim().toLowerCase();
+  const filtered = data.filter(
+    (video) =>
+      (statusFilter === "semua" || video.active) &&
+      (!q || `${video.title ?? ""} ${video.url}`.toLowerCase().includes(q)),
+  );
+  const pagination = usePagination(filtered, `${statusFilter}|${q}`);
+
+  const openForm = (video?: Video) => {
+    clearSaveError();
+    setEditing(video ?? null);
+    setForm(
+      video
+        ? { url: video.url, title: video.title ?? "", sortIndex: String(video.sortIndex), active: video.active }
+        : EMPTY_FORM,
+    );
+    setFormOpen(true);
+  };
+
+  const handleSave = async () => {
+    setIsSubmitting(true);
+    const payload = {
+      url: form.url.trim(),
+      title: form.title.trim() || null,
+      sortIndex: form.sortIndex === "" ? 0 : Number(form.sortIndex),
+      active: form.active,
+    };
+    const ok = editing ? await updateItem(editing.id, payload) : await createItem(payload);
+    setIsSubmitting(false);
+    if (ok) setFormOpen(false);
+  };
+
+  const openDelete = (video: Video) => {
+    clearSaveError();
+    setDeleteTarget(video);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsSubmitting(true);
+    const ok = await deleteItem(deleteTarget.id);
+    setIsSubmitting(false);
+    if (ok) setDeleteTarget(null);
+  };
+
+  const errorBox = saveError && (
+    <div role="alert" className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+      {saveError}
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold text-slate-800">Video</h1>
+
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <label htmlFor="video-status" className="block text-sm text-slate-600 mb-1">
+            Status
+          </label>
+          <select
+            id="video-status"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as "aktif" | "semua")}
+            className="px-4 py-2 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600 bg-white min-w-[200px]"
+          >
+            <option value="aktif">Hanya yang tampil</option>
+            <option value="semua">Semua</option>
+          </select>
+        </div>
+        {canWrite && (
+          <button
+            type="button"
+            onClick={() => openForm()}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+          >
+            <Plus className="w-4 h-4" aria-hidden />
+            Tambah Video
+          </button>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <PageSizeSelect pagination={pagination} />
+        <div className="relative w-full sm:w-72">
+          <label htmlFor="video-search" className="sr-only">
+            Cari judul atau link video
+          </label>
+          <input
+            id="video-search"
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Cari judul atau link video"
+            className="w-full pl-8 pr-3 py-1.5 border border-slate-300 rounded-lg text-base pointer-fine:text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-600"
+          />
+          <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden />
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
+        {loading && !data.length ? (
+          <div className="p-8 text-center text-slate-600">Memuat data video...</div>
+        ) : error ? (
+          <div role="alert" className="p-8 text-center text-red-600">
+            {error}
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="bg-slate-800 text-white text-sm">
+                <th className="hidden sm:table-cell px-4 py-3 text-left font-semibold w-12">No</th>
+                <th className="px-3 sm:px-4 py-3 text-left font-semibold">Judul video</th>
+                <th className="px-3 sm:px-4 py-3 text-left font-semibold">Link</th>
+                <th className="hidden sm:table-cell px-4 py-3 text-center font-semibold">Urutan</th>
+                <th className="px-3 sm:px-4 py-3 text-center font-semibold">Tampil</th>
+                {canWrite && <th className="px-3 sm:px-4 py-3 text-center font-semibold">Aksi</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {pagination.pageItems.map((video, i) => {
+                const name = video.title || `video ${pagination.from + i}`;
+                return (
+                  <tr key={video.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <td className="hidden sm:table-cell px-4 py-3 text-sm text-slate-600">{pagination.from + i}</td>
+                    <td
+                      className={`px-3 sm:px-4 py-3 text-sm ${video.title ? "text-slate-800" : "text-slate-600 italic"}`}
+                    >
+                      {video.title || "Belum diisi"}
+                    </td>
+                    <td className="px-3 sm:px-4 py-3 text-sm break-all">
+                      {SAFE_HREF.test(video.url) ? (
+                        <a
+                          href={video.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-700 hover:underline"
+                          aria-label={`Buka ${name} di tab baru`}
+                        >
+                          {video.url}
+                        </a>
+                      ) : (
+                        <span className="text-slate-600">{video.url}</span>
+                      )}
+                    </td>
+                    <td className="hidden sm:table-cell px-4 py-3 text-sm text-center text-slate-700">{video.sortIndex}</td>
+                    <td className="px-3 sm:px-4 py-3 text-center">
+                      {video.active ? (
+                        <CheckSquare className="w-5 h-5 text-green-600 mx-auto" aria-label="Tampil di website" />
+                      ) : (
+                        <Square className="w-5 h-5 text-slate-400 mx-auto" aria-label="Tidak tampil" />
+                      )}
+                    </td>
+                    {canWrite && (
+                      <td className="px-3 sm:px-4 py-3">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => openForm(video)}
+                            className="p-1.5 text-yellow-700 hover:bg-yellow-50 rounded transition-colors"
+                            aria-label={`Edit ${name}`}
+                            title="Edit"
+                          >
+                            <Pencil className="w-4 h-4" aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openDelete(video)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            aria-label={`Hapus ${name}`}
+                            title="Hapus"
+                          >
+                            <Trash2 className="w-4 h-4" aria-hidden />
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+              {pagination.pageItems.length === 0 && (
+                <tr>
+                  <td colSpan={canWrite ? 6 : 5} className="px-4 py-8 text-center text-slate-600 text-sm">
+                    {data.length ? "Tidak ada video yang cocok dengan filter." : "Belum ada video."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <Pagination pagination={pagination} />
+
+      <Modal
+        open={formOpen}
+        title={editing ? "Edit Video" : "Tambah Video"}
+        onClose={() => setFormOpen(false)}
+        onSubmit={handleSave}
+        busy={isSubmitting}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setFormOpen(false)}
+              disabled={isSubmitting}
+              className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+            >
+              {isSubmitting ? "Menyimpan..." : "Simpan"}
+            </button>
+          </>
+        }
+      >
+        {errorBox}
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="video-url" className="block text-sm font-medium text-slate-700 mb-1">
+              Link YouTube
+            </label>
+            <input
+              id="video-url"
+              type="text"
+              inputMode="url"
+              value={form.url}
+              onChange={(e) => setForm({ ...form, url: e.target.value })}
+              className={inputClass}
+              disabled={isSubmitting}
+              required
+              maxLength={2000}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="https://www.youtube.com/watch?v=xxxxxxxxxxx"
+              aria-describedby="video-url-hint"
+            />
+            <p id="video-url-hint" className="mt-1 text-xs text-slate-600">
+              Link video YouTube, misalnya https://youtu.be/xxxxxxxxxxx atau
+              https://www.youtube.com/watch?v=xxxxxxxxxxx.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="video-title" className="block text-sm font-medium text-slate-700 mb-1">
+              Judul video (opsional)
+            </label>
+            <input
+              id="video-title"
+              type="text"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              className={inputClass}
+              disabled={isSubmitting}
+              maxLength={200}
+              aria-describedby="video-title-hint"
+            />
+            <p id="video-title-hint" className="mt-1 text-xs text-slate-600">
+              Dipakai sebagai judul pemutar untuk pembaca layar.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="video-sort" className="block text-sm font-medium text-slate-700 mb-1">
+              Urutan
+            </label>
+            <input
+              id="video-sort"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={2147483647}
+              step={1}
+              value={form.sortIndex}
+              onChange={(e) => setForm({ ...form, sortIndex: e.target.value })}
+              className={inputClass}
+              disabled={isSubmitting}
+              aria-describedby="video-sort-hint"
+            />
+            <p id="video-sort-hint" className="mt-1 text-xs text-slate-600">
+              Angka kecil tampil lebih dulu.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              id="video-active"
+              type="checkbox"
+              checked={form.active}
+              onChange={(e) => setForm({ ...form, active: e.target.checked })}
+              disabled={isSubmitting}
+              className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="video-active" className="text-sm font-medium text-slate-700">
+              Tampil di website
+            </label>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!deleteTarget}
+        title="Hapus video?"
+        onClose={() => setDeleteTarget(null)}
+        busy={isSubmitting}
+        size="sm"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(null)}
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+            >
+              {isSubmitting ? "Menghapus..." : "Hapus permanen"}
+            </button>
+          </>
+        }
+      >
+        {errorBox}
+        <p className="text-sm text-slate-700">
+          Video{" "}
+          <span className="font-semibold text-slate-900 break-all">{deleteTarget?.title || deleteTarget?.url}</span>{" "}
+          dihapus permanen dan tidak tampil lagi di website. Kalau hanya ingin menyembunyikannya, batalkan lalu hapus
+          centang Tampil di website lewat tombol Edit.
+        </p>
+      </Modal>
+    </div>
+  );
+}

@@ -11,22 +11,22 @@ const securityHeaders = [
 // Nilai host dibaca Next sebagai regex yang dijangkar penuh, jadi titiknya di-escape.
 const officialHost = [{ type: "host" as const, value: "www\\.dpro\\.events" }];
 
-// URL situs PHP lama yang masih terindeks Google dan tersebar di materi promosi.
+// URL situs PHP lama yang masih terindeks Google dan tersebar di materi promosi. Bagian setelah "#" ikut terkirim di
+// header Location dan dipakai browser. Query permintaan ikut terbawa.
 const legacyRedirects: [string, string][] = [
-  ["/tentang_kami", "/#tentang-kami"],
-  ["/team", "/#tentang-kami"],
-  ["/masterpiece", "/#masterpiece"],
-  ["/rental", "/#layanan"],
-  ["/rental/detail", "/#layanan"],
-  ["/event", "/#layanan"],
-  ["/wedding", "/#layanan"],
-  ["/galeri_foto", "/#galeri"],
-  ["/galeri_video", "/#galeri"],
+  ["/tentang_kami", "/tentang"],
+  ["/team", "/tentang#tim"],
+  ["/masterpiece", "/portofolio"],
+  // Termasuk /rental sendiri dan turunannya seperti /rental/detail/12.
+  ["/rental/:path*", "/katalog"],
+  ["/event", "/layanan#event-organizer"],
+  ["/wedding", "/layanan#wedding-organizer"],
+  ["/galeri_foto", "/tentang#galeri"],
+  ["/galeri_video", "/tentang#galeri"],
   ["/kontak", "/#kontak"],
   // Folder gambar situs lama tidak dibawa ke situs baru.
   ["/gbr/:path*", "/"],
   ["/images/:path*", "/"],
-  ["/login", "/management/login"],
   // Sebagian klien lama meminta path ini langsung tanpa membaca tag link di head.
   ["/apple-touch-icon.png", "/apple-icon.png"],
   ["/apple-touch-icon-precomposed.png", "/apple-icon.png"],

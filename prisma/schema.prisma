@@ -86,18 +86,36 @@ model Wedding {
   updatedAt   DateTime @updatedAt
 }
 
-// Master Rental = kartu rental di section Layanan.
-model Rental {
+// Kategori Katalog = kelompok item di halaman katalog harga, misalnya "Efek Panggung".
+model RentalCategory {
   id          Int      @id @default(autoincrement())
-  name        String
-  description String?
-  price       Int? // harga mulai dalam rupiah; NULL tampil "Hubungi Kami"
-  unit        String? // misalnya "hari"
-  waCart      String?
-  photo       String?
+  name        String   @unique
+  description String? // satu kalimat di bawah judul kategori pada halaman katalog
+  sortIndex   Int      @default(0)
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  rentals     Rental[]
+}
+
+// Master Rental = item katalog harga.
+model Rental {
+  id          Int             @id @default(autoincrement())
+  name        String
+  description String?
+  price       Int? // harga utama dalam rupiah; NULL berarti harga lewat WhatsApp
+  unit        String? // keterangan harga, tampil apa adanya di samping nominal: "per mesin", "300 sampai 400 shot"
+  waCart      String?
+  photo       String?
+  active      Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  categoryId  Int?
+  category    RentalCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  priceHidden Boolean         @default(false) // "Harga lewat WhatsApp saja": harga tidak tampil di situs
+  priceFrom   Boolean         @default(false) // tampil "Mulai Rp ..."
+  extraPrices Json? // harga lain selain price/unit: [{ "amount": 2000000, "unit": "per 2 momen" }]
+  sortIndex   Int             @default(0)
 }
 
 // Daftar level resmi event.
@@ -288,6 +306,7 @@ model KantorSetting {
   address              String?
   phone                String?
   whatsapp             String? // format 08xxxxxxxxxx, dipakai semua link WhatsApp
+  whatsapp2            String? // nomor kedua dengan format yang sama, tampil di section Kontak
   email                String?
   website              String?
   googleMapsUrl        String? // URL embed, diawali https://www.google.com/maps
@@ -296,10 +315,10 @@ model KantorSetting {
   youtubeUrl           String?
   tiktokUrl            String?
   aboutUs              String? // paragraf Tentang Kami, dipisah baris kosong
-  statClients          Int?
-  statEvents           Int?
+  statClients          Int? // kosong berarti dihitung dari Klien aktif
+  statEvents           Int? // kosong berarti dihitung dari Event aktif
   statRentalCategories Int?
-  statMembers          Int?
+  statMembers          Int? // kosong berarti dihitung dari Crew aktif
   statYears            Int? // tahun pengalaman
   updatedAt            DateTime @updatedAt
 }

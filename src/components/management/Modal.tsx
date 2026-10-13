@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useId, useRef, type FormEvent, type ReactNode } from "react";
-import { X } from "lucide-react";
 
 type ModalProps = {
+  // Hanya satu Modal yang boleh terbuka. Tutup dialog pertama sebelum membuka yang kedua, misalnya drawer sebelum konfirmasi hapus.
   open: boolean;
   title: string;
   onClose: () => void;
@@ -13,6 +13,8 @@ type ModalProps = {
   onInput?: () => void;
   busy?: boolean;
   size?: "sm" | "md" | "lg" | "xl";
+  // "drawer" menempel di kanan layar (lembar bawah di layar sempit) dan mengabaikan size.
+  variant?: "dialog" | "drawer";
 };
 
 const SIZES = { sm: "max-w-sm", md: "max-w-lg", lg: "max-w-2xl", xl: "max-w-4xl" };
@@ -23,7 +25,17 @@ export default function Modal(props: ModalProps) {
   return props.open ? <ModalDialog {...props} /> : null;
 }
 
-function ModalDialog({ title, onClose, children, footer, onSubmit, onInput, busy = false, size = "md" }: ModalProps) {
+function ModalDialog({
+  title,
+  onClose,
+  children,
+  footer,
+  onSubmit,
+  onInput,
+  busy = false,
+  size = "md",
+  variant = "dialog",
+}: ModalProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -58,6 +70,7 @@ function ModalDialog({ title, onClose, children, footer, onSubmit, onInput, busy
   }, []);
 
   // Dipasang di document karena fokus bisa lepas ke body saat tombol yang sedang difokus menjadi disabled.
+  // Pendengar ini tidak tahu dialog mana yang paling atas, jadi dua Modal yang terbuka bersamaan berebut Tab dan Escape.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const dialog = dialogRef.current;
@@ -93,11 +106,11 @@ function ModalDialog({ title, onClose, children, footer, onSubmit, onInput, busy
 
   const content = (
     <>
-      <div data-modal-body className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+      <div data-modal-body className="adm-panel__body">
         {children}
       </div>
       {footer && (
-        <div data-modal-footer className="flex shrink-0 flex-wrap justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4">
+        <div data-modal-footer className="adm-panel__foot">
           {footer}
         </div>
       )}
@@ -106,7 +119,7 @@ function ModalDialog({ title, onClose, children, footer, onSubmit, onInput, busy
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+      className={variant === "drawer" ? "adm-scrim" : "adm-scrim adm-scrim--center"}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) close();
       }}
@@ -117,20 +130,14 @@ function ModalDialog({ title, onClose, children, footer, onSubmit, onInput, busy
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`flex max-h-[90dvh] w-full ${SIZES[size]} flex-col overflow-hidden rounded-2xl bg-white shadow-2xl focus:outline-hidden`}
+        className={`adm-glass adm-panel focus:outline-hidden ${variant === "drawer" ? "adm-drawer" : `adm-dialog ${SIZES[size]}`}`}
       >
-        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-slate-100 bg-slate-50/50 px-6 py-4">
-          <h2 id={titleId} className="text-lg font-bold text-slate-800">
+        <div className="adm-panel__head">
+          <h2 id={titleId} className="adm-panel__title">
             {title}
           </h2>
-          <button
-            type="button"
-            onClick={close}
-            disabled={busy}
-            aria-label="Tutup"
-            className="rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
-          >
-            <X className="h-5 w-5" aria-hidden />
+          <button type="button" onClick={close} disabled={busy} className="adm-btn adm-btn--sm adm-btn--outline">
+            Tutup
           </button>
         </div>
         {onSubmit ? (

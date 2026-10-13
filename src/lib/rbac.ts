@@ -1,3 +1,5 @@
+import { ADMIN_BASE, ADMIN_LOGIN, isAdminPath, isInnerPath } from '@/lib/admin-path';
+
 export const ROLES = ['owner', 'superadmin', 'admin', 'staff', 'tester'] as const;
 export type Role = (typeof ROLES)[number];
 
@@ -32,6 +34,8 @@ export const API_ACCESS = {
   events: both(MANAGERS),
   weddings: both(MANAGERS),
   rentals: both(MANAGERS),
+  rentalCategories: both(MANAGERS),
+  klien: both(MANAGERS),
   gradeEvents: both(MANAGERS),
   jobdescs: both(MANAGERS),
   galeriFoto: both(MANAGERS),
@@ -62,47 +66,51 @@ const page = (name: string, href: string, resource: Resource): NavLink => ({
   roles: API_ACCESS[resource].read,
 });
 
+// Di luar grup Workspace, label butir menu sama dengan judul halamannya (h1). Kalau salah satunya diganti, ganti juga
+// yang lain.
 export const NAV: NavItem[] = [
-  { ...page('Dashboard', '/management', 'dashboard'), icon: 'dashboard' },
-  { ...page('Lead Masuk', '/management/leads', 'leads'), icon: 'leads' },
-  { ...page('Database', '/management/database', 'database'), icon: 'database' },
-  {
-    name: 'Galeri',
-    icon: 'galeri',
-    children: [
-      page('Foto', '/management/galeri/foto', 'galeriFoto'),
-      page('Video', '/management/galeri/video', 'galeriVideo'),
-    ],
-  },
+  { ...page('Dashboard', ADMIN_BASE, 'dashboard'), icon: 'dashboard' },
+  { ...page('Leads', `${ADMIN_BASE}/leads`, 'leads'), icon: 'leads' },
+  { ...page('Database', `${ADMIN_BASE}/database`, 'database'), icon: 'database' },
   {
     name: 'Master',
     icon: 'master',
     children: [
-      page('Master Event', '/management/master/event', 'events'),
-      page('Master Wedding', '/management/master/wedding', 'weddings'),
-      page('Master Rental', '/management/master/rental', 'rentals'),
-      page('Master Grade Event', '/management/master/grade-event', 'gradeEvents'),
-      page('Master JobDesc', '/management/master/jobdesc', 'jobdescs'),
-      page('Master Tarif', '/management/master/tarif', 'tarif'),
+      page('Event', `${ADMIN_BASE}/master/event`, 'events'),
+      page('Wedding', `${ADMIN_BASE}/master/wedding`, 'weddings'),
+      page('Katalog', `${ADMIN_BASE}/master/rental`, 'rentals'),
+      page('Kategori Katalog', `${ADMIN_BASE}/master/kategori-katalog`, 'rentalCategories'),
+      page('Klien', `${ADMIN_BASE}/master/klien`, 'klien'),
+      page('Grade Event', `${ADMIN_BASE}/master/grade-event`, 'gradeEvents'),
+      page('JobDesc', `${ADMIN_BASE}/master/jobdesc`, 'jobdescs'),
+      page('Tarif', `${ADMIN_BASE}/master/tarif`, 'tarif'),
+    ],
+  },
+  {
+    name: 'Galeri',
+    icon: 'galeri',
+    children: [
+      page('Foto', `${ADMIN_BASE}/galeri/foto`, 'galeriFoto'),
+      page('Video', `${ADMIN_BASE}/galeri/video`, 'galeriVideo'),
     ],
   },
   {
     name: 'Setting',
     icon: 'setting',
     children: [
-      page('Kantor', '/management/setting/kantor', 'kantorSettings'),
-      page('Login', '/management/setting/login', 'users'),
-      page('Head Home', '/management/setting/head-home', 'headHome'),
+      page('Head Home', `${ADMIN_BASE}/setting/head-home`, 'headHome'),
+      page('Kantor', `${ADMIN_BASE}/setting/kantor`, 'kantorSettings'),
+      page('Login', `${ADMIN_BASE}/setting/login`, 'users'),
     ],
   },
   {
     name: 'Workspace',
     icon: 'workspace',
     children: [
-      page('Event', '/management/workspace/event', 'workspaceEvents'),
-      page('Crew', '/management/workspace/crew', 'crews'),
-      page('Report', '/management/workspace/report', 'reports'),
-      page('Salary', '/management/workspace/salary', 'salary'),
+      page('Event', `${ADMIN_BASE}/workspace/event`, 'workspaceEvents'),
+      page('Crew', `${ADMIN_BASE}/workspace/crew`, 'crews'),
+      page('Report', `${ADMIN_BASE}/workspace/report`, 'reports'),
+      page('Salary', `${ADMIN_BASE}/workspace/salary`, 'salary'),
     ],
   },
 ];
@@ -122,7 +130,7 @@ export function canAccessPath(role: unknown, pathname: string): boolean {
   if (!isRole(role)) return false;
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
   const link = NAV_LINKS.find((l) =>
-    l.href === '/management' ? path === l.href : path === l.href || path.startsWith(`${l.href}/`),
+    l.href === ADMIN_BASE ? path === l.href : path === l.href || path.startsWith(`${l.href}/`),
   );
   return !!link && link.roles.includes(role);
 }
@@ -137,8 +145,10 @@ export function safeNextPath(raw: string | null | undefined): string | null {
     return null;
   }
   if (url.origin !== 'http://internal.invalid') return null;
-  if (!/^\/management(?:\/|$)/.test(url.pathname) || /^\/management\/login(?:\/|$)/.test(url.pathname)) return null;
-  return url.pathname + url.search + url.hash;
+  const { pathname } = url;
+  if (!isAdminPath(pathname) || isInnerPath(pathname)) return null;
+  if (pathname === ADMIN_LOGIN || pathname.startsWith(`${ADMIN_LOGIN}/`)) return null;
+  return pathname + url.search + url.hash;
 }
 
 // Nilai harus sama persis dengan enum di prisma/schema.prisma. File ini diimpor komponen klien, jadi jangan impor @prisma/client.

@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { handleRouteError, readJson } from '@/lib/api';
 import { requireAccess } from '@/lib/auth';
 import { audit } from '@/lib/audit';
+import { revalidateLanding } from '@/lib/revalidate';
 import { MESSAGES, createSchema, selectFor, stripBank } from './schema';
 
 export async function GET() {
@@ -22,6 +23,8 @@ export async function POST(req: Request) {
     const data = stripBank(createSchema.parse(await readJson(req)), auth.user.role);
     const crew = await prisma.crew.create({ data, select: selectFor(auth.user.role) });
     await audit(auth.user, 'tambah', 'Crew', crew.id, crew.active ? 'aktif' : 'nonaktif');
+    // Angka kru di situs dihitung dari jumlah crew aktif selama angkanya di Setting Kantor dikosongkan.
+    revalidateLanding();
     return NextResponse.json(crew, { status: 201 });
   } catch (error) {
     return handleRouteError(error, MESSAGES);

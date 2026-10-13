@@ -11,7 +11,7 @@ export async function notifyNewLead(lead: Client) {
     `WhatsApp: https://wa.me/62${lead.whatsapp.slice(1)}`,
     `Nama: ${lead.name}`,
     `Jenis acara: ${eventLabel(lead.eventType)}`,
-    `Pesan: ${lead.message}`,
+    ...(lead.message ? [`Pesan: ${lead.message}`] : []),
   ].join("\n");
 
   try {

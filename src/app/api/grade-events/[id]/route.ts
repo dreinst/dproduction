@@ -54,7 +54,7 @@ export async function DELETE(_req: Request, { params }: Params) {
     if (!count) {
       return ownsTarif
         ? apiError(404, MESSAGES.P2025)
-        : apiError(409, 'Masih ada tarif untuk grade ini. Minta Pemilik atau Super Admin menghapus tarifnya dulu di Master Tarif.');
+        : apiError(409, 'Masih ada tarif untuk grade ini. Minta Pemilik atau Super Admin menghapus tarifnya dulu di menu Tarif.');
     }
     const tarif = grade._count.tarif;
     await audit(auth.user, 'hapus', 'GradeEvent', id, tarif ? `${grade.grade}, ${tarif} tarif ikut terhapus` : grade.grade);
