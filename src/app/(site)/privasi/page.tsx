@@ -25,7 +25,7 @@ export default async function PrivasiPage() {
       id: "cakupan",
       judul: "Cakupan",
       isi: [
-        "Kebijakan ini berlaku untuk situs dpro.events dan untuk layanan chat D'Production di Instagram dan WhatsApp. Layanan chat itu menjawab pertanyaan soal acara D'Production, misalnya KUWERA Fun Run 5K, Pet Blessing, dan Drive Tech.",
+        "Kebijakan ini berlaku untuk situs dpro.events dan untuk layanan chat D'Production di Instagram dan WhatsApp. Layanan chat itu menjawab pertanyaan soal acara D'Production, misalnya KUWERA Fun Run 5K dan Drive Tech.",
         `D'Production adalah event organizer dan wedding organizer yang berkantor di ${kantor.address}.`,
       ],
     },

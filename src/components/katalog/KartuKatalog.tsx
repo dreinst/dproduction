@@ -56,6 +56,7 @@ export default function KartuKatalog({ item, id, whatsapp, segera = false }: Pro
               <TautanWhatsApp
                 nomor={whatsapp}
                 teks={`Halo D'Production, saya ingin tanya ketersediaan sewa ${item.name} untuk acara saya.`}
+                aria-label={`Tanya ketersediaan ${item.name} lewat WhatsApp`}
                 className="inline-block text-navy hover:underline hover:underline-offset-4 pointer-coarse:-my-3.5 pointer-coarse:py-3.5"
               >
                 Tanya ketersediaan
@@ -68,6 +69,7 @@ export default function KartuKatalog({ item, id, whatsapp, segera = false }: Pro
             <TautanWhatsApp
               nomor={whatsapp}
               teks={`Halo D'Production, saya ingin tanya harga sewa ${item.name} untuk acara saya.`}
+              aria-label={`Tanya harga ${item.name} lewat WhatsApp`}
               className={`${tombol("navy", "kecil")} mt-auto`}
             >
               Tanya harga

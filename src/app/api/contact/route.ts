@@ -59,8 +59,9 @@ export async function POST(request: Request) {
   if (contentType !== "application/json") return reply(415, "Format kiriman tidak didukung.");
   if (!isSameOrigin(request)) return reply(403, "Kiriman dari situs lain tidak diterima.");
 
-  // x-real-ip diisi proxy (Traefik di VPS, Vercel), entri pertama x-forwarded-for bisa dipalsukan klien.
-  const ip = request.headers.get("x-real-ip") || request.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  // Hanya percaya x-real-ip yang diisi proxy (Traefik di VPS, Vercel). x-forwarded-for tidak dipakai karena
+  // bisa dipalsukan klien, sehingga pembatas laju tidak bisa dilewati lewat header palsu.
+  const ip = request.headers.get("x-real-ip") || "unknown";
   if (isRateLimited(ip)) {
     return reply(429, "Terlalu banyak kiriman dari jaringan Anda. Silakan coba lagi dalam 10 menit atau hubungi kami lewat WhatsApp.");
   }
@@ -88,7 +89,6 @@ export async function POST(request: Request) {
 
   try {
     const lead = await prisma.client.create({ data: { ...contact, message: fullMessage } });
-    console.log(`Lead baru tersimpan, id ${lead.id}`);
     after(() => notifyNewLead(lead));
     return reply(201, thankYou);
   } catch (error) {

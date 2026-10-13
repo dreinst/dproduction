@@ -32,13 +32,13 @@ export const FALLBACK = {
     description:
       "D'Production adalah event organizer dan wedding organizer di Malang sejak 2016. Dari konsep hingga eksekusi, kami merancang acara korporat, pemerintahan, hingga pernikahan Anda dari awal sampai selesai.",
     aboutUs:
-      "D'Production adalah mitra terpercaya Anda di Malang. Kami percaya bahwa setiap acara memiliki cerita dan tujuannya masing-masing. Oleh karena itu, kami tidak hanya menyelenggarakan acara, tapi kami merancang pengalaman.\n\n" +
-      "Dengan tim yang berdedikasi tinggi, kreatif, dan berpengalaman, kami memastikan setiap detail, dari konsep hingga eksekusi, berjalan dengan sempurna.",
+      "D'Production adalah mitra acara Anda di Malang. Kami percaya bahwa setiap acara memiliki cerita dan tujuannya masing-masing. Oleh karena itu, kami tidak sekadar menyelenggarakan acara, kami merancang pengalaman yang mengesankan.\n\n" +
+      "Dengan tim yang berpengalaman, kami memastikan setiap detail, dari konsep hingga eksekusi, berjalan lancar.",
     // Kosong berarti dihitung: dari baris aktif di tabelnya, atau dari daftar klien dan events di bawah.
     statClients: null as number | null,
     statEvents: null as number | null,
     statRentalCategories: 4,
-    statMembers: 200,
+    statMembers: null as number | null,
     statYears: 10,
   },
   // Foto hero desain v2. Lapisan gelap hero disetel untuk foto ini (src/components/beranda/Hero.tsx).
@@ -438,7 +438,7 @@ function toAngka(row: StatRow | null, counts: Counts | null): Omit<LandingAngka,
     foundedYear: row?.foundedYear ?? f.foundedYear,
     events: angka(row ? row.statEvents : f.statEvents, counts?.eventRows ? counts.events : FALLBACK.events.length),
     clients: angka(row ? row.statClients : f.statClients, counts?.klienRows ? counts.clients : FALLBACK.klien.length),
-    members: row?.statMembers == null && counts?.crews ? counted(counts.crews) : manual(row?.statMembers ?? f.statMembers),
+    members: angka(row ? row.statMembers : f.statMembers, counts?.crews ?? FALLBACK.kantor.statMembers ?? 0),
   };
 }
 

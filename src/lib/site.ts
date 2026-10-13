@@ -1,8 +1,7 @@
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.dpro.events";
 
-// WhatsApp 1 dipakai semua ajakan umum; WhatsApp 2 hanya tampil berdampingan di bagian kontak.
+// WhatsApp 1 dipakai semua ajakan umum; WhatsApp 2 hanya tampil berdampingan di bagian kontak, nomornya dari Setting Kantor.
 export const WHATSAPP_NUMBER = "6281938938800";
-export const WHATSAPP_NUMBER_2 = "6282132370811";
 export const WHATSAPP_DEFAULT_TEXT =
   "Halo D'Production, saya dapat info dari website dan ingin konsultasi acara.";
 

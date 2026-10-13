@@ -22,7 +22,7 @@ export default function Masterpiece({ items, total }: Props) {
             navy
             id="judul-masterpiece"
             label="Masterpiece"
-            judul="Event terbesar yang pernah kami tangani."
+            judul="Event skala besar yang pernah kami tangani."
             keterangan="Dari fun run ribuan pelari sampai program multi hari Bank Indonesia."
           />
           {total.value > 0 && (

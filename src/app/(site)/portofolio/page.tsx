@@ -54,7 +54,7 @@ export default async function PortofolioPage() {
               navy
               id="judul-masterpiece"
               label="Masterpiece"
-              judul="Event terbesar yang pernah kami tangani."
+              judul="Event skala besar yang pernah kami tangani."
               keterangan="Dari fun run ribuan pelari sampai program multi hari Bank Indonesia."
             />
             <ul className="mt-kepala grid gap-x-kisi gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
