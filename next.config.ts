@@ -37,7 +37,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
-      // Domain review sslip.io, apex, vercel.app, dan localhost tidak boleh diindeks.
+      // Domain review sslip.io, apex, dan localhost tidak boleh diindeks.
       { source: "/:path*", missing: officialHost, headers: [{ key: "X-Robots-Tag", value: "noindex" }] },
       // max-age pendek dulu, dinaikkan lewat ops setelah domain resmi stabil.
       { source: "/:path*", has: officialHost, headers: [{ key: "Strict-Transport-Security", value: "max-age=86400" }] },
