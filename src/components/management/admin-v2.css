@@ -182,7 +182,7 @@
   }
 
   /* ===== Tombol ===== */
-  .adm-btn { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; font-weight: 500; font-size: 14px; line-height: 1.2; padding: 13px 22px; white-space: nowrap; transition: background-color 0.15s, opacity 0.15s; }
+  .adm-btn { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; font-weight: 500; font-size: 14px; line-height: 1.2; padding: 13px 22px; white-space: nowrap; transition: background-color 0.15s, opacity 0.15s; min-height: 44px; }
   .adm-btn--sm { font-size: 13px; padding: 10px 16px; }
   .adm-btn--primary { background: var(--adm-navy); color: #fff; }
   .adm-btn--primary:hover { background: var(--adm-navy-hover); }
@@ -191,7 +191,7 @@
   .adm-btn--danger-text { color: var(--adm-red); background: transparent; }
   .adm-btn--danger-text:hover { background: rgb(202 30 30 / 0.08); }
   .adm-btn:is(:disabled, [aria-disabled="true"]) { opacity: 0.5; cursor: not-allowed; }
-  .adm-link { color: var(--adm-navy); font-weight: 500; font-size: 14px; line-height: 1.2; }
+  .adm-link { color: var(--adm-navy); font-weight: 500; font-size: 14px; line-height: 1.2; display: inline-flex; align-items: center; min-height: 44px; }
   .adm-link:hover { text-decoration: underline; }
   .adm-link--danger { color: var(--adm-red); font-size: 13px; }
 
@@ -269,8 +269,8 @@
   .adm-drop__title { font-size: 15px; font-weight: 500; line-height: 1.3; }
   .adm-drop__hint { font-size: 13px; line-height: 1.3; color: var(--adm-mute); }
   .adm-photo { display: block; width: 100%; height: 176px; border-radius: 18px; object-fit: cover; background: var(--adm-empty); }
-  /* Tambahan untuk PhotoField. Logo tampil utuh di atas putih, sedangkan foto dipotong mengisi kotak. Cincin navy
-     menandai foto akan diganti berkas yang sedang diseret di atasnya. */
+  /* Logo tampil utuh di atas putih, sedangkan foto dipotong mengisi kotak. Cincin navy menandai foto akan diganti
+     berkas yang sedang diseret di atasnya. */
   .adm-photo--contain { object-fit: contain; padding: 16px; background: #fff; border: 1px solid var(--adm-line); }
   .adm-photo[data-over="true"] { box-shadow: 0 0 0 2px var(--adm-navy); }
   .adm-photo__note { font-size: 12px; line-height: 1.2; color: var(--adm-mute); }

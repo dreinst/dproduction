@@ -16,11 +16,11 @@ const officialHost = [{ type: "host" as const, value: "www\\.dpro\\.events" }];
 const legacyRedirects: [string, string][] = [
   ["/tentang_kami", "/tentang"],
   ["/team", "/tentang#tim"],
-  ["/masterpiece", "/#masterpiece"],
+  ["/masterpiece", "/portofolio"],
   // Termasuk /rental sendiri dan turunannya seperti /rental/detail/12.
   ["/rental/:path*", "/katalog"],
-  ["/event", "/#layanan"],
-  ["/wedding", "/#layanan"],
+  ["/event", "/layanan#event-organizer"],
+  ["/wedding", "/layanan#wedding-organizer"],
   ["/galeri_foto", "/tentang#galeri"],
   ["/galeri_video", "/tentang#galeri"],
   ["/kontak", "/#kontak"],
