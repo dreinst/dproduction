@@ -19,7 +19,7 @@ export const FALLBACK = {
     address: "Jl. Raya Pandanlandung No. 16 Bandulan, Wagir, Kab. Malang, Jawa Timur",
     whatsapp: "081938938800",
     whatsapp2: "082132370811",
-    email: "dproductionorganizer@gmail.com",
+    email: "customerservice@dpro.events",
     website: "https://www.dpro.events",
     instagramUrl: "https://www.instagram.com/dpro.duction",
     youtubeUrl: "https://youtube.com/@dproductionzone",
